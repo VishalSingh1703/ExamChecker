@@ -226,15 +226,7 @@ export function AuthGate({ onAuth }: { onAuth: () => void }) {
           />
         </div>
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-            <button
-              onClick={() => resetForm('forgot')}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              Forgot password?
-            </button>
-          </div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
           <input
             type="password"
             value={password}
@@ -248,9 +240,15 @@ export function AuthGate({ onAuth }: { onAuth: () => void }) {
         <button
           onClick={handleLogin}
           disabled={loading || !email || !password}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Signing in…' : 'Sign In'}
+        </button>
+        <button
+          onClick={() => resetForm('forgot')}
+          className="w-full py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+        >
+          Forgot Password?
         </button>
         <p className="text-center text-sm text-gray-500 dark:text-gray-400">
           Don't have an account?{' '}
