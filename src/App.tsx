@@ -6,6 +6,8 @@ import { ExamSetup } from './components/ExamSetup';
 import { GradingView } from './components/GradingView';
 import { ReportView } from './components/ReportView';
 import { InfoModal } from './components/InfoModal';
+import { ProfileView } from './components/ProfileView';
+import { PasswordResetScreen } from './components/PasswordResetScreen';
 import { ExamProvider, useExam, useExamDispatch } from './context/ExamContext';
 
 const TABS = [
@@ -14,14 +16,12 @@ const TABS = [
   { id: 'report', label: 'Report' },
 ] as const;
 
-// Lifted to module level so it never reinitializes on remount
 function useDarkMode() {
   const [dark, setDark] = useState(() => {
     const stored = localStorage.getItem('dark-mode');
     const isDark = stored !== null
       ? stored === 'true'
       : window.matchMedia('(prefers-color-scheme: dark)').matches;
-    // Apply synchronously so there's no flash on first render
     document.documentElement.classList.toggle('dark', isDark);
     return isDark;
   });
@@ -35,7 +35,7 @@ function useDarkMode() {
 }
 
 interface AppInnerProps {
-  session: Session | null;
+  session: Session;
   dark: boolean;
   setDark: (v: boolean) => void;
 }
@@ -44,10 +44,7 @@ function AppInner({ session, dark, setDark }: AppInnerProps) {
   const { activeTab } = useExam();
   const dispatch = useExamDispatch();
   const [showInfo, setShowInfo] = useState(false);
-
-  async function handleLogout() {
-    if (supabase) await supabase.auth.signOut();
-  }
+  const [showProfile, setShowProfile] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -55,7 +52,12 @@ function AppInner({ session, dark, setDark }: AppInnerProps) {
 
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between print:hidden">
-        <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Exam Checker</h1>
+        <button
+          onClick={() => setShowProfile(false)}
+          className="text-lg font-bold text-gray-900 dark:text-gray-100 hover:opacity-80"
+        >
+          Exam Checker
+        </button>
 
         <div className="flex items-center gap-2">
           {/* Info button */}
@@ -85,58 +87,82 @@ function AppInner({ session, dark, setDark }: AppInnerProps) {
             )}
           </button>
 
-          {session && (
-            <>
-              <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block ml-1">{session.user.email}</span>
-              <button
-                onClick={handleLogout}
-                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 px-3 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Sign out
-              </button>
-            </>
-          )}
+          {/* Profile icon */}
+          <button
+            onClick={() => setShowProfile((p) => !p)}
+            title="Account"
+            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+              showProfile
+                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </button>
         </div>
       </header>
 
-      {/* Tabs */}
-      <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 print:hidden">
-        <div className="flex gap-1 max-w-4xl mx-auto">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: tab.id })}
-              className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </nav>
+      {showProfile ? (
+        /* Profile page */
+        <main className="p-4 max-w-4xl mx-auto">
+          <ProfileView user={session.user} onBack={() => setShowProfile(false)} />
+        </main>
+      ) : (
+        <>
+          {/* Tabs */}
+          <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 print:hidden">
+            <div className="flex gap-1 max-w-4xl mx-auto">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: tab.id })}
+                  className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </nav>
 
-      {/* Content */}
-      <main className="p-4 max-w-4xl mx-auto">
-        {activeTab === 'setup' && <ExamSetup />}
-        {activeTab === 'grade' && <GradingView />}
-        {activeTab === 'report' && <ReportView />}
-      </main>
+          {/* Content */}
+          <main className="p-4 max-w-4xl mx-auto">
+            {activeTab === 'setup' && <ExamSetup />}
+            {activeTab === 'grade' && <GradingView />}
+            {activeTab === 'report' && <ReportView />}
+          </main>
+        </>
+      )}
     </div>
   );
 }
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  // Dark mode lives here — never remounts, survives session changes
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [dark, setDark] = useDarkMode();
 
   useEffect(() => {
     if (!supabase) { setSession(null); return; }
+
     supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => setSession(s ?? null));
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // User followed a password-reset link — show the set-password screen
+        setPasswordRecovery(true);
+        setSession(s ?? null);
+      } else {
+        setPasswordRecovery(false);
+        setSession(s ?? null);
+      }
+    });
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -148,6 +174,11 @@ export default function App() {
     );
   }
 
+  // User clicked a password-reset link — intercept before anything else
+  if (passwordRecovery) {
+    return <PasswordResetScreen />;
+  }
+
   if (!supabase || session) {
     return (
       <ExamProvider>
@@ -156,7 +187,7 @@ export default function App() {
             Auth disabled: {supabaseError}
           </div>
         )}
-        <AppInner session={session} dark={dark} setDark={setDark} />
+        <AppInner session={session!} dark={dark} setDark={setDark} />
       </ExamProvider>
     );
   }
