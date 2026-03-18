@@ -14,6 +14,21 @@ There are no tests or linting scripts configured.
 
 After every set of changes: run `npm run build` to confirm TypeScript and the Vite build both pass before committing.
 
+## Git workflow
+
+Commit and push to GitHub after every meaningful unit of work — a bug fix, a feature, a refactor. Never leave work uncommitted at the end of a session. This project has no staging environment; GitHub is the source of truth and Vercel redeploys on every push to `main`.
+
+Commit message format:
+- `feat:` — new feature or behaviour
+- `fix:` — bug fix
+- `chore:` — config, deps, tooling
+- `docs:` — documentation only
+
+Keep messages concise and specific about *what changed and why*, not just *what files changed*. Always end commits with:
+```
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+```
+
 ## Deployment
 
 The project is hosted on Vercel and linked to GitHub. Every `git push` to `main` triggers an automatic redeploy. The live URL is **https://exam-checker-virid.vercel.app**.
