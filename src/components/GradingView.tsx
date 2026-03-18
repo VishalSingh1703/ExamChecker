@@ -8,7 +8,7 @@ export function GradingView() {
 
   if (!answerKey) {
     return (
-      <div className="text-center text-gray-500 py-16">
+      <div className="text-center text-gray-500 dark:text-gray-400 py-16">
         No answer key loaded. Go to Setup first.
       </div>
     );
@@ -56,12 +56,12 @@ export function GradingView() {
   return (
     <div className="max-w-4xl mx-auto space-y-4">
       {/* Progress bar */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4">
-        <div className="flex justify-between text-sm text-gray-600 mb-2">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 px-5 py-4">
+        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
           <span>Progress</span>
           <span>{currentQuestionIndex} / {total} completed</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div
             className="bg-blue-500 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
@@ -70,6 +70,7 @@ export function GradingView() {
       </div>
 
       <QuestionGrader
+        key={question.id}
         question={question}
         questionNumber={currentQuestionIndex + 1}
         totalQuestions={total}

@@ -54,11 +54,8 @@ export function QuestionGrader({
     setOcrProgress(0);
     const ocr = await extractTextFromImage(file, setOcrProgress);
     setOcrLoading(false);
-    if (ocr.error) {
-      setOcrError(ocr.error);
-    } else {
-      setOcrText(ocr.text);
-    }
+    if (ocr.error) setOcrError(ocr.error);
+    else setOcrText(ocr.text);
   }
 
   async function handleAnalyze() {
@@ -67,13 +64,7 @@ export function QuestionGrader({
     setResult(null);
     const sim = await getSemanticSimilarity(ocrText, question.expectedAnswer, hfApiKey || undefined);
     const { marks, status } = calculateMarks(sim.score, question.threshold, question.marks);
-    setResult({
-      similarity: sim.score,
-      method: sim.method,
-      marks,
-      status,
-      fallbackReason: sim.error,
-    });
+    setResult({ similarity: sim.score, method: sim.method, marks, status, fallbackReason: sim.error });
     setAnalyzing(false);
   }
 
@@ -91,24 +82,24 @@ export function QuestionGrader({
   }
 
   const statusColors = {
-    full: 'text-green-700 bg-green-50 border-green-200',
-    partial: 'text-yellow-700 bg-yellow-50 border-yellow-200',
-    zero: 'text-red-700 bg-red-50 border-red-200',
-    skipped: 'text-gray-600 bg-gray-50 border-gray-200',
+    full: 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
+    partial: 'text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
+    zero: 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
+    skipped: 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
   };
 
   return (
     <div className="space-y-4">
       {/* Question header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
+            <p className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide mb-1">
               Question {questionNumber} of {totalQuestions}
             </p>
-            <p className="text-base font-semibold text-gray-900">{question.question}</p>
+            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{question.question}</p>
           </div>
-          <span className="shrink-0 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1">
+          <span className="shrink-0 text-sm font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-1">
             {question.marks} marks
           </span>
         </div>
@@ -117,11 +108,11 @@ export function QuestionGrader({
       {/* Two-column grading area */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Left: image */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-gray-700">Answer Image</h3>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Answer Image</h3>
           <button
             onClick={() => fileRef.current?.click()}
-            className="flex items-center justify-center gap-2 w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600"
+            className="flex items-center justify-center gap-2 w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400"
           >
             {imageFile ? 'Change Image' : 'Upload Image'}
           </button>
@@ -131,39 +122,36 @@ export function QuestionGrader({
             <img
               src={imageUrl}
               alt="Answer"
-              className="w-full rounded-xl border border-gray-200 object-contain max-h-64"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 object-contain max-h-64"
             />
           )}
 
           {ocrLoading && (
             <div className="space-y-1">
-              <div className="flex justify-between text-xs text-gray-500">
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                 <span>Running OCR…</span>
                 <span>{ocrProgress}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5">
-                <div
-                  className="bg-blue-500 h-1.5 rounded-full transition-all"
-                  style={{ width: `${ocrProgress}%` }}
-                />
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${ocrProgress}%` }} />
               </div>
             </div>
           )}
 
           {ocrError && (
-            <p className="text-red-600 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <p className="text-red-600 dark:text-red-400 text-xs bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
               OCR error: {ocrError}
             </p>
           )}
         </div>
 
         {/* Right: extracted text + analysis */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-gray-700">Extracted Text</h3>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Extracted Text</h3>
           <textarea
             value={ocrText}
             onChange={(e) => setOcrText(e.target.value)}
-            className="flex-1 min-h-[120px] border border-gray-300 rounded-xl p-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="flex-1 min-h-[120px] border border-gray-300 dark:border-gray-700 rounded-xl p-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600"
             placeholder="Upload an image to extract text, or type directly…"
           />
 
@@ -178,7 +166,7 @@ export function QuestionGrader({
           {result && (
             <div className={`border rounded-xl px-4 py-3 text-sm space-y-2 ${statusColors[result.status]}`}>
               {result.method === 'keyword' && result.fallbackReason && (
-                <p className="text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-xs">
+                <p className="text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg px-3 py-2 text-xs">
                   Using keyword fallback (semantic API unavailable)
                 </p>
               )}
@@ -205,7 +193,7 @@ export function QuestionGrader({
         </button>
         <button
           onClick={onSkip}
-          className="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200"
+          className="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700"
         >
           Skip
         </button>
