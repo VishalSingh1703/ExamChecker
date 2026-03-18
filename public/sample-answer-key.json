@@ -1,0 +1,30 @@
+{
+  "exam": {
+    "title": "Biology Mid-Term",
+    "subject": "Biology",
+    "totalMarks": 30
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is photosynthesis?",
+      "expectedAnswer": "Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to produce glucose and oxygen through chemical reactions in the chloroplasts.",
+      "marks": 5,
+      "threshold": 0.6
+    },
+    {
+      "id": 2,
+      "question": "Describe the structure and function of the cell membrane.",
+      "expectedAnswer": "The cell membrane is a phospholipid bilayer with embedded proteins that controls the movement of substances in and out of the cell. It provides selective permeability, maintaining homeostasis.",
+      "marks": 10,
+      "threshold": 0.55
+    },
+    {
+      "id": 3,
+      "question": "Explain the process of mitosis and its significance.",
+      "expectedAnswer": "Mitosis is a type of cell division resulting in two daughter cells with the same number of chromosomes as the parent cell. It occurs in four stages: prophase, metaphase, anaphase, and telophase. It is essential for growth, repair, and asexual reproduction.",
+      "marks": 15,
+      "threshold": 0.5
+    }
+  ]
+}
