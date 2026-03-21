@@ -4,6 +4,7 @@ import type { AnswerKey, ExamSession, QuestionResult } from '../types';
 type Action =
   | { type: 'SET_ANSWER_KEY'; payload: AnswerKey }
   | { type: 'SET_HF_API_KEY'; payload: string }
+  | { type: 'SET_GEMINI_API_KEY'; payload: string }
   | { type: 'UPDATE_QUESTION_RESULT'; payload: QuestionResult }
   | { type: 'SET_CURRENT_QUESTION'; payload: number }
   | { type: 'SET_ACTIVE_TAB'; payload: ExamSession['activeTab'] }
@@ -15,6 +16,7 @@ const initialState: ExamSession = {
   currentQuestionIndex: 0,
   activeTab: 'setup',
   hfApiKey: '',
+  geminiApiKey: localStorage.getItem('gemini-api-key') ?? '',
 };
 
 function examReducer(state: ExamSession, action: Action): ExamSession {
@@ -23,6 +25,9 @@ function examReducer(state: ExamSession, action: Action): ExamSession {
       return { ...state, answerKey: action.payload, results: [], currentQuestionIndex: 0 };
     case 'SET_HF_API_KEY':
       return { ...state, hfApiKey: action.payload };
+    case 'SET_GEMINI_API_KEY':
+      localStorage.setItem('gemini-api-key', action.payload);
+      return { ...state, geminiApiKey: action.payload };
     case 'UPDATE_QUESTION_RESULT': {
       const existing = state.results.findIndex(
         (r) => r.questionId === action.payload.questionId
@@ -38,7 +43,7 @@ function examReducer(state: ExamSession, action: Action): ExamSession {
     case 'SET_ACTIVE_TAB':
       return { ...state, activeTab: action.payload };
     case 'RESET_SESSION':
-      return initialState;
+      return { ...initialState, geminiApiKey: state.geminiApiKey };
     default:
       return state;
   }

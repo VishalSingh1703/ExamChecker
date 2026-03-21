@@ -3,7 +3,7 @@ import { QuestionGrader } from './QuestionGrader';
 import type { QuestionResult } from '../types';
 
 export function GradingView() {
-  const { answerKey, currentQuestionIndex, hfApiKey } = useExam();
+  const { answerKey, currentQuestionIndex, hfApiKey, geminiApiKey } = useExam();
   const dispatch = useExamDispatch();
 
   if (!answerKey) {
@@ -75,6 +75,7 @@ export function GradingView() {
         questionNumber={currentQuestionIndex + 1}
         totalQuestions={total}
         hfApiKey={hfApiKey}
+        geminiApiKey={geminiApiKey}
         onSave={handleSave}
         onSkip={handleSkip}
       />

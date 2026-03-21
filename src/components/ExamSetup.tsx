@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import type { AnswerKey } from '../types';
-import { useExamDispatch } from '../context/ExamContext';
+import { useExam, useExamDispatch } from '../context/ExamContext';
 
 const SAMPLE_URL = '/sample-answer-key.json';
 
@@ -36,6 +36,7 @@ const TEMPLATE_JSON = `{
 }`;
 
 export function ExamSetup() {
+  const { geminiApiKey, hfApiKey } = useExam();
   const dispatch = useExamDispatch();
   const [jsonText, setJsonText] = useState('');
   const [jsonError, setJsonError] = useState('');
@@ -202,6 +203,56 @@ export function ExamSetup() {
         >
           Save Answer Key
         </button>
+      </div>
+
+      {/* API Keys */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">API Keys</h2>
+
+        {/* Gemini API Key */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Gemini API Key
+            <span className="ml-2 text-xs font-normal text-gray-400">(recommended — for handwriting OCR)</span>
+          </label>
+          <input
+            type="password"
+            value={geminiApiKey}
+            onChange={(e) => dispatch({ type: 'SET_GEMINI_API_KEY', payload: e.target.value })}
+            placeholder="AIza…"
+            className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+          />
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+            Free at{' '}
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noreferrer"
+              className="text-blue-600 dark:text-blue-400 underline"
+            >
+              aistudio.google.com/apikey
+            </a>
+            . Without this, Tesseract (browser OCR) is used as fallback — quality may be lower on handwriting.
+          </p>
+        </div>
+
+        {/* HF API Key */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Hugging Face API Key
+            <span className="ml-2 text-xs font-normal text-gray-400">(optional — for semantic similarity)</span>
+          </label>
+          <input
+            type="password"
+            value={hfApiKey}
+            onChange={(e) => dispatch({ type: 'SET_HF_API_KEY', payload: e.target.value })}
+            placeholder="hf_…"
+            className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+          />
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+            Without this, keyword overlap is used as fallback for similarity scoring.
+          </p>
+        </div>
       </div>
 
       {/* Start Grading */}

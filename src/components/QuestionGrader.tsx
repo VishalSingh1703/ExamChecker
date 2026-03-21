@@ -9,6 +9,7 @@ interface Props {
   questionNumber: number;
   totalQuestions: number;
   hfApiKey: string;
+  geminiApiKey: string;
   onSave: (result: QuestionResult) => void;
   onSkip: () => void;
 }
@@ -18,6 +19,7 @@ export function QuestionGrader({
   questionNumber,
   totalQuestions,
   hfApiKey,
+  geminiApiKey,
   onSave,
   onSkip,
 }: Props) {
@@ -27,6 +29,7 @@ export function QuestionGrader({
   const [ocrProgress, setOcrProgress] = useState(0);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrError, setOcrError] = useState('');
+  const [ocrEngine, setOcrEngine] = useState<'gemini' | 'tesseract' | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<{
     similarity: number;
@@ -52,10 +55,16 @@ export function QuestionGrader({
   async function runOCR(file: File) {
     setOcrLoading(true);
     setOcrProgress(0);
-    const ocr = await extractTextFromImage(file, setOcrProgress);
+    setOcrEngine(null);
+    const ocr = await extractTextFromImage(file, setOcrProgress, geminiApiKey || undefined);
     setOcrLoading(false);
-    if (ocr.error) setOcrError(ocr.error);
-    else setOcrText(ocr.text);
+    setOcrEngine(ocr.usedGemini ? 'gemini' : 'tesseract');
+    if (ocr.error && !ocr.text) {
+      setOcrError(ocr.error);
+    } else {
+      setOcrText(ocr.text);
+      if (ocr.error) setOcrError(ocr.error); // fallback warning
+    }
   }
 
   async function handleAnalyze() {
@@ -136,6 +145,12 @@ export function QuestionGrader({
                 <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${ocrProgress}%` }} />
               </div>
             </div>
+          )}
+
+          {ocrEngine && (
+            <p className={`text-xs rounded-lg px-3 py-1.5 border ${ocrEngine === 'gemini' ? 'text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+              OCR: {ocrEngine === 'gemini' ? 'Gemini 2.5 Flash ✓' : 'Tesseract (fallback)'}
+            </p>
           )}
 
           {ocrError && (

@@ -39,10 +39,15 @@ export interface QuestionResult {
   status: 'full' | 'partial' | 'zero' | 'skipped';
 }
 
+export interface OCRMethod {
+  method: 'gemini' | 'tesseract';
+}
+
 export interface ExamSession {
   answerKey: AnswerKey | null;
   results: QuestionResult[];
   currentQuestionIndex: number;
   activeTab: 'setup' | 'grade' | 'report';
   hfApiKey: string;
+  geminiApiKey: string;
 }
