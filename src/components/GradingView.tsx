@@ -1,9 +1,15 @@
 import { useExam, useExamDispatch } from '../context/ExamContext';
 import { QuestionGrader } from './QuestionGrader';
-import type { QuestionResult } from '../types';
+import type { CheckingMode, QuestionResult } from '../types';
+
+const MODE_THRESHOLDS: Record<CheckingMode, number> = {
+  easy: 0.45,
+  medium: 0.6,
+  strict: 0.75,
+};
 
 export function GradingView() {
-  const { answerKey, currentQuestionIndex, hfApiKey, geminiApiKey } = useExam();
+  const { answerKey, currentQuestionIndex, hfApiKey, geminiApiKey, checkingMode } = useExam();
   const dispatch = useExamDispatch();
 
   if (!answerKey) {
@@ -74,6 +80,7 @@ export function GradingView() {
         question={question}
         questionNumber={currentQuestionIndex + 1}
         totalQuestions={total}
+        threshold={MODE_THRESHOLDS[checkingMode]}
         hfApiKey={hfApiKey}
         geminiApiKey={geminiApiKey}
         onSave={handleSave}

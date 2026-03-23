@@ -1,6 +1,12 @@
 import { useState, useRef } from 'react';
-import type { AnswerKey } from '../types';
+import type { AnswerKey, CheckingMode } from '../types';
 import { useExam, useExamDispatch } from '../context/ExamContext';
+
+const CHECKING_MODES: { mode: CheckingMode; label: string; description: string; threshold: string }[] = [
+  { mode: 'easy', label: 'Easy', description: 'Flexible — rewards partial understanding', threshold: '45%' },
+  { mode: 'medium', label: 'Medium', description: 'Balanced — standard grading', threshold: '60%' },
+  { mode: 'strict', label: 'Strict', description: 'Precise — close match required', threshold: '75%' },
+];
 
 const SAMPLE_URL = '/sample-answer-key.json';
 
@@ -36,7 +42,7 @@ const TEMPLATE_JSON = `{
 }`;
 
 export function ExamSetup() {
-  const { geminiApiKey, hfApiKey } = useExam();
+  const { geminiApiKey, hfApiKey, checkingMode } = useExam();
   const dispatch = useExamDispatch();
   const [jsonText, setJsonText] = useState('');
   const [jsonError, setJsonError] = useState('');
@@ -252,6 +258,43 @@ export function ExamSetup() {
           <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
             Without this, keyword overlap is used as fallback for similarity scoring.
           </p>
+        </div>
+      </div>
+
+      {/* Checking Mode */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Checking Mode</h2>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+          Controls how strictly student answers are matched against the expected answer. This applies to all questions.
+        </p>
+        <div className="grid grid-cols-3 gap-3">
+          {CHECKING_MODES.map(({ mode, label, description, threshold }) => {
+            const selected = checkingMode === mode;
+            const colors: Record<CheckingMode, string> = {
+              easy: selected
+                ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300'
+                : 'border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700',
+              medium: selected
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
+                : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700',
+              strict: selected
+                ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300'
+                : 'border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-700',
+            };
+            return (
+              <button
+                key={mode}
+                onClick={() => dispatch({ type: 'SET_CHECKING_MODE', payload: mode })}
+                className={`flex flex-col items-start gap-1 border-2 rounded-xl p-3 text-left transition-colors ${colors[mode]}`}
+              >
+                <span className="font-semibold text-sm">{label}</span>
+                <span className={`text-xs ${selected ? '' : 'text-gray-500 dark:text-gray-400'}`}>{description}</span>
+                <span className={`text-xs font-mono mt-1 ${selected ? 'opacity-80' : 'text-gray-400 dark:text-gray-500'}`}>
+                  threshold {threshold}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

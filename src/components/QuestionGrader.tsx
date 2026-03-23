@@ -8,6 +8,7 @@ interface Props {
   question: Question;
   questionNumber: number;
   totalQuestions: number;
+  threshold: number;
   hfApiKey: string;
   geminiApiKey: string;
   onSave: (result: QuestionResult) => void;
@@ -18,6 +19,7 @@ export function QuestionGrader({
   question,
   questionNumber,
   totalQuestions,
+  threshold,
   hfApiKey,
   geminiApiKey,
   onSave,
@@ -72,7 +74,7 @@ export function QuestionGrader({
     setAnalyzing(true);
     setResult(null);
     const sim = await getSemanticSimilarity(ocrText, question.expectedAnswer, hfApiKey || undefined);
-    const { marks, status } = calculateMarks(sim.score, question.threshold, question.marks);
+    const { marks, status } = calculateMarks(sim.score, threshold, question.marks);
     setResult({ similarity: sim.score, method: sim.method, marks, status, fallbackReason: sim.error });
     setAnalyzing(false);
   }

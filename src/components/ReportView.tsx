@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { useExam, useExamDispatch } from '../context/ExamContext';
 import { calculateTotalScore, getGrade } from '../utils/scoring';
+import type { CheckingMode } from '../types';
+
+const MODE_LABELS: Record<CheckingMode, { label: string; color: string }> = {
+  easy: { label: 'Easy', color: 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800' },
+  medium: { label: 'Medium', color: 'text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' },
+  strict: { label: 'Strict', color: 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800' },
+};
 
 export function ReportView() {
-  const { answerKey, results } = useExam();
+  const { answerKey, results, checkingMode } = useExam();
   const dispatch = useExamDispatch();
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -42,7 +49,12 @@ export function ReportView() {
 
       {/* Score card */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 print:shadow-none print:border print:border-gray-300">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{answerKey.exam.title}</h2>
+        <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{answerKey.exam.title}</h2>
+          <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${MODE_LABELS[checkingMode].color}`}>
+            {MODE_LABELS[checkingMode].label} Checking
+          </span>
+        </div>
         <div className="flex items-center gap-6 flex-wrap">
           <div className="text-4xl font-bold text-gray-900 dark:text-gray-100">
             {scored}{' '}
@@ -91,9 +103,22 @@ export function ReportView() {
                   )}
                 </button>
 
-                {result?.extractedText && (
-                  <div className={`px-10 pb-3 text-xs text-gray-600 dark:text-gray-400 font-mono whitespace-pre-wrap ${!expanded ? 'hidden print:block' : ''}`}>
-                    {result.extractedText}
+                {result && (result.extractedText || q.expectedAnswer) && (
+                  <div className={`px-10 pb-4 space-y-2 ${!expanded ? 'hidden print:block' : ''}`}>
+                    {result.extractedText && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">Student's Answer</p>
+                        <p className="text-xs text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">
+                          {result.extractedText}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">Expected Answer</p>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">
+                        {q.expectedAnswer}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

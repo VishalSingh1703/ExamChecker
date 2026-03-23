@@ -43,6 +43,8 @@ export interface OCRMethod {
   method: 'gemini' | 'tesseract';
 }
 
+export type CheckingMode = 'easy' | 'medium' | 'strict';
+
 export interface ExamSession {
   answerKey: AnswerKey | null;
   results: QuestionResult[];
@@ -50,4 +52,5 @@ export interface ExamSession {
   activeTab: 'setup' | 'grade' | 'report';
   hfApiKey: string;
   geminiApiKey: string;
+  checkingMode: CheckingMode;
 }

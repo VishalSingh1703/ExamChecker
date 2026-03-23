@@ -1,10 +1,11 @@
 import { createContext, useContext, useReducer, type ReactNode } from 'react';
-import type { AnswerKey, ExamSession, QuestionResult } from '../types';
+import type { AnswerKey, CheckingMode, ExamSession, QuestionResult } from '../types';
 
 type Action =
   | { type: 'SET_ANSWER_KEY'; payload: AnswerKey }
   | { type: 'SET_HF_API_KEY'; payload: string }
   | { type: 'SET_GEMINI_API_KEY'; payload: string }
+  | { type: 'SET_CHECKING_MODE'; payload: CheckingMode }
   | { type: 'UPDATE_QUESTION_RESULT'; payload: QuestionResult }
   | { type: 'SET_CURRENT_QUESTION'; payload: number }
   | { type: 'SET_ACTIVE_TAB'; payload: ExamSession['activeTab'] }
@@ -17,6 +18,7 @@ const initialState: ExamSession = {
   activeTab: 'setup',
   hfApiKey: '',
   geminiApiKey: localStorage.getItem('gemini-api-key') ?? '',
+  checkingMode: 'medium',
 };
 
 function examReducer(state: ExamSession, action: Action): ExamSession {
@@ -28,6 +30,8 @@ function examReducer(state: ExamSession, action: Action): ExamSession {
     case 'SET_GEMINI_API_KEY':
       localStorage.setItem('gemini-api-key', action.payload);
       return { ...state, geminiApiKey: action.payload };
+    case 'SET_CHECKING_MODE':
+      return { ...state, checkingMode: action.payload };
     case 'UPDATE_QUESTION_RESULT': {
       const existing = state.results.findIndex(
         (r) => r.questionId === action.payload.questionId
