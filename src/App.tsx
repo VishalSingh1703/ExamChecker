@@ -8,12 +8,14 @@ import { ReportView } from './components/ReportView';
 import { InfoModal } from './components/InfoModal';
 import { ProfileView } from './components/ProfileView';
 import { PasswordResetScreen } from './components/PasswordResetScreen';
+import { HistoryView } from './components/HistoryView';
 import { ExamProvider, useExam, useExamDispatch } from './context/ExamContext';
 
 const TABS = [
   { id: 'setup', label: 'Setup' },
   { id: 'grade', label: 'Grade' },
   { id: 'report', label: 'Report' },
+  { id: 'history', label: 'History' },
 ] as const;
 
 function useDarkMode() {
@@ -135,6 +137,7 @@ function AppInner({ session, dark, setDark }: AppInnerProps) {
             {activeTab === 'setup' && <ExamSetup />}
             {activeTab === 'grade' && <GradingView />}
             {activeTab === 'report' && <ReportView />}
+            {activeTab === 'history' && <HistoryView />}
           </main>
         </>
       )}

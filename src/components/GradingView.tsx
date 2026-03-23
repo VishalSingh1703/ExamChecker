@@ -9,7 +9,7 @@ const MODE_THRESHOLDS: Record<CheckingMode, number> = {
 };
 
 export function GradingView() {
-  const { answerKey, currentQuestionIndex, hfApiKey, geminiApiKey, checkingMode } = useExam();
+  const { answerKey, currentQuestionIndex, hfApiKey, geminiApiKey, checkingMode, examTerm, examClass, studentName, studentSection } = useExam();
   const dispatch = useExamDispatch();
 
   if (!answerKey) {
@@ -74,6 +74,15 @@ export function GradingView() {
           />
         </div>
       </div>
+
+      {(studentName || examClass || studentSection || examTerm) && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 px-5 py-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
+          {examTerm && <span><span className="font-medium text-gray-800 dark:text-gray-200">Term:</span> {examTerm}</span>}
+          {examClass && <span><span className="font-medium text-gray-800 dark:text-gray-200">Class:</span> {examClass}</span>}
+          {studentSection && <span><span className="font-medium text-gray-800 dark:text-gray-200">Section:</span> {studentSection}</span>}
+          {studentName && <span><span className="font-medium text-gray-800 dark:text-gray-200">Student:</span> {studentName}</span>}
+        </div>
+      )}
 
       <QuestionGrader
         key={question.id}

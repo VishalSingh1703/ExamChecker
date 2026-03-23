@@ -1,0 +1,512 @@
+import { useState, useMemo, useRef, useEffect } from 'react';
+import type { HistoryRecord, CheckingMode, QuestionResult } from '../types';
+import { extractTextFromImage } from '../services/ocr';
+import { getSemanticSimilarity } from '../services/similarity';
+import { calculateMarks } from '../utils/scoring';
+import { useExam } from '../context/ExamContext';
+import { loadReports, updateReport } from '../services/reports';
+import { supabase } from '../lib/supabase';
+
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const MODE_THRESHOLDS: Record<CheckingMode, number> = { easy: 0.45, medium: 0.6, strict: 0.75 };
+
+const MODE_LABELS: Record<CheckingMode, { label: string; color: string }> = {
+  easy: { label: 'Easy', color: 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800' },
+  medium: { label: 'Medium', color: 'text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' },
+  strict: { label: 'Strict', color: 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800' },
+};
+
+const gradeColors: Record<string, string> = {
+  'A+': 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30',
+  A: 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30',
+  B: 'text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30',
+  C: 'text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30',
+  D: 'text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30',
+  F: 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30',
+};
+
+const rowColors = {
+  full: 'bg-green-50 dark:bg-green-900/10',
+  partial: 'bg-yellow-50 dark:bg-yellow-900/10',
+  zero: 'bg-red-50 dark:bg-red-900/10',
+  skipped: 'bg-gray-50 dark:bg-gray-800/50',
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+type Tree = Map<number, Map<string, Map<string, HistoryRecord[]>>>;
+
+function buildTree(records: HistoryRecord[]): Tree {
+  const tree: Tree = new Map();
+  for (const r of records) {
+    const year = new Date(r.savedAt).getFullYear();
+    const cls = r.examClass || 'Unclassified';
+    const sec = r.studentSection || 'Unclassified';
+    if (!tree.has(year)) tree.set(year, new Map());
+    const ym = tree.get(year)!;
+    if (!ym.has(cls)) ym.set(cls, new Map());
+    const cm = ym.get(cls)!;
+    if (!cm.has(sec)) cm.set(sec, []);
+    cm.get(sec)!.push(r);
+  }
+  return tree;
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ── Update Modal ─────────────────────────────────────────────────────────────
+
+interface QuestionPatch {
+  newText: string;
+  newScore: number;
+  newMarks: number;
+  newStatus: QuestionResult['status'];
+  changed: boolean;
+}
+
+function UpdateModal({ record, hfApiKey, onClose, onSave }: {
+  record: HistoryRecord;
+  hfApiKey: string;
+  onClose: () => void;
+  onSave: (updated: HistoryRecord) => void;
+}) {
+  const geminiKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
+  const [patches, setPatches] = useState<Map<number, QuestionPatch>>(new Map());
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [ocrText, setOcrText] = useState('');
+  const [ocrError, setOcrError] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const threshold = MODE_THRESHOLDS[record.checkingMode];
+  const activeQuestion = record.questions.find(q => q.id === activeId);
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !activeId) return;
+    e.target.value = '';
+    setOcrLoading(true);
+    setOcrError('');
+    setOcrText('');
+    const ocr = await extractTextFromImage(file, undefined, geminiKey || undefined);
+    setOcrLoading(false);
+    if (ocr.error && !ocr.text) { setOcrError(ocr.error); return; }
+    setOcrText(ocr.text);
+  }
+
+  async function handleAnalyze() {
+    if (!ocrText.trim() || !activeQuestion) return;
+    setAnalyzing(true);
+    const sim = await getSemanticSimilarity(ocrText, activeQuestion.expectedAnswer, hfApiKey || undefined);
+    const { marks, status } = calculateMarks(sim.score, threshold, activeQuestion.marks);
+    setPatches(prev => new Map(prev).set(activeId!, {
+      newText: ocrText, newScore: sim.score, newMarks: marks, newStatus: status, changed: true,
+    }));
+    setAnalyzing(false);
+  }
+
+  function handleSave() {
+    const updatedResults = record.results.map(r => {
+      const patch = patches.get(r.questionId);
+      if (!patch) return r;
+      return { ...r, extractedText: patch.newText, similarityScore: patch.newScore, marksAwarded: patch.newMarks, status: patch.newStatus };
+    });
+    const scored = updatedResults.reduce((s, r) => s + r.marksAwarded, 0);
+    const pct = record.total > 0 ? Math.round((scored / record.total) * 100) : 0;
+    // Recalculate grade
+    const grade = pct >= 90 ? 'A+' : pct >= 80 ? 'A' : pct >= 70 ? 'B' : pct >= 60 ? 'C' : pct >= 50 ? 'D' : 'F';
+    onSave({ ...record, results: updatedResults, scored, percentage: pct, grade });
+  }
+
+  const hasChanges = [...patches.values()].some(p => p.changed);
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-800">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Update Answers</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{record.studentName} · {record.examTitle}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 text-xl">×</button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Select a question to re-upload its image.</p>
+
+          {record.questions.map((q, idx) => {
+            const existing = record.results.find(r => r.questionId === q.id);
+            const patch = patches.get(q.id);
+            const isActive = activeId === q.id;
+
+            return (
+              <div key={q.id} className={`border rounded-xl transition-colors ${isActive ? 'border-blue-400 dark:border-blue-600' : 'border-gray-200 dark:border-gray-700'}`}>
+                <button
+                  className="w-full text-left px-4 py-3 flex items-center gap-3"
+                  onClick={() => { setActiveId(isActive ? null : q.id); setOcrText(''); setOcrError(''); }}
+                >
+                  <span className="text-xs font-semibold text-gray-400 w-5">Q{idx + 1}</span>
+                  <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 truncate">{q.question}</span>
+                  {patch?.changed && (
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Updated</span>
+                  )}
+                  {!patch && existing && (
+                    <span className="text-xs text-gray-400">{existing.marksAwarded}/{q.marks}</span>
+                  )}
+                </button>
+
+                {isActive && (
+                  <div className="px-4 pb-4 space-y-3 border-t border-gray-100 dark:border-gray-800 pt-3">
+                    {existing?.extractedText && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Current Answer</p>
+                        <p className="text-xs font-mono text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">{existing.extractedText}</p>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={ocrLoading}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50"
+                    >
+                      {ocrLoading ? 'Reading image…' : 'Re-upload Image'}
+                    </button>
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+
+                    {ocrError && <p className="text-xs text-red-600 dark:text-red-400">{ocrError}</p>}
+
+                    {ocrText && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">New Extracted Text</p>
+                        <textarea
+                          value={ocrText} onChange={e => setOcrText(e.target.value)} rows={3}
+                          className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                        />
+                        <button onClick={handleAnalyze} disabled={analyzing}
+                          className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
+                          {analyzing ? 'Analyzing…' : 'Analyze Answer'}
+                        </button>
+                      </div>
+                    )}
+
+                    {patch?.changed && (
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2 text-sm text-green-800 dark:text-green-400">
+                        New result: {patch.newMarks} / {q.marks} marks ({Math.round(patch.newScore * 100)}% similarity)
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="px-6 pb-5 pt-3 border-t border-gray-100 dark:border-gray-800 flex gap-3">
+          <button onClick={onClose} className="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+            Cancel
+          </button>
+          <button onClick={handleSave} disabled={!hasChanges}
+            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Record detail panel ───────────────────────────────────────────────────────
+
+function RecordDetail({ record }: { record: HistoryRecord }) {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{record.examTitle}</h3>
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {record.studentName && <span>{record.studentName}</span>}
+              {record.examClass && record.studentSection && <span>{record.examClass} · {record.studentSection}</span>}
+              {record.term && <span>{record.term}</span>}
+              <span>{formatDate(record.savedAt)}</span>
+            </div>
+          </div>
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${MODE_LABELS[record.checkingMode].color}`}>
+            {MODE_LABELS[record.checkingMode].label} Checking
+          </span>
+        </div>
+        <div className="flex items-center gap-5 flex-wrap">
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {record.scored}<span className="text-gray-400 dark:text-gray-500 text-xl"> / {record.total}</span>
+          </div>
+          <div className="text-xl font-semibold text-gray-600 dark:text-gray-400">{record.percentage}%</div>
+          <span className={`px-3 py-0.5 rounded-full text-lg font-bold ${gradeColors[record.grade] ?? 'bg-gray-100 dark:bg-gray-800'}`}>{record.grade}</span>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800">
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Question Breakdown</h4>
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          {record.questions.map((q, idx) => {
+            const result = record.results.find(r => r.questionId === q.id);
+            const status = result?.status ?? 'skipped';
+            const expanded = expandedId === q.id;
+            return (
+              <div key={q.id} className={rowColors[status]}>
+                <button className="w-full text-left px-5 py-3 flex items-center gap-4" onClick={() => setExpandedId(expanded ? null : q.id)}>
+                  <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 w-5">Q{idx + 1}</span>
+                  <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-medium truncate">{q.question}</span>
+                  {result && (
+                    <>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 w-20 text-right">{Math.round(result.similarityScore * 100)}% sim</span>
+                      <span className="text-sm font-semibold w-16 text-right text-gray-800 dark:text-gray-200">{result.marksAwarded} / {q.marks}</span>
+                    </>
+                  )}
+                  {!result && <span className="text-xs text-gray-400 italic">not graded</span>}
+                </button>
+                {expanded && result && (
+                  <div className="px-10 pb-4 space-y-2">
+                    {result.extractedText && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">Student's Answer</p>
+                        <p className="text-xs font-mono text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">{result.extractedText}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">Expected Answer</p>
+                      <p className="text-xs font-mono text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">{q.expectedAnswer}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button onClick={() => window.print()} className="px-4 py-2 bg-gray-800 dark:bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-900 dark:hover:bg-gray-600">
+          Print / Save as PDF
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main HistoryView ──────────────────────────────────────────────────────────
+
+export function HistoryView() {
+  const { hfApiKey } = useExam();
+  const [records, setRecords] = useState<HistoryRecord[]>(() => {
+    try { return JSON.parse(localStorage.getItem('exam-history') ?? '[]'); }
+    catch { return []; }
+  });
+
+  // Merge Supabase records with localStorage on mount
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(async ({ data }) => {
+      const userId = data.session?.user?.id;
+      if (!userId) return;
+      const remote = await loadReports(userId);
+      if (remote.length === 0) return;
+      setRecords(prev => {
+        const localById = new Map(prev.map(r => [r.id, r]));
+        for (const r of remote) localById.set(r.id, r); // remote wins on conflict
+        const merged = [...localById.values()].sort(
+          (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+        );
+        localStorage.setItem('exam-history', JSON.stringify(merged));
+        return merged;
+      });
+    });
+  }, []);
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [updateRecord, setUpdateRecord] = useState<HistoryRecord | null>(null);
+  const [openYears, setOpenYears] = useState<Set<number>>(new Set());
+  const [openClasses, setOpenClasses] = useState<Set<string>>(new Set());
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+
+  const tree = useMemo(() => buildTree(records), [records]);
+  const selected = records.find(r => r.id === selectedId) ?? null;
+
+  function toggle<T>(set: Set<T>, val: T): Set<T> {
+    const next = new Set(set);
+    next.has(val) ? next.delete(val) : next.add(val);
+    return next;
+  }
+
+  function saveUpdated(updated: HistoryRecord) {
+    const next = records.map(r => r.id === updated.id ? updated : r);
+    setRecords(next);
+    localStorage.setItem('exam-history', JSON.stringify(next));
+    setUpdateRecord(null);
+    // Persist to Supabase (fire-and-forget)
+    if (supabase) {
+      supabase.auth.getSession().then(({ data }) => {
+        const userId = data.session?.user?.id;
+        if (userId) updateReport(updated, userId);
+      });
+    }
+  }
+
+  function printRecord(r: HistoryRecord) {
+    setSelectedId(r.id);
+    setTimeout(() => window.print(), 100);
+  }
+
+  if (records.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto py-20 text-center">
+        <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">No history yet</h3>
+        <p className="text-sm text-gray-400 dark:text-gray-500">Complete grading a student — reports are saved automatically.</p>
+      </div>
+    );
+  }
+
+  const sortedYears = [...tree.keys()].sort((a, b) => b - a);
+
+  return (
+    <>
+      {updateRecord && (
+        <UpdateModal
+          record={updateRecord}
+          hfApiKey={hfApiKey}
+          onClose={() => setUpdateRecord(null)}
+          onSave={saveUpdated}
+        />
+      )}
+
+      <div className="max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 items-start">
+
+          {/* Left: tree */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Archive</h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{records.length} record{records.length !== 1 ? 's' : ''}</p>
+            </div>
+
+            <div className="py-1">
+              {sortedYears.map(year => {
+                const classMap = tree.get(year)!;
+                const yearOpen = openYears.has(year);
+                return (
+                  <div key={year}>
+                    <button onClick={() => setOpenYears(toggle(openYears, year))}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <svg className={`w-3 h-3 transition-transform ${yearOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 6 10">
+                        <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {year}
+                    </button>
+
+                    {yearOpen && [...classMap.keys()].map(cls => {
+                      const sectionMap = classMap.get(cls)!;
+                      const clsKey = `${year}-${cls}`;
+                      const clsOpen = openClasses.has(clsKey);
+                      return (
+                        <div key={cls}>
+                          <button onClick={() => setOpenClasses(toggle(openClasses, clsKey))}
+                            className="w-full flex items-center gap-2 pl-8 pr-4 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <svg className={`w-3 h-3 transition-transform ${clsOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 6 10">
+                              <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            {cls}
+                          </button>
+
+                          {clsOpen && [...sectionMap.keys()].map(sec => {
+                            const secRecords = sectionMap.get(sec)!;
+                            const secKey = `${year}-${cls}-${sec}`;
+                            const secOpen = openSections.has(secKey);
+                            return (
+                              <div key={sec}>
+                                <button onClick={() => setOpenSections(toggle(openSections, secKey))}
+                                  className="w-full flex items-center gap-2 pl-12 pr-4 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                  <svg className={`w-3 h-3 transition-transform ${secOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 6 10">
+                                    <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                  Section {sec}
+                                  <span className="ml-auto text-gray-400">{secRecords.length}</span>
+                                </button>
+
+                                {secOpen && secRecords.map(r => (
+                                  <div key={r.id} className="group relative">
+                                    <button
+                                      onClick={() => setSelectedId(r.id)}
+                                      className={`w-full text-left pl-16 pr-16 py-2 transition-colors ${
+                                        selectedId === r.id
+                                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                      }`}
+                                    >
+                                      <p className="text-xs font-medium truncate">{r.studentName || 'Unknown'}</p>
+                                      <p className="text-xs text-gray-400 dark:text-gray-500">{r.percentage}% · {r.grade}</p>
+                                    </button>
+
+                                    {/* Hover action icons */}
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                                      <button
+                                        onClick={e => { e.stopPropagation(); printRecord(r); }}
+                                        title="Print report"
+                                        className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
+                                      </button>
+                                      <button
+                                        onClick={e => { e.stopPropagation(); setUpdateRecord(r); }}
+                                        title="Update answers"
+                                        className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right: detail */}
+          <div>
+            {selected
+              ? <RecordDetail record={selected} />
+              : (
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 py-20 text-center">
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Select a record from the archive to view details.</p>
+                </div>
+              )
+            }
+          </div>
+
+        </div>
+      </div>
+    </>
+  );
+}

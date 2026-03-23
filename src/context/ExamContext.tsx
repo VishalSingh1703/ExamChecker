@@ -6,6 +6,8 @@ type Action =
   | { type: 'SET_HF_API_KEY'; payload: string }
   | { type: 'SET_GEMINI_API_KEY'; payload: string }
   | { type: 'SET_CHECKING_MODE'; payload: CheckingMode }
+  | { type: 'SET_EXAM_META'; payload: { examTerm: string; examClass: string } }
+  | { type: 'SET_STUDENT_INFO'; payload: { studentName: string; studentSection: string } }
   | { type: 'UPDATE_QUESTION_RESULT'; payload: QuestionResult }
   | { type: 'SET_CURRENT_QUESTION'; payload: number }
   | { type: 'SET_ACTIVE_TAB'; payload: ExamSession['activeTab'] }
@@ -17,21 +19,29 @@ const initialState: ExamSession = {
   currentQuestionIndex: 0,
   activeTab: 'setup',
   hfApiKey: '',
-  geminiApiKey: localStorage.getItem('gemini-api-key') ?? '',
+  geminiApiKey: (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? localStorage.getItem('gemini-api-key') ?? '',
   checkingMode: 'medium',
+  examTerm: '',
+  examClass: '',
+  studentName: '',
+  studentSection: '',
+  sessionId: '',
 };
 
 function examReducer(state: ExamSession, action: Action): ExamSession {
   switch (action.type) {
     case 'SET_ANSWER_KEY':
-      return { ...state, answerKey: action.payload, results: [], currentQuestionIndex: 0 };
+      return { ...state, answerKey: action.payload, results: [], currentQuestionIndex: 0, sessionId: crypto.randomUUID() };
     case 'SET_HF_API_KEY':
       return { ...state, hfApiKey: action.payload };
     case 'SET_GEMINI_API_KEY':
-      localStorage.setItem('gemini-api-key', action.payload);
       return { ...state, geminiApiKey: action.payload };
     case 'SET_CHECKING_MODE':
       return { ...state, checkingMode: action.payload };
+    case 'SET_EXAM_META':
+      return { ...state, examTerm: action.payload.examTerm, examClass: action.payload.examClass };
+    case 'SET_STUDENT_INFO':
+      return { ...state, studentName: action.payload.studentName, studentSection: action.payload.studentSection };
     case 'UPDATE_QUESTION_RESULT': {
       const existing = state.results.findIndex(
         (r) => r.questionId === action.payload.questionId

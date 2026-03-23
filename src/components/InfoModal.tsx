@@ -51,40 +51,33 @@ export function InfoModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="px-6 py-5 space-y-5 text-sm text-gray-700 dark:text-gray-300">
-          {/* Threshold explanation */}
+          {/* Checking mode explanation */}
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Threshold (0.0 – 1.0)</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Checking Mode</h3>
             <p className="mb-3 text-gray-600 dark:text-gray-400">
               Controls how closely a student's answer must match the expected answer to earn marks.
-              A value of <strong className="text-gray-800 dark:text-gray-200">0.6</strong> means 60% semantic similarity is needed for full marks.
+              Select a mode in Step 1 of setup — it applies to all questions equally.
             </p>
             <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <span className="shrink-0 w-36 text-xs font-mono bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2 py-1 rounded-lg text-center">
-                  score ≥ threshold
-                </span>
-                <span className="text-gray-700 dark:text-gray-300">Full marks awarded</span>
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-16 text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2 py-1 rounded-lg text-center">Easy</span>
+                <span className="text-gray-700 dark:text-gray-300 text-xs">Flexible — rewards partial understanding. Good for creative or descriptive answers.</span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="shrink-0 w-36 text-xs font-mono bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 px-2 py-1 rounded-lg text-center">
-                  ≥ threshold × 0.7
-                </span>
-                <span className="text-gray-700 dark:text-gray-300">Partial marks (linear scale)</span>
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-16 text-xs font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-lg text-center">Medium</span>
+                <span className="text-gray-700 dark:text-gray-300 text-xs">Balanced — standard grading. Recommended default for most subjects.</span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="shrink-0 w-36 text-xs font-mono bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-1 rounded-lg text-center">
-                  below that
-                </span>
-                <span className="text-gray-700 dark:text-gray-300">0 marks</span>
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-16 text-xs font-semibold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-1 rounded-lg text-center">Strict</span>
+                <span className="text-gray-700 dark:text-gray-300 text-xs">Precise — close match required. Best for factual or technical answers.</span>
               </div>
             </div>
           </div>
 
-          {/* Threshold tips */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl px-4 py-3 text-xs text-blue-700 dark:text-blue-300 space-y-1">
-            <p><strong>0.5</strong> — Lenient. Accepts loosely related answers.</p>
-            <p><strong>0.6</strong> — Balanced. Good default for most questions.</p>
-            <p><strong>0.75</strong> — Strict. Requires precise, detailed answers.</p>
+          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-xs text-gray-600 dark:text-gray-400 space-y-1">
+            <p><span className="font-semibold text-gray-700 dark:text-gray-300">Full marks</span> — answer meets or exceeds the similarity target</p>
+            <p><span className="font-semibold text-gray-700 dark:text-gray-300">Partial marks</span> — answer is in the right direction but not complete</p>
+            <p><span className="font-semibold text-gray-700 dark:text-gray-300">Zero marks</span> — answer is too far from the expected response</p>
           </div>
 
           {/* JSON format */}

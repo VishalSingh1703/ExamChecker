@@ -45,12 +45,48 @@ export interface OCRMethod {
 
 export type CheckingMode = 'easy' | 'medium' | 'strict';
 
+export interface SavedSubjectQuestion {
+  id: number;
+  question: string;
+  expectedAnswer: string;
+  marks: number;
+}
+
+export interface SavedSubject {
+  id: string;
+  name: string;
+  questions: SavedSubjectQuestion[];
+}
+
+export interface HistoryRecord {
+  id: string;
+  savedAt: string;
+  examTitle: string;
+  subject: string;
+  term: string;
+  examClass: string;
+  studentName: string;
+  studentSection: string;
+  checkingMode: CheckingMode;
+  scored: number;
+  total: number;
+  percentage: number;
+  grade: string;
+  questions: Question[];
+  results: QuestionResult[];
+}
+
 export interface ExamSession {
   answerKey: AnswerKey | null;
   results: QuestionResult[];
   currentQuestionIndex: number;
-  activeTab: 'setup' | 'grade' | 'report';
+  activeTab: 'setup' | 'grade' | 'report' | 'history';
   hfApiKey: string;
   geminiApiKey: string;
   checkingMode: CheckingMode;
+  examTerm: string;
+  examClass: string;
+  studentName: string;
+  studentSection: string;
+  sessionId: string;
 }
