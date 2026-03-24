@@ -125,9 +125,10 @@ export function ExamSetup() {
   const [examTerm, setExamTerm] = useState('');
   const [examClass, setExamClass] = useState('');
 
-  // Step 2 — subject selection
+  // Step 2 — subject selection (all saved subjects; filtered by class in render)
   const [subjects, setSubjects] = useState<SavedSubject[]>(loadSubjects);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+  const classSubjects = subjects.filter(s => s.examClass === examClass);
   const [subjectMode, setSubjectMode] = useState<'select' | 'create'>('select');
 
   // Step 2 — new subject creation
@@ -174,6 +175,7 @@ export function ExamSetup() {
     const subject: SavedSubject = {
       id: crypto.randomUUID(),
       name: newName.trim(),
+      examClass,
       questions: newQuestions.map((q, i) => ({
         id: i + 1,
         question: q.question,
@@ -276,9 +278,9 @@ export function ExamSetup() {
               </div>
             </div>
 
-            {/* Subject cards grid */}
+            {/* Subject cards grid — only subjects for the selected class */}
             <div className="grid grid-cols-2 gap-3">
-              {subjects.map(s => {
+              {classSubjects.map(s => {
                 const selected = selectedSubjectId === s.id;
                 const total = s.questions.reduce((acc, q) => acc + q.marks, 0);
                 return (
@@ -327,7 +329,7 @@ export function ExamSetup() {
           </div>
 
           <div className="flex gap-3">
-            <button onClick={() => setStep(1)}
+            <button onClick={() => { setStep(1); setSelectedSubjectId(null); }}
               className="px-5 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
               ← Back
             </button>

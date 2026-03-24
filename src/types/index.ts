@@ -55,6 +55,7 @@ export interface SavedSubjectQuestion {
 export interface SavedSubject {
   id: string;
   name: string;
+  examClass: string;
   questions: SavedSubjectQuestion[];
 }
 

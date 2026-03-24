@@ -8,11 +8,13 @@ export function calculateMarks(
   if (similarity >= threshold) {
     return { marks: maxMarks, status: 'full' };
   }
-  const partialThreshold = threshold * 0.7;
+  // Partial zone: 40%–100% of threshold. Linear interpolation gives proportional marks.
+  // Anything below 40% of threshold scores zero.
+  const partialThreshold = threshold * 0.4;
   if (similarity >= partialThreshold) {
     const range = threshold - partialThreshold;
     const progress = (similarity - partialThreshold) / range;
-    const marks = Math.round(progress * maxMarks);
+    const marks = Math.max(1, Math.round(progress * maxMarks));
     return { marks, status: 'partial' };
   }
   return { marks: 0, status: 'zero' };

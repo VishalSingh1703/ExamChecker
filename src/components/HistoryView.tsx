@@ -35,7 +35,7 @@ const rowColors = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-type Tree = Map<number, Map<string, Map<string, HistoryRecord[]>>>;
+type Tree = Map<number, Map<string, Map<string, Map<string, HistoryRecord[]>>>>;
 
 function buildTree(records: HistoryRecord[]): Tree {
   const tree: Tree = new Map();
@@ -43,12 +43,15 @@ function buildTree(records: HistoryRecord[]): Tree {
     const year = new Date(r.savedAt).getFullYear();
     const cls = r.examClass || 'Unclassified';
     const sec = r.studentSection || 'Unclassified';
+    const sub = r.subject || 'General';
     if (!tree.has(year)) tree.set(year, new Map());
     const ym = tree.get(year)!;
     if (!ym.has(cls)) ym.set(cls, new Map());
     const cm = ym.get(cls)!;
-    if (!cm.has(sec)) cm.set(sec, []);
-    cm.get(sec)!.push(r);
+    if (!cm.has(sec)) cm.set(sec, new Map());
+    const sm = cm.get(sec)!;
+    if (!sm.has(sub)) sm.set(sub, []);
+    sm.get(sub)!.push(r);
   }
   return tree;
 }
@@ -335,6 +338,7 @@ export function HistoryView() {
   const [openYears, setOpenYears] = useState<Set<number>>(new Set());
   const [openClasses, setOpenClasses] = useState<Set<string>>(new Set());
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const [openSubjects, setOpenSubjects] = useState<Set<string>>(new Set());
 
   const tree = useMemo(() => buildTree(records), [records]);
   const selected = records.find(r => r.id === selectedId) ?? null;
@@ -430,9 +434,10 @@ export function HistoryView() {
                           </button>
 
                           {clsOpen && [...sectionMap.keys()].map(sec => {
-                            const secRecords = sectionMap.get(sec)!;
+                            const subjectMap = sectionMap.get(sec)!;
                             const secKey = `${year}-${cls}-${sec}`;
                             const secOpen = openSections.has(secKey);
+                            const secTotal = [...subjectMap.values()].reduce((n, arr) => n + arr.length, 0);
                             return (
                               <div key={sec}>
                                 <button onClick={() => setOpenSections(toggle(openSections, secKey))}
@@ -441,46 +446,64 @@ export function HistoryView() {
                                     <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                   </svg>
                                   Section {sec}
-                                  <span className="ml-auto text-gray-400">{secRecords.length}</span>
+                                  <span className="ml-auto text-gray-400">{secTotal}</span>
                                 </button>
 
-                                {secOpen && secRecords.map(r => (
-                                  <div key={r.id} className="group relative">
-                                    <button
-                                      onClick={() => setSelectedId(r.id)}
-                                      className={`w-full text-left pl-16 pr-16 py-2 transition-colors ${
-                                        selectedId === r.id
-                                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
-                                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                                      }`}
-                                    >
-                                      <p className="text-xs font-medium truncate">{r.studentName || 'Unknown'}</p>
-                                      <p className="text-xs text-gray-400 dark:text-gray-500">{r.percentage}% · {r.grade}</p>
-                                    </button>
+                                {secOpen && [...subjectMap.keys()].map(sub => {
+                                  const subRecords = subjectMap.get(sub)!;
+                                  const subKey = `${year}-${cls}-${sec}-${sub}`;
+                                  const subOpen = openSubjects.has(subKey);
+                                  return (
+                                    <div key={sub}>
+                                      <button onClick={() => setOpenSubjects(toggle(openSubjects, subKey))}
+                                        className="w-full flex items-center gap-2 pl-16 pr-4 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 italic">
+                                        <svg className={`w-3 h-3 transition-transform shrink-0 ${subOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 6 10">
+                                          <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                        <span className="truncate">{sub}</span>
+                                        <span className="ml-auto text-gray-400 shrink-0">{subRecords.length}</span>
+                                      </button>
 
-                                    {/* Hover action icons */}
-                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
-                                      <button
-                                        onClick={e => { e.stopPropagation(); printRecord(r); }}
-                                        title="Print report"
-                                        className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
-                                      >
-                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                        </svg>
-                                      </button>
-                                      <button
-                                        onClick={e => { e.stopPropagation(); setUpdateRecord(r); }}
-                                        title="Update answers"
-                                        className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
-                                      >
-                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                      </button>
+                                      {subOpen && subRecords.map(r => (
+                                        <div key={r.id} className="group relative">
+                                          <button
+                                            onClick={() => setSelectedId(r.id)}
+                                            className={`w-full text-left pl-20 pr-16 py-2 transition-colors ${
+                                              selectedId === r.id
+                                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                            }`}
+                                          >
+                                            <p className="text-xs font-medium truncate">{r.studentName || 'Unknown'}</p>
+                                            <p className="text-xs text-gray-400 dark:text-gray-500">{r.percentage}% · {r.grade}</p>
+                                          </button>
+
+                                          {/* Hover action icons */}
+                                          <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                                            <button
+                                              onClick={e => { e.stopPropagation(); printRecord(r); }}
+                                              title="Print report"
+                                              className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+                                            >
+                                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                              </svg>
+                                            </button>
+                                            <button
+                                              onClick={e => { e.stopPropagation(); setUpdateRecord(r); }}
+                                              title="Update answers"
+                                              className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+                                            >
+                                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                              </svg>
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
                                     </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             );
                           })}

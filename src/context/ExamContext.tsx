@@ -18,7 +18,7 @@ const initialState: ExamSession = {
   results: [],
   currentQuestionIndex: 0,
   activeTab: 'setup',
-  hfApiKey: '',
+  hfApiKey: (import.meta.env.VITE_HF_API_KEY as string | undefined) ?? '',
   geminiApiKey: (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? localStorage.getItem('gemini-api-key') ?? '',
   checkingMode: 'medium',
   examTerm: '',
