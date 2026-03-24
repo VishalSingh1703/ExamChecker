@@ -230,7 +230,7 @@ export function AuthGate({ onAuth }: { onAuth: () => void }) {
     return (
       <Screen>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">Create account</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">We'll send a verification email to confirm your address.</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Submit a request — once approved, you'll receive access to ExamChecker.</p>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
@@ -242,7 +242,7 @@ export function AuthGate({ onAuth }: { onAuth: () => void }) {
           </div>
           {error && <ErrorBox message={error} />}
           <button onClick={handleSignUp} disabled={loading || !email || !password} className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-            {loading ? 'Creating account…' : 'Create Account & Send Verification Email'}
+            {loading ? 'Submitting request…' : 'Request Access'}
           </button>
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">
             Already have an account?{' '}

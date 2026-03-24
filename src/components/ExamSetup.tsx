@@ -113,6 +113,18 @@ function CheckingModeSelector({ value, onChange }: { value: CheckingMode; onChan
   );
 }
 
+// ── Keywords helpers ──────────────────────────────────────────────────────────
+
+function parseKeywords(raw: string): string[] {
+  return raw.split(/[,\n]/).map(k => k.trim().toLowerCase()).filter(Boolean);
+}
+
+function invalidKeywords(raw: string, expectedAnswer: string): string[] {
+  if (!raw.trim()) return [];
+  const answer = expectedAnswer.toLowerCase();
+  return parseKeywords(raw).filter(k => !answer.includes(k));
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function ExamSetup() {
@@ -133,12 +145,15 @@ export function ExamSetup() {
 
   // Step 2 — new subject creation
   const [newName, setNewName] = useState('');
-  const [newQuestions, setNewQuestions] = useState<Array<{ question: string; expectedAnswer: string; marks: number }>>([]);
+  const [newQuestions, setNewQuestions] = useState<Array<{ question: string; expectedAnswer: string; marks: number; keywords: string }>>([]);
 
   // Step 3
   const [studentName, setStudentName] = useState('');
   const [studentSection, setStudentSection] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const [generatingIdx, setGeneratingIdx] = useState<number | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const [suggestions] = useState<Suggestions>(loadSuggestions);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -152,17 +167,17 @@ export function ExamSetup() {
           subject: selectedSubject.name,
           totalMarks: selectedSubject.questions.reduce((s, q) => s + q.marks, 0),
         },
-        questions: selectedSubject.questions.map(q => ({ ...q, threshold: 0.6 })),
+        questions: selectedSubject.questions.map(q => ({ ...q, threshold: 0.6, keywords: q.keywords ?? [] })),
       }
     : null;
 
   // ── New subject actions ─────────────────────────────────────────────────────
 
   function addQuestion() {
-    setNewQuestions(prev => [...prev, { question: '', expectedAnswer: '', marks: 5 }]);
+    setNewQuestions(prev => [...prev, { question: '', expectedAnswer: '', marks: 5, keywords: '' }]);
   }
 
-  function updateQuestion(idx: number, field: 'question' | 'expectedAnswer' | 'marks', value: string | number) {
+  function updateQuestion(idx: number, field: 'question' | 'expectedAnswer' | 'marks' | 'keywords', value: string | number) {
     setNewQuestions(prev => prev.map((q, i) => i === idx ? { ...q, [field]: value } : q));
   }
 
@@ -181,6 +196,7 @@ export function ExamSetup() {
         question: q.question,
         expectedAnswer: q.expectedAnswer,
         marks: Number(q.marks) || 5,
+        keywords: parseKeywords(q.keywords),
       })),
     };
     const updated = [...subjects, subject];
@@ -196,6 +212,51 @@ export function ExamSetup() {
     setSubjectMode('select');
     setNewName('');
     setNewQuestions([]);
+  }
+
+  async function generateAnswer(idx: number) {
+    const q = newQuestions[idx];
+    if (!q.question.trim()) return;
+    const key = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+    if (!key) { setGenerateError('VITE_GEMINI_API_KEY is not set.'); return; }
+    setGeneratingIdx(idx);
+    setGenerateError(null);
+    try {
+      const prompt = `You are an expert teacher creating a model answer for an exam.
+
+Question: "${q.question}"
+Class/Level: ${examClass}
+Marks allocated: ${q.marks}
+
+Write an ideal expected answer appropriate for a ${examClass} level student.
+Guidelines:
+- For Class 1–6 or 1–2 marks: 1-2 short sentences, simple vocabulary
+- For Class 7–10 or 3–5 marks: 3-5 sentences with key terms, moderate detail
+- For Class 11–12 or Semester or 6+ marks: detailed paragraphs, technical terminology, examples
+- Write ONLY the answer text. No labels, no "Expected answer:", no formatting markers.`;
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 600 },
+          }),
+        }
+      );
+      if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+      const data = await res.json();
+      const parts: Array<{ text?: string }> = data.candidates?.[0]?.content?.parts ?? [];
+      const text = parts.map((p) => p.text ?? '').join('').trim();
+      if (!text) throw new Error('No text returned from Gemini.');
+      updateQuestion(idx, 'expectedAnswer', text);
+    } catch (err) {
+      setGenerateError(err instanceof Error ? err.message : 'Generation failed.');
+    } finally {
+      setGeneratingIdx(null);
+    }
   }
 
   // ── Start grading ───────────────────────────────────────────────────────────
@@ -215,7 +276,8 @@ export function ExamSetup() {
   }
 
   const canSaveSubject = newName.trim().length > 0 && newQuestions.length > 0
-    && newQuestions.every(q => q.question.trim() && q.expectedAnswer.trim());
+    && newQuestions.every(q => q.question.trim() && q.expectedAnswer.trim())
+    && newQuestions.every(q => invalidKeywords(q.keywords, q.expectedAnswer).length === 0);
 
   // ══ RENDER ══════════════════════════════════════════════════════════════════
 
@@ -377,12 +439,56 @@ export function ExamSetup() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Expected Answer</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Expected Answer</label>
+                      <button
+                        type="button"
+                        onClick={() => generateAnswer(idx)}
+                        disabled={generatingIdx !== null || !q.question.trim()}
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {generatingIdx === idx ? (
+                          <>
+                            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            Generating…
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                            </svg>
+                            Generate Answer
+                          </>
+                        )}
+                      </button>
+                    </div>
                     <textarea
                       value={q.expectedAnswer} onChange={e => updateQuestion(idx, 'expectedAnswer', e.target.value)}
                       rows={3} placeholder="Enter the ideal/expected answer…"
                       className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
                     />
+                    {generateError && generatingIdx === null && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{generateError}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      Keywords
+                      <span className="ml-1.5 font-normal text-gray-400">(optional · comma-separated · must appear in the answer above)</span>
+                    </label>
+                    <textarea
+                      value={q.keywords} onChange={e => updateQuestion(idx, 'keywords', e.target.value)}
+                      rows={2} placeholder="e.g. photosynthesis, chlorophyll, glucose"
+                      className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                    />
+                    {invalidKeywords(q.keywords, q.expectedAnswer).length > 0 && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                        Not found in expected answer: <span className="font-medium">{invalidKeywords(q.keywords, q.expectedAnswer).join(', ')}</span>
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Marks</label>

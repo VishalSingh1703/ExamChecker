@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, supabaseError } from './lib/supabase';
+import { getMyAccess, createAccessRequest } from './lib/access';
 import { AuthGate } from './components/AuthGate';
 import { ExamSetup } from './components/ExamSetup';
 import { GradingView } from './components/GradingView';
@@ -9,14 +10,17 @@ import { InfoModal } from './components/InfoModal';
 import { ProfileView } from './components/ProfileView';
 import { PasswordResetScreen } from './components/PasswordResetScreen';
 import { HistoryView } from './components/HistoryView';
+import { AdminPanel } from './components/AdminPanel';
 import { ExamProvider, useExam, useExamDispatch } from './context/ExamContext';
 
-const TABS = [
-  { id: 'setup', label: 'Setup' },
-  { id: 'grade', label: 'Grade' },
-  { id: 'report', label: 'Report' },
-  { id: 'history', label: 'History' },
-] as const;
+const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL as string | undefined) ?? '';
+
+const BASE_TABS = [
+  { id: 'setup' as const, label: 'Setup' },
+  { id: 'grade' as const, label: 'Grade' },
+  { id: 'report' as const, label: 'Report' },
+  { id: 'history' as const, label: 'History' },
+];
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => {
@@ -40,13 +44,19 @@ interface AppInnerProps {
   session: Session;
   dark: boolean;
   setDark: (v: boolean) => void;
+  isAdmin?: boolean;
 }
 
-function AppInner({ session, dark, setDark }: AppInnerProps) {
+function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
   const { activeTab } = useExam();
   const dispatch = useExamDispatch();
   const [showInfo, setShowInfo] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+
+  const TABS = [
+    ...BASE_TABS,
+    ...(isAdmin ? [{ id: 'admin' as const, label: 'Admin' }] : []),
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -138,6 +148,7 @@ function AppInner({ session, dark, setDark }: AppInnerProps) {
             {activeTab === 'grade' && <GradingView />}
             {activeTab === 'report' && <ReportView />}
             {activeTab === 'history' && <HistoryView />}
+            {activeTab === 'admin' && isAdmin && <AdminPanel adminEmail={ADMIN_EMAIL} />}
           </main>
         </>
       )}
@@ -145,10 +156,130 @@ function AppInner({ session, dark, setDark }: AppInnerProps) {
   );
 }
 
+// ── Access gate screens ────────────────────────────────────────────────────────
+
+function AccessScreen({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 w-full max-w-sm border border-gray-200 dark:border-gray-800 text-center">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function AdminContactLink({ userEmail }: { userEmail?: string }) {
+  if (!ADMIN_EMAIL) return null;
+  const body = encodeURIComponent(`Hello, I have requested access to ExamChecker with email: ${userEmail ?? ''}`);
+  const href = `mailto:${ADMIN_EMAIL}?subject=Access%20Request%20-%20ExamChecker&body=${body}`;
+  return (
+    <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+      Need help? Email the admin:{' '}
+      <a href={href} className="text-blue-600 dark:text-blue-400 hover:underline break-all">
+        {ADMIN_EMAIL}
+      </a>
+    </p>
+  );
+}
+
+function SignOutButton() {
+  return (
+    <button
+      onClick={() => supabase?.auth.signOut()}
+      className="mt-5 w-full py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+    >
+      Sign Out
+    </button>
+  );
+}
+
+function PendingScreen({ userEmail }: { userEmail?: string }) {
+  return (
+    <AccessScreen>
+      <div className="flex justify-center mb-4">
+        <div className="w-14 h-14 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+          <svg className="w-7 h-7 text-yellow-500 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H5z" />
+          </svg>
+        </div>
+      </div>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Awaiting Approval</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400">
+        Your access request has been submitted. The admin will review and approve your account.
+      </p>
+      <AdminContactLink userEmail={userEmail} />
+      <SignOutButton />
+    </AccessScreen>
+  );
+}
+
+function RevokedScreen({ userEmail }: { userEmail?: string }) {
+  return (
+    <AccessScreen>
+      <div className="flex justify-center mb-4">
+        <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+          <svg className="w-7 h-7 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+      </div>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Access Revoked</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400">
+        Your access to ExamChecker has been revoked. Please contact the admin to restore access.
+      </p>
+      {ADMIN_EMAIL && (
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+          Contact admin:{' '}
+          <a
+            href={`mailto:${ADMIN_EMAIL}?subject=Access%20Request%20-%20ExamChecker&body=${encodeURIComponent(`Hello, I have requested access to ExamChecker with email: ${userEmail ?? ''}`)}`}
+            className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+          >
+            {ADMIN_EMAIL}
+          </a>
+        </p>
+      )}
+      <SignOutButton />
+    </AccessScreen>
+  );
+}
+
+function ExpiredScreen({ userEmail }: { userEmail?: string }) {
+  return (
+    <AccessScreen>
+      <div className="flex justify-center mb-4">
+        <div className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+          <svg className="w-7 h-7 text-orange-500 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Trial Expired</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400">
+        Your trial period has ended. Please contact the admin to renew your access.
+      </p>
+      {ADMIN_EMAIL && (
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+          Contact admin:{' '}
+          <a
+            href={`mailto:${ADMIN_EMAIL}?subject=Access%20Request%20-%20ExamChecker&body=${encodeURIComponent(`Hello, I have requested access to ExamChecker with email: ${userEmail ?? ''}`)}`}
+            className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+          >
+            {ADMIN_EMAIL}
+          </a>
+        </p>
+      )}
+      <SignOutButton />
+    </AccessScreen>
+  );
+}
+
+// ── Root App component ─────────────────────────────────────────────────────────
+
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [dark, setDark] = useDarkMode();
+  const [accessStatus, setAccessStatus] = useState<'loading' | 'ok' | 'pending' | 'revoked' | 'expired'>('loading');
 
   useEffect(() => {
     if (!supabase) { setSession(null); return; }
@@ -157,7 +288,6 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // User followed a password-reset link — show the set-password screen
         setPasswordRecovery(true);
         setSession(s ?? null);
       } else {
@@ -168,6 +298,32 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Run access check whenever session changes to a valid session
+  useEffect(() => {
+    if (!session) return;
+
+    async function checkAccess(s: Session) {
+      const isAdmin = ADMIN_EMAIL && s.user.email === ADMIN_EMAIL;
+      if (isAdmin) { setAccessStatus('ok'); return; }
+
+      const access = await getMyAccess(s.user.id);
+      if (!access) {
+        await createAccessRequest(s.user.id, s.user.email ?? '');
+        setAccessStatus('pending');
+        return;
+      }
+      if (access.status === 'revoked') { setAccessStatus('revoked'); return; }
+      if (access.status === 'pending') { setAccessStatus('pending'); return; }
+      if (access.status === 'approved') {
+        const expired = access.trial_ends_at ? new Date(access.trial_ends_at) < new Date() : false;
+        setAccessStatus(expired ? 'expired' : 'ok');
+        return;
+      }
+    }
+
+    checkAccess(session);
+  }, [session]);
 
   if (session === undefined) {
     return (
@@ -183,6 +339,50 @@ export default function App() {
   }
 
   if (!supabase || session) {
+    // If supabase is not configured, skip access check entirely
+    if (!supabase) {
+      return (
+        <ExamProvider>
+          {supabaseError && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2 text-xs text-yellow-700 dark:text-yellow-400 text-center print:hidden">
+              Auth disabled: {supabaseError}
+            </div>
+          )}
+          <AppInner session={session!} dark={dark} setDark={setDark} />
+        </ExamProvider>
+      );
+    }
+
+    const isAdmin = !!(ADMIN_EMAIL && session?.user.email === ADMIN_EMAIL);
+
+    // Access check screens
+    if (accessStatus === 'loading') {
+      return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-gray-400 text-sm">
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            Checking access…
+          </div>
+        </div>
+      );
+    }
+
+    if (accessStatus === 'pending') {
+      return <PendingScreen userEmail={session?.user.email} />;
+    }
+
+    if (accessStatus === 'revoked') {
+      return <RevokedScreen userEmail={session?.user.email} />;
+    }
+
+    if (accessStatus === 'expired') {
+      return <ExpiredScreen userEmail={session?.user.email} />;
+    }
+
+    // accessStatus === 'ok'
     return (
       <ExamProvider>
         {supabaseError && (
@@ -190,7 +390,7 @@ export default function App() {
             Auth disabled: {supabaseError}
           </div>
         )}
-        <AppInner session={session!} dark={dark} setDark={setDark} />
+        <AppInner session={session!} dark={dark} setDark={setDark} isAdmin={isAdmin} />
       </ExamProvider>
     );
   }

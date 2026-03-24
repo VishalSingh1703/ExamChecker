@@ -10,6 +10,7 @@ export interface Question {
   expectedAnswer: string;
   marks: number;
   threshold: number;
+  keywords?: string[];
 }
 
 export interface AnswerKey {
@@ -50,6 +51,7 @@ export interface SavedSubjectQuestion {
   question: string;
   expectedAnswer: string;
   marks: number;
+  keywords?: string[];
 }
 
 export interface SavedSubject {
@@ -81,7 +83,7 @@ export interface ExamSession {
   answerKey: AnswerKey | null;
   results: QuestionResult[];
   currentQuestionIndex: number;
-  activeTab: 'setup' | 'grade' | 'report' | 'history';
+  activeTab: 'setup' | 'grade' | 'report' | 'history' | 'admin';
   hfApiKey: string;
   geminiApiKey: string;
   checkingMode: CheckingMode;
