@@ -31,7 +31,8 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
   async function loadUsers() {
     setLoading(true);
     const data = await getAllAccess();
-    setUsers(data);
+    // Never show the admin's own row — admin bypasses access control entirely
+    setUsers(data.filter(u => u.email !== adminEmail));
     setLoading(false);
   }
 
