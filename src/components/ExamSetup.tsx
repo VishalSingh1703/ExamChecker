@@ -11,26 +11,29 @@ const CLASS_OPTIONS = [
 
 // ── Subjects localStorage helpers ────────────────────────────────────────────
 
-function loadSubjects(): SavedSubject[] {
-  try { return JSON.parse(localStorage.getItem('exam-subjects') ?? '[]'); }
+function subjectsKey(userId: string) { return userId ? `exam-subjects-${userId}` : 'exam-subjects'; }
+function suggestionsKey(userId: string) { return userId ? `exam-suggestions-${userId}` : 'exam-suggestions'; }
+
+function loadSubjects(userId: string): SavedSubject[] {
+  try { return JSON.parse(localStorage.getItem(subjectsKey(userId)) ?? '[]'); }
   catch { return []; }
 }
 
-function persistSubjects(subjects: SavedSubject[]) {
-  localStorage.setItem('exam-subjects', JSON.stringify(subjects));
+function persistSubjects(userId: string, subjects: SavedSubject[]) {
+  localStorage.setItem(subjectsKey(userId), JSON.stringify(subjects));
 }
 
 // ── Smart suggestions helpers ────────────────────────────────────────────────
 
 interface Suggestions { terms: string[]; sections: string[] }
 
-function loadSuggestions(): Suggestions {
-  try { return JSON.parse(localStorage.getItem('exam-suggestions') ?? '{}'); }
+function loadSuggestions(userId: string): Suggestions {
+  try { return JSON.parse(localStorage.getItem(suggestionsKey(userId)) ?? '{}'); }
   catch { return { terms: [], sections: [] }; }
 }
 
-function saveSuggestions(s: Suggestions) {
-  localStorage.setItem('exam-suggestions', JSON.stringify(s));
+function saveSuggestions(userId: string, s: Suggestions) {
+  localStorage.setItem(suggestionsKey(userId), JSON.stringify(s));
 }
 
 function dedupe(arr: string[]): string[] {
@@ -127,7 +130,7 @@ function invalidKeywords(raw: string, expectedAnswer: string): string[] {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function ExamSetup() {
+export function ExamSetup({ userId = '' }: { userId?: string }) {
   const { hfApiKey, checkingMode } = useExam();
   const dispatch = useExamDispatch();
 
@@ -138,7 +141,7 @@ export function ExamSetup() {
   const [examClass, setExamClass] = useState('');
 
   // Step 2 — subject selection (all saved subjects; filtered by class in render)
-  const [subjects, setSubjects] = useState<SavedSubject[]>(loadSubjects);
+  const [subjects, setSubjects] = useState<SavedSubject[]>(() => loadSubjects(userId));
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   const classSubjects = subjects.filter(s => s.examClass === examClass);
   const [subjectMode, setSubjectMode] = useState<'select' | 'create'>('select');
@@ -155,7 +158,7 @@ export function ExamSetup() {
   const [generatingIdx, setGeneratingIdx] = useState<number | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
-  const [suggestions] = useState<Suggestions>(loadSuggestions);
+  const [suggestions] = useState<Suggestions>(() => loadSuggestions(userId));
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Derived answer key from selected subject
@@ -201,7 +204,7 @@ export function ExamSetup() {
     };
     const updated = [...subjects, subject];
     setSubjects(updated);
-    persistSubjects(updated);
+    persistSubjects(userId, updated);
     setSelectedSubjectId(subject.id);
     setSubjectMode('select');
     setNewName('');
@@ -263,8 +266,8 @@ Guidelines:
 
   function handleStart() {
     if (!answerKey || !studentName.trim() || !studentSection.trim()) return;
-    const s = loadSuggestions();
-    saveSuggestions({
+    const s = loadSuggestions(userId);
+    saveSuggestions(userId, {
       terms: dedupe([examTerm, ...(s.terms ?? [])]),
       sections: dedupe([studentSection, ...(s.sections ?? [])]),
     });

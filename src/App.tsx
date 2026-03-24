@@ -48,6 +48,7 @@ interface AppInnerProps {
 }
 
 function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
+  const userId = session?.user?.id ?? '';
   const { activeTab } = useExam();
   const dispatch = useExamDispatch();
   const [showInfo, setShowInfo] = useState(false);
@@ -144,10 +145,10 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
 
           {/* Content */}
           <main className="p-4 max-w-4xl mx-auto">
-            {activeTab === 'setup' && <ExamSetup />}
+            {activeTab === 'setup' && <ExamSetup userId={userId} />}
             {activeTab === 'grade' && <GradingView />}
-            {activeTab === 'report' && <ReportView />}
-            {activeTab === 'history' && <HistoryView />}
+            {activeTab === 'report' && <ReportView userId={userId} />}
+            {activeTab === 'history' && <HistoryView userId={userId} />}
             {activeTab === 'admin' && isAdmin && <AdminPanel adminEmail={ADMIN_EMAIL} />}
           </main>
         </>

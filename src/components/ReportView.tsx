@@ -11,7 +11,7 @@ const MODE_LABELS: Record<CheckingMode, { label: string; color: string }> = {
   strict: { label: 'Strict', color: 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800' },
 };
 
-export function ReportView() {
+export function ReportView({ userId = '' }: { userId?: string }) {
   const { answerKey, results, checkingMode, examTerm, examClass, studentName, studentSection, sessionId } = useExam();
   const dispatch = useExamDispatch();
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -24,7 +24,8 @@ export function ReportView() {
   useEffect(() => {
     if (!answerKey || results.length === 0 || !sessionId) return;
 
-    const savedIds: string[] = JSON.parse(localStorage.getItem('saved-session-ids') ?? '[]');
+    const idsKey = userId ? `saved-session-ids-${userId}` : 'saved-session-ids';
+    const savedIds: string[] = JSON.parse(localStorage.getItem(idsKey) ?? '[]');
     if (savedIds.includes(sessionId)) return;
 
     const record: HistoryRecord = {
@@ -46,12 +47,13 @@ export function ReportView() {
     };
 
     // Persist to localStorage
-    const existing: HistoryRecord[] = JSON.parse(localStorage.getItem('exam-history') ?? '[]');
-    localStorage.setItem('exam-history', JSON.stringify([record, ...existing]));
+    const histKey = userId ? `exam-history-${userId}` : 'exam-history';
+    const existing: HistoryRecord[] = JSON.parse(localStorage.getItem(histKey) ?? '[]');
+    localStorage.setItem(histKey, JSON.stringify([record, ...existing]));
 
     // Mark session as saved (keep last 100)
     const updated = [sessionId, ...savedIds].slice(0, 100);
-    localStorage.setItem('saved-session-ids', JSON.stringify(updated));
+    localStorage.setItem(idsKey, JSON.stringify(updated));
 
     // Persist to Supabase (fire-and-forget)
     if (supabase) {

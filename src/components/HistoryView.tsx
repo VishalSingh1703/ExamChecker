@@ -104,7 +104,7 @@ function UpdateModal({ record, hfApiKey, onClose, onSave }: {
   async function handleAnalyze() {
     if (!ocrText.trim() || !activeQuestion) return;
     setAnalyzing(true);
-    const sim = await getSemanticSimilarity(ocrText, activeQuestion.expectedAnswer, hfApiKey || undefined);
+    const sim = await getSemanticSimilarity(ocrText, activeQuestion.expectedAnswer, hfApiKey || undefined, activeQuestion.keywords ?? []);
     const { marks, status } = calculateMarks(sim.score, threshold, activeQuestion.marks);
     setPatches(prev => new Map(prev).set(activeId!, {
       newText: ocrText, newScore: sim.score, newMarks: marks, newStatus: status, changed: true,
@@ -306,10 +306,11 @@ function RecordDetail({ record }: { record: HistoryRecord }) {
 
 // ── Main HistoryView ──────────────────────────────────────────────────────────
 
-export function HistoryView() {
+export function HistoryView({ userId = '' }: { userId?: string }) {
   const { hfApiKey } = useExam();
+  const histKey = userId ? `exam-history-${userId}` : 'exam-history';
   const [records, setRecords] = useState<HistoryRecord[]>(() => {
-    try { return JSON.parse(localStorage.getItem('exam-history') ?? '[]'); }
+    try { return JSON.parse(localStorage.getItem(histKey) ?? '[]'); }
     catch { return []; }
   });
 
@@ -327,7 +328,7 @@ export function HistoryView() {
         const merged = [...localById.values()].sort(
           (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
         );
-        localStorage.setItem('exam-history', JSON.stringify(merged));
+        localStorage.setItem(histKey, JSON.stringify(merged));
         return merged;
       });
     });
@@ -352,7 +353,7 @@ export function HistoryView() {
   function saveUpdated(updated: HistoryRecord) {
     const next = records.map(r => r.id === updated.id ? updated : r);
     setRecords(next);
-    localStorage.setItem('exam-history', JSON.stringify(next));
+    localStorage.setItem(histKey, JSON.stringify(next));
     setUpdateRecord(null);
     // Persist to Supabase (fire-and-forget)
     if (supabase) {
