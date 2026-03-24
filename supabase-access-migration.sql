@@ -1,5 +1,5 @@
 -- Run in Supabase Dashboard → SQL Editor
--- Replace 'YOUR_ADMIN_EMAIL' with your actual email
+-- Replace 'vishalsingh17official@gmail.com' with your actual email
 
 CREATE TABLE IF NOT EXISTS user_access (
   user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -19,11 +19,11 @@ CREATE POLICY "Insert own" ON user_access
 CREATE POLICY "Read own or admin" ON user_access
   FOR SELECT USING (
     auth.uid() = user_id
-    OR (auth.jwt() ->> 'email') = 'YOUR_ADMIN_EMAIL'
+    OR (auth.jwt() ->> 'email') = 'vishalsingh17official@gmail.com'
   );
 
 -- Only admin can update (approve/revoke)
 CREATE POLICY "Admin update" ON user_access
   FOR UPDATE USING (
-    (auth.jwt() ->> 'email') = 'YOUR_ADMIN_EMAIL'
+    (auth.jwt() ->> 'email') = 'vishalsingh17official@gmail.com'
   );

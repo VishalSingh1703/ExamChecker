@@ -33,11 +33,15 @@ export function keywordOverlapScore(extracted: string, expected: string): number
 
 // ── Gemini meaning-match (primary) ───────────────────────────────────────────
 
-async function getGeminiScore(extracted: string, expected: string, apiKey: string): Promise<number> {
+async function getGeminiScore(extracted: string, expected: string, apiKey: string, keywords: string[]): Promise<number> {
+  const keywordNote = keywords.length > 0
+    ? `\nCritical keywords the student must include: ${keywords.join(', ')}.\nIf ALL keywords are present and used correctly: score can reach 1.0.\nIf keywords are present but in wrong context: partial credit only.\nIf ANY keyword is missing: cap the score at 0.5 maximum.`
+    : '';
+
   const prompt = `You are an exam grader evaluating a student's answer.
 
 Expected answer: "${expected}"
-Student's answer: "${extracted}"
+Student's answer: "${extracted}"${keywordNote}
 
 Rate how correctly and completely the student's answer matches the MEANING of the expected answer.
 - 1.0 = correct and complete answer (minor spelling/grammar errors are fine)
@@ -108,10 +112,23 @@ async function getHFScore(extracted: string, expected: string, apiKey: string): 
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+// Keyword-weighted fallback: blends Jaccard overlap with keyword presence
+function keywordWeightedScore(extracted: string, expected: string, keywords: string[]): number {
+  const base = keywordOverlapScore(extracted, expected);
+  if (keywords.length === 0) return base;
+  const extractedLower = extracted.toLowerCase();
+  const matched = keywords.filter(k => extractedLower.includes(k)).length;
+  const keywordScore = matched / keywords.length;
+  // 50% base Jaccard + 50% keyword presence, capped at 0.5 if any keyword missing
+  const blended = base * 0.5 + keywordScore * 0.5;
+  return matched < keywords.length ? Math.min(blended, 0.5) : blended;
+}
+
 export async function getSemanticSimilarity(
   extracted: string,
   expected: string,
   apiKey?: string,
+  keywords: string[] = [],
 ): Promise<SimilarityResult> {
   if (!extracted.trim()) {
     return { score: 0, method: 'keyword' };
@@ -120,29 +137,35 @@ export async function getSemanticSimilarity(
   const geminiKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
   const hfKey = apiKey || (import.meta.env.VITE_HF_API_KEY as string | undefined) || '';
 
-  // 1. Try Gemini (understands meaning, not just word overlap)
+  // 1. Try Gemini (understands meaning + enforces keyword rules)
   if (geminiKey) {
     try {
-      const score = await getGeminiScore(extracted, expected, geminiKey);
+      const score = await getGeminiScore(extracted, expected, geminiKey, keywords);
       return { score, method: 'semantic' };
     } catch (err) {
       console.error('[similarity] Gemini failed, trying HF:', err instanceof Error ? err.message : err);
     }
   }
 
-  // 2. Try HF sentence-transformers
+  // 2. Try HF sentence-transformers (no keyword weighting at API level)
   if (hfKey) {
     try {
-      const score = await getHFScore(extracted, expected, hfKey);
+      let score = await getHFScore(extracted, expected, hfKey);
+      // Apply keyword cap manually
+      if (keywords.length > 0) {
+        const extractedLower = extracted.toLowerCase();
+        const allPresent = keywords.every(k => extractedLower.includes(k));
+        if (!allPresent) score = Math.min(score, 0.5);
+      }
       return { score: Math.max(0, Math.min(1, score)), method: 'semantic' };
     } catch (err) {
       console.error('[similarity] HF failed, using keyword fallback:', err instanceof Error ? err.message : err);
     }
   }
 
-  // 3. Keyword overlap (last resort)
+  // 3. Keyword-weighted overlap (last resort)
   return {
-    score: keywordOverlapScore(extracted, expected),
+    score: keywordWeightedScore(extracted, expected, keywords),
     method: 'keyword',
     error: 'Semantic APIs unavailable',
   };

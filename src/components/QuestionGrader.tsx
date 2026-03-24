@@ -73,7 +73,7 @@ export function QuestionGrader({
     if (!ocrText.trim()) return;
     setAnalyzing(true);
     setResult(null);
-    const sim = await getSemanticSimilarity(ocrText, question.expectedAnswer, hfApiKey || undefined);
+    const sim = await getSemanticSimilarity(ocrText, question.expectedAnswer, hfApiKey || undefined, question.keywords ?? []);
     const { marks, status } = calculateMarks(sim.score, threshold, question.marks);
     setResult({ similarity: sim.score, method: sim.method, marks, status, fallbackReason: sim.error });
     setAnalyzing(false);
