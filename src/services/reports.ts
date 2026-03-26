@@ -1,11 +1,16 @@
 import { supabase } from '../lib/supabase';
 import type { HistoryRecord } from '../types';
 
+export interface TrashEntry {
+  record: HistoryRecord;
+  deletedAt: string; // ISO string
+}
+
+const TRASH_TTL_DAYS = 7;
+
 /**
  * Insert a new report. Uses ON CONFLICT DO NOTHING so calling this twice
- * with the same (user_id, session_id) is always safe — the second call is
- * silently dropped by the DB unique constraint.
- * Returns true if inserted, false if skipped or Supabase unavailable.
+ * with the same (user_id, session_id) is always safe.
  */
 export async function saveReport(
   record: HistoryRecord,
@@ -29,8 +34,7 @@ export async function saveReport(
 }
 
 /**
- * Fetch all reports for a user, newest first.
- * Returns an empty array if Supabase is unavailable or user has no records.
+ * Fetch all active (non-deleted) reports for a user, newest first.
  */
 export async function loadReports(userId: string): Promise<HistoryRecord[]> {
   if (!supabase) return [];
@@ -39,6 +43,7 @@ export async function loadReports(userId: string): Promise<HistoryRecord[]> {
     .from('reports')
     .select('data')
     .eq('user_id', userId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -50,8 +55,106 @@ export async function loadReports(userId: string): Promise<HistoryRecord[]> {
 }
 
 /**
+ * Soft-delete: set deleted_at to now. Report moves to trash.
+ */
+export async function moveToTrash(id: string, userId: string): Promise<boolean> {
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from('reports')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[reports] moveToTrash:', error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Restore a trashed report: clear deleted_at.
+ */
+export async function restoreFromTrash(id: string, userId: string): Promise<boolean> {
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from('reports')
+    .update({ deleted_at: null })
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[reports] restoreFromTrash:', error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Load all trashed reports for a user (deleted_at IS NOT NULL).
+ */
+export async function loadTrash(userId: string): Promise<TrashEntry[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('reports')
+    .select('data, deleted_at')
+    .eq('user_id', userId)
+    .not('deleted_at', 'is', null)
+    .order('deleted_at', { ascending: false });
+
+  if (error) {
+    console.error('[reports] loadTrash:', error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    record: row.data as HistoryRecord,
+    deletedAt: row.deleted_at as string,
+  }));
+}
+
+/**
+ * Hard-delete reports that have been in trash for more than TRASH_TTL_DAYS.
+ */
+export async function purgeExpiredTrash(userId: string): Promise<void> {
+  if (!supabase) return;
+
+  const cutoff = new Date(Date.now() - TRASH_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  const { error } = await supabase
+    .from('reports')
+    .delete()
+    .eq('user_id', userId)
+    .not('deleted_at', 'is', null)
+    .lt('deleted_at', cutoff);
+
+  if (error) console.error('[reports] purgeExpiredTrash:', error.message);
+}
+
+/**
+ * Hard-delete a single report permanently (used from trash view).
+ */
+export async function deleteReport(id: string, userId: string): Promise<boolean> {
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from('reports')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[reports] deleteReport:', error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
  * Overwrite the data JSONB for an existing report (e.g. after Update modal saves).
- * RLS also enforces user_id match on the server side.
  */
 export async function updateReport(
   record: HistoryRecord,

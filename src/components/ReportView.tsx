@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useExam, useExamDispatch } from '../context/ExamContext';
 import { calculateTotalScore, getGrade } from '../utils/scoring';
 import { saveReport } from '../services/reports';
+import { incrementUserStats } from '../services/stats';
 import { supabase } from '../lib/supabase';
 import type { CheckingMode, HistoryRecord } from '../types';
 
@@ -12,7 +13,7 @@ const MODE_LABELS: Record<CheckingMode, { label: string; color: string }> = {
 };
 
 export function ReportView({ userId = '' }: { userId?: string }) {
-  const { answerKey, results, checkingMode, examTerm, examClass, studentName, studentSection, sessionId } = useExam();
+  const { answerKey, results, checkingMode, examTerm, examClass, studentName, studentSection, studentId, sessionId } = useExam();
   const dispatch = useExamDispatch();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -37,6 +38,7 @@ export function ReportView({ userId = '' }: { userId?: string }) {
       examClass,
       studentName,
       studentSection,
+      studentId,
       checkingMode,
       scored,
       total,
@@ -55,11 +57,18 @@ export function ReportView({ userId = '' }: { userId?: string }) {
     const updated = [sessionId, ...savedIds].slice(0, 100);
     localStorage.setItem(idsKey, JSON.stringify(updated));
 
-    // Persist to Supabase (fire-and-forget)
+    // Persist to Supabase and record usage stats (fire-and-forget)
     if (supabase) {
       supabase.auth.getSession().then(({ data }) => {
-        const userId = data.session?.user?.id;
-        if (userId) saveReport(record, sessionId, userId);
+        const uid = data.session?.user?.id;
+        if (!uid) return;
+        saveReport(record, sessionId, uid);
+        const pages = results.filter(r => r.extractedText?.trim()).length;
+        const words = results.reduce(
+          (sum, r) => sum + (r.extractedText?.trim().split(/\s+/).filter(Boolean).length ?? 0),
+          0,
+        );
+        incrementUserStats(uid, pages, words);
       });
     }
 
@@ -116,6 +125,7 @@ export function ReportView({ userId = '' }: { userId?: string }) {
             {(studentName || examClass || studentSection || examTerm) && (
               <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {studentName && <span>{studentName}</span>}
+                {studentId && <span className="text-xs text-gray-400 dark:text-gray-500">ID: {studentId}</span>}
                 {examClass && studentSection && <span>{examClass} · {studentSection}</span>}
                 {examTerm && <span>{examTerm}</span>}
               </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAllAccess, approveUser, revokeUser, extendTrial, type UserAccess } from '../lib/access';
+import { loadAllStats, type UserStats } from '../services/stats';
 
 interface AdminPanelProps {
   adminEmail: string;
@@ -25,14 +26,15 @@ function StatusBadge({ status }: { status: UserAccess['status'] }) {
 
 export function AdminPanel({ adminEmail }: AdminPanelProps) {
   const [users, setUsers] = useState<UserAccess[]>([]);
+  const [stats, setStats] = useState<Map<string, UserStats>>(new Map());
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   async function loadUsers() {
     setLoading(true);
-    const data = await getAllAccess();
-    // Never show the admin's own row — admin bypasses access control entirely
+    const [data, statsMap] = await Promise.all([getAllAccess(), loadAllStats()]);
     setUsers(data.filter(u => u.email !== adminEmail));
+    setStats(statsMap);
     setLoading(false);
   }
 
@@ -64,7 +66,7 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
   const pendingCount = users.filter(u => u.status === 'pending').length;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
+    <div className="max-w-6xl mx-auto space-y-4">
       {/* Header */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -112,7 +114,10 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trial Ends</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Requested</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Reports</th>
+                  <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Pages</th>
+                  <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Words</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -130,7 +135,16 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
                     <td className="px-5 py-4 text-gray-500 dark:text-gray-400">
                       {formatDate(u.requested_at)}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4 text-right font-semibold text-gray-800 dark:text-gray-200">
+                      {stats.get(u.user_id)?.reports_generated ?? 0}
+                    </td>
+                    <td className="px-3 py-4 text-right text-gray-500 dark:text-gray-400">
+                      {stats.get(u.user_id)?.pages_scanned ?? 0}
+                    </td>
+                    <td className="px-3 py-4 text-right text-gray-500 dark:text-gray-400">
+                      {(stats.get(u.user_id)?.words_extracted ?? 0).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-4">
                       <div className="flex items-center justify-end gap-2 flex-wrap">
                         {u.status === 'pending' && (
                           <button

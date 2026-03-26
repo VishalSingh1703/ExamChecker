@@ -151,6 +151,11 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
             {activeTab === 'history' && <HistoryView userId={userId} />}
             {activeTab === 'admin' && isAdmin && <AdminPanel adminEmail={ADMIN_EMAIL} />}
           </main>
+
+          {/* Footer */}
+          <footer className="mt-8 pb-6 text-center text-xs text-gray-400 dark:text-gray-600 print:hidden">
+            © {new Date().getFullYear()} Vishal Singh. All rights reserved.
+          </footer>
         </>
       )}
     </div>
@@ -161,10 +166,11 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
 
 function AccessScreen({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center p-4 gap-4">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 w-full max-w-sm border border-gray-200 dark:border-gray-800 text-center">
         {children}
       </div>
+      <p className="text-xs text-gray-400 dark:text-gray-600">© {new Date().getFullYear()} Vishal Singh. All rights reserved.</p>
     </div>
   );
 }

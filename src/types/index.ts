@@ -70,6 +70,7 @@ export interface HistoryRecord {
   examClass: string;
   studentName: string;
   studentSection: string;
+  studentId?: string;
   checkingMode: CheckingMode;
   scored: number;
   total: number;
@@ -91,5 +92,6 @@ export interface ExamSession {
   examClass: string;
   studentName: string;
   studentSection: string;
+  studentId: string;
   sessionId: string;
 }

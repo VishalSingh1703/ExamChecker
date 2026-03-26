@@ -4,7 +4,8 @@ import { extractTextFromImage } from '../services/ocr';
 import { getSemanticSimilarity } from '../services/similarity';
 import { calculateMarks } from '../utils/scoring';
 import { useExam } from '../context/ExamContext';
-import { loadReports, updateReport } from '../services/reports';
+import { loadReports, updateReport, moveToTrash, restoreFromTrash, loadTrash, purgeExpiredTrash, deleteReport } from '../services/reports';
+import type { TrashEntry } from '../services/reports';
 import { supabase } from '../lib/supabase';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -58,6 +59,11 @@ function buildTree(records: HistoryRecord[]): Tree {
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function daysLeft(deletedAt: string): number {
+  const diff = 7 * 24 * 60 * 60 * 1000 - (Date.now() - new Date(deletedAt).getTime());
+  return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
 }
 
 // ── Update Modal ─────────────────────────────────────────────────────────────
@@ -235,6 +241,7 @@ function RecordDetail({ record }: { record: HistoryRecord }) {
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{record.examTitle}</h3>
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-sm text-gray-500 dark:text-gray-400">
               {record.studentName && <span>{record.studentName}</span>}
+              {record.studentId && <span className="text-xs text-gray-400 dark:text-gray-500">ID: {record.studentId}</span>}
               {record.examClass && record.studentSection && <span>{record.examClass} · {record.studentSection}</span>}
               {record.term && <span>{record.term}</span>}
               <span>{formatDate(record.savedAt)}</span>
@@ -314,17 +321,19 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
     catch { return []; }
   });
 
-  // Merge Supabase records with localStorage on mount
+  // Merge Supabase records with localStorage on mount; also load trash
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getSession().then(async ({ data }) => {
-      const userId = data.session?.user?.id;
-      if (!userId) return;
-      const remote = await loadReports(userId);
+      const uid = data.session?.user?.id;
+      if (!uid) return;
+      await purgeExpiredTrash(uid);
+      const [remote, trash] = await Promise.all([loadReports(uid), loadTrash(uid)]);
+      setTrashRecords(trash);
       if (remote.length === 0) return;
       setRecords(prev => {
         const localById = new Map(prev.map(r => [r.id, r]));
-        for (const r of remote) localById.set(r.id, r); // remote wins on conflict
+        for (const r of remote) localById.set(r.id, r);
         const merged = [...localById.values()].sort(
           (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
         );
@@ -334,8 +343,14 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
     });
   }, []);
 
+  const [view, setView] = useState<'history' | 'trash'>('history');
+  const [trashRecords, setTrashRecords] = useState<TrashEntry[]>([]);
+  const [permDeleteTarget, setPermDeleteTarget] = useState<TrashEntry | null>(null);
+  const [permDeleteInput, setPermDeleteInput] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [updateRecord, setUpdateRecord] = useState<HistoryRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<HistoryRecord | null>(null);
+  const [deleteInput, setDeleteInput] = useState('');
   const [openYears, setOpenYears] = useState<Set<number>>(new Set());
   const [openClasses, setOpenClasses] = useState<Set<string>>(new Set());
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
@@ -364,12 +379,60 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
     }
   }
 
+  function confirmDelete() {
+    if (!deleteTarget || deleteInput !== 'DELETE') return;
+    const trashedEntry: TrashEntry = { record: deleteTarget, deletedAt: new Date().toISOString() };
+    const next = records.filter(r => r.id !== deleteTarget.id);
+    setRecords(next);
+    localStorage.setItem(histKey, JSON.stringify(next));
+    if (selectedId === deleteTarget.id) setSelectedId(null);
+    setTrashRecords(prev => [trashedEntry, ...prev]);
+    if (supabase) {
+      supabase.auth.getSession().then(({ data }) => {
+        const uid = data.session?.user?.id;
+        if (uid) moveToTrash(deleteTarget.id, uid);
+      });
+    }
+    setDeleteTarget(null);
+    setDeleteInput('');
+  }
+
+  function handleRestore(entry: TrashEntry) {
+    setTrashRecords(prev => prev.filter(t => t.record.id !== entry.record.id));
+    setRecords(prev => {
+      const next = [entry.record, ...prev].sort(
+        (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+      );
+      localStorage.setItem(histKey, JSON.stringify(next));
+      return next;
+    });
+    if (supabase) {
+      supabase.auth.getSession().then(({ data }) => {
+        const uid = data.session?.user?.id;
+        if (uid) restoreFromTrash(entry.record.id, uid);
+      });
+    }
+  }
+
+  function confirmPermDelete() {
+    if (!permDeleteTarget || permDeleteInput !== 'DELETE') return;
+    setTrashRecords(prev => prev.filter(t => t.record.id !== permDeleteTarget.record.id));
+    if (supabase) {
+      supabase.auth.getSession().then(({ data }) => {
+        const uid = data.session?.user?.id;
+        if (uid) deleteReport(permDeleteTarget.record.id, uid);
+      });
+    }
+    setPermDeleteTarget(null);
+    setPermDeleteInput('');
+  }
+
   function printRecord(r: HistoryRecord) {
     setSelectedId(r.id);
     setTimeout(() => window.print(), 100);
   }
 
-  if (records.length === 0) {
+  if (records.length === 0 && trashRecords.length === 0) {
     return (
       <div className="max-w-4xl mx-auto py-20 text-center">
         <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
@@ -387,6 +450,94 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
 
   return (
     <>
+      {/* Permanent delete modal (from trash) */}
+      {permDeleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 w-full max-w-sm mx-4">
+            <div className="flex justify-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 text-center mb-1">Delete Permanently</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-1">
+              <span className="font-medium text-gray-700 dark:text-gray-300">{permDeleteTarget.record.studentName}</span> — {permDeleteTarget.record.examTitle}
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center mb-4">This cannot be undone.</p>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type <span className="font-bold text-red-500">DELETE</span> to confirm</p>
+            <input
+              type="text"
+              value={permDeleteInput}
+              onChange={e => setPermDeleteInput(e.target.value)}
+              placeholder="DELETE"
+              autoFocus
+              className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 mb-4 font-mono"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={confirmPermDelete}
+                disabled={permDeleteInput !== 'DELETE'}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Delete Forever
+              </button>
+              <button
+                onClick={() => { setPermDeleteTarget(null); setPermDeleteInput(''); }}
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move-to-trash confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 w-full max-w-sm mx-4">
+            <div className="flex justify-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 text-center mb-1">Move to Trash</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-1">
+              <span className="font-medium text-gray-700 dark:text-gray-300">{deleteTarget.studentName}</span> — {deleteTarget.examTitle}
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center mb-4">Report will be permanently deleted after 7 days.</p>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type <span className="font-bold text-red-500">DELETE</span> to confirm</p>
+            <input
+              type="text"
+              value={deleteInput}
+              onChange={e => setDeleteInput(e.target.value)}
+              placeholder="DELETE"
+              autoFocus
+              className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 mb-4 font-mono"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={confirmDelete}
+                disabled={deleteInput !== 'DELETE'}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Move to Trash
+              </button>
+              <button
+                onClick={() => { setDeleteTarget(null); setDeleteInput(''); }}
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {updateRecord && (
         <UpdateModal
           record={updateRecord}
@@ -397,7 +548,76 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
       )}
 
       <div className="max-w-5xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 items-start">
+        {/* Tab bar */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setView('history')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'history' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+          >
+            Archive
+            {records.length > 0 && <span className="ml-1.5 text-xs opacity-75">({records.length})</span>}
+          </button>
+          <button
+            onClick={() => setView('trash')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'trash' ? 'bg-red-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+          >
+            Trash
+            {trashRecords.length > 0 && <span className="ml-1.5 text-xs opacity-75">({trashRecords.length})</span>}
+          </button>
+        </div>
+
+        {/* Trash panel */}
+        {view === 'trash' && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Trash</h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Reports are permanently deleted 7 days after being trashed.</p>
+            </div>
+            {trashRecords.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-sm text-gray-400 dark:text-gray-500">Trash is empty.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {trashRecords.map(entry => {
+                  const days = daysLeft(entry.deletedAt);
+                  return (
+                    <div key={entry.record.id} className="flex items-center gap-4 px-5 py-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                          {entry.record.studentName || 'Unknown'} — {entry.record.examTitle}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                          Deleted {formatDate(entry.deletedAt)} · {entry.record.examClass} {entry.record.studentSection}
+                        </p>
+                      </div>
+                      <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full border ${days <= 1 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+                        {days}d left
+                      </span>
+                      <button
+                        onClick={() => handleRestore(entry)}
+                        className="shrink-0 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg text-xs font-medium hover:bg-green-100 dark:hover:bg-green-900/40"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => { setPermDeleteTarget(entry); setPermDeleteInput(''); }}
+                        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        title="Delete permanently"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {view === 'history' && <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 items-start">
 
           {/* Left: tree */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -476,7 +696,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                             }`}
                                           >
                                             <p className="text-xs font-medium truncate">{r.studentName || 'Unknown'}</p>
-                                            <p className="text-xs text-gray-400 dark:text-gray-500">{r.percentage}% · {r.grade}</p>
+                                            <p className="text-xs text-gray-400 dark:text-gray-500">{r.studentId ? `${r.studentId} · ` : ''}{r.percentage}% · {r.grade}</p>
                                           </button>
 
                                           {/* Hover action icons */}
@@ -497,6 +717,15 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                             >
                                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                              </svg>
+                                            </button>
+                                            <button
+                                              onClick={e => { e.stopPropagation(); setDeleteTarget(r); setDeleteInput(''); }}
+                                              title="Delete report"
+                                              className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                            >
+                                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                               </svg>
                                             </button>
                                           </div>
@@ -529,7 +758,8 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
             }
           </div>
 
-        </div>
+        </div>}
+
       </div>
     </>
   );

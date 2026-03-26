@@ -7,7 +7,7 @@ type Action =
   | { type: 'SET_GEMINI_API_KEY'; payload: string }
   | { type: 'SET_CHECKING_MODE'; payload: CheckingMode }
   | { type: 'SET_EXAM_META'; payload: { examTerm: string; examClass: string } }
-  | { type: 'SET_STUDENT_INFO'; payload: { studentName: string; studentSection: string } }
+  | { type: 'SET_STUDENT_INFO'; payload: { studentName: string; studentSection: string; studentId: string } }
   | { type: 'UPDATE_QUESTION_RESULT'; payload: QuestionResult }
   | { type: 'SET_CURRENT_QUESTION'; payload: number }
   | { type: 'SET_ACTIVE_TAB'; payload: ExamSession['activeTab'] }
@@ -25,6 +25,7 @@ const initialState: ExamSession = {
   examClass: '',
   studentName: '',
   studentSection: '',
+  studentId: '',
   sessionId: '',
 };
 
@@ -41,7 +42,7 @@ function examReducer(state: ExamSession, action: Action): ExamSession {
     case 'SET_EXAM_META':
       return { ...state, examTerm: action.payload.examTerm, examClass: action.payload.examClass };
     case 'SET_STUDENT_INFO':
-      return { ...state, studentName: action.payload.studentName, studentSection: action.payload.studentSection };
+      return { ...state, studentName: action.payload.studentName, studentSection: action.payload.studentSection, studentId: action.payload.studentId };
     case 'UPDATE_QUESTION_RESULT': {
       const existing = state.results.findIndex(
         (r) => r.questionId === action.payload.questionId

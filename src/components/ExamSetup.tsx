@@ -153,6 +153,7 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
   // Step 3
   const [studentName, setStudentName] = useState('');
   const [studentSection, setStudentSection] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [generatingIdx, setGeneratingIdx] = useState<number | null>(null);
@@ -265,7 +266,7 @@ Guidelines:
   // ── Start grading ───────────────────────────────────────────────────────────
 
   function handleStart() {
-    if (!answerKey || !studentName.trim() || !studentSection.trim()) return;
+    if (!answerKey || !studentName.trim() || !studentSection.trim() || !studentId.trim()) return;
     const s = loadSuggestions(userId);
     saveSuggestions(userId, {
       terms: dedupe([examTerm, ...(s.terms ?? [])]),
@@ -273,7 +274,9 @@ Guidelines:
     });
     dispatch({ type: 'SET_CHECKING_MODE', payload: checkingMode });
     dispatch({ type: 'SET_EXAM_META', payload: { examTerm, examClass } });
-    dispatch({ type: 'SET_STUDENT_INFO', payload: { studentName, studentSection } });
+    const resolvedStudentId =
+      `${studentName}-${studentId}-${examClass}-${studentSection}`.replace(/\s+/g, '').toLowerCase();
+    dispatch({ type: 'SET_STUDENT_INFO', payload: { studentName, studentSection, studentId: resolvedStudentId } });
     dispatch({ type: 'SET_ANSWER_KEY', payload: answerKey });
     dispatch({ type: 'SET_ACTIVE_TAB', payload: 'grade' });
   }
@@ -550,6 +553,15 @@ Guidelines:
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Student ID</label>
+              <input
+                type="text" value={studentId} onChange={e => setStudentId(e.target.value)}
+                placeholder="e.g. STU-001"
+                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
             <SuggestInput label="Section" value={studentSection} onChange={setStudentSection}
               placeholder="e.g. A, B, Science, Commerce" suggestions={suggestions.sections ?? []} />
 
@@ -595,7 +607,7 @@ Guidelines:
               className="px-5 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
               ← Back
             </button>
-            <button onClick={handleStart} disabled={!answerKey || !studentName.trim() || !studentSection.trim()}
+            <button onClick={handleStart} disabled={!answerKey || !studentName.trim() || !studentSection.trim() || !studentId.trim()}
               className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
               Start Grading →
             </button>

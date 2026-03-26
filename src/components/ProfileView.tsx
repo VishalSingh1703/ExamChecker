@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import type { UserStats } from '../services/stats';
 
 const inputClass =
   'w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600';
@@ -16,6 +17,17 @@ export function ProfileView({ user, onBack }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [stats, setStats] = useState<UserStats | null>(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase
+      .from('user_stats')
+      .select('user_id, reports_generated, pages_scanned, words_extracted')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setStats(data as UserStats); });
+  }, [user.id]);
 
   async function handleChangePassword() {
     if (newPassword !== confirmPassword) {
@@ -70,6 +82,24 @@ export function ProfileView({ user, onBack }: Props) {
             <p className="text-base font-semibold text-gray-900 dark:text-gray-100 break-all">{user.email}</p>
           </div>
         </div>
+      </div>
+
+      {/* Usage stats */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Your Usage</h2>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Reports Generated', value: stats?.reports_generated ?? 0, color: 'text-blue-600 dark:text-blue-400' },
+            { label: 'Pages Scanned', value: stats?.pages_scanned ?? 0, color: 'text-indigo-600 dark:text-indigo-400' },
+            { label: 'Words Extracted', value: (stats?.words_extracted ?? 0).toLocaleString(), color: 'text-purple-600 dark:text-purple-400' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center border border-gray-100 dark:border-gray-700">
+              <p className={`text-2xl font-bold ${color}`}>{value}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">{label}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-600 mt-3">Counts are cumulative and never decrease.</p>
       </div>
 
       {/* Change password */}

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import type { Question, QuestionResult } from '../types';
-import { extractTextFromImage } from '../services/ocr';
+import { extractAndGrade, extractTextFromImage } from '../services/ocr';
 import { getSemanticSimilarity } from '../services/similarity';
 import { calculateMarks } from '../utils/scoring';
 
@@ -33,6 +33,7 @@ export function QuestionGrader({
   const [ocrError, setOcrError] = useState('');
   const [ocrEngine, setOcrEngine] = useState<'gemini' | 'tesseract' | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [result, setResult] = useState<{
     similarity: number;
     method: 'semantic' | 'keyword';
@@ -51,25 +52,59 @@ export function QuestionGrader({
     setOcrText('');
     setResult(null);
     setOcrError('');
-    runOCR(file);
+    runOCRAndGrade(file);
   }
 
-  async function runOCR(file: File) {
+  async function runOCRAndGrade(file: File) {
     setOcrLoading(true);
-    setOcrProgress(0);
-    setOcrEngine(null);
+    setOcrProgress(10);
+
+    // Try combined OCR + grade in one Gemini call
+    if (geminiApiKey?.trim()) {
+      try {
+        const combined = await extractAndGrade(
+          file,
+          question.question,
+          question.expectedAnswer,
+          question.keywords ?? [],
+          geminiApiKey.trim(),
+        );
+        setOcrProgress(100);
+        setOcrLoading(false);
+        setOcrEngine('gemini');
+        setOcrText(combined.extractedText);
+        const { marks, status } = calculateMarks(combined.score, threshold, question.marks);
+        setResult({ similarity: combined.score, method: 'semantic', marks, status });
+        return;
+      } catch (err) {
+        console.error('[QuestionGrader] Combined Gemini call failed, falling back:', err instanceof Error ? err.message : err);
+        // Fall through to separate OCR + similarity below
+      }
+    }
+
+    // Fallback: separate OCR then similarity
     const ocr = await extractTextFromImage(file, setOcrProgress, geminiApiKey || undefined);
     setOcrLoading(false);
     setOcrEngine(ocr.usedGemini ? 'gemini' : 'tesseract');
     if (ocr.error && !ocr.text) {
       setOcrError(ocr.error);
-    } else {
-      setOcrText(ocr.text);
-      if (ocr.error) setOcrError(ocr.error); // fallback warning
+      return;
+    }
+    if (ocr.error) setOcrError(ocr.error);
+    setOcrText(ocr.text);
+
+    // Auto-analyze after OCR
+    if (ocr.text.trim()) {
+      setAnalyzing(true);
+      const sim = await getSemanticSimilarity(ocr.text, question.expectedAnswer, hfApiKey || undefined, question.keywords ?? []);
+      const { marks, status } = calculateMarks(sim.score, threshold, question.marks);
+      setResult({ similarity: sim.score, method: sim.method, marks, status, fallbackReason: sim.error });
+      setAnalyzing(false);
     }
   }
 
-  async function handleAnalyze() {
+  async function handleReanalyze() {
+    setShowConfirm(false);
     if (!ocrText.trim()) return;
     setAnalyzing(true);
     setResult(null);
@@ -101,6 +136,32 @@ export function QuestionGrader({
 
   return (
     <div className="space-y-4">
+      {/* Confirm re-analyze popup */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 w-full max-w-sm mx-4">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Re-analyze answer?</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+              This will overwrite the current result with a fresh analysis of the edited text.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleReanalyze}
+                className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700"
+              >
+                Yes, analyze again
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Question header */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-5">
         <div className="flex items-start justify-between gap-4">
@@ -137,21 +198,24 @@ export function QuestionGrader({
             />
           )}
 
-          {ocrLoading && (
+          {(ocrLoading || analyzing) && (
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>Running OCR…</span>
-                <span>{ocrProgress}%</span>
+                <span>{ocrLoading ? 'Reading & grading…' : 'Analyzing…'}</span>
+                <span>{ocrLoading ? `${ocrProgress}%` : ''}</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${ocrProgress}%` }} />
+                <div
+                  className="bg-blue-500 h-1.5 rounded-full transition-all"
+                  style={{ width: ocrLoading ? `${ocrProgress}%` : '60%' }}
+                />
               </div>
             </div>
           )}
 
-          {ocrEngine && (
+          {ocrEngine && !ocrLoading && (
             <p className={`text-xs rounded-lg px-3 py-1.5 border ${ocrEngine === 'gemini' ? 'text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
-              OCR: {ocrEngine === 'gemini' ? 'Gemini 2.5 Flash ✓' : 'Tesseract (fallback)'}
+              {ocrEngine === 'gemini' ? 'AI reading — OCR + graded in one pass ✓' : 'OCR fallback mode'}
             </p>
           )}
 
@@ -169,16 +233,18 @@ export function QuestionGrader({
             value={ocrText}
             onChange={(e) => setOcrText(e.target.value)}
             className="flex-1 min-h-[120px] border border-gray-300 dark:border-gray-700 rounded-xl p-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600"
-            placeholder="Upload an image to extract text, or type directly…"
+            placeholder="Upload an image to extract and grade automatically, or type directly…"
           />
 
-          <button
-            onClick={handleAnalyze}
-            disabled={!ocrText.trim() || analyzing}
-            className="w-full py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {analyzing ? 'Analyzing…' : 'Analyze Answer'}
-          </button>
+          {result && (
+            <button
+              onClick={() => setShowConfirm(true)}
+              disabled={!ocrText.trim() || analyzing || ocrLoading}
+              className="w-full py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed border border-gray-200 dark:border-gray-700"
+            >
+              {analyzing ? 'Analyzing…' : 'Analyze Again'}
+            </button>
+          )}
 
           {result && (
             <div className={`border rounded-xl px-4 py-3 text-sm space-y-2 ${statusColors[result.status]}`}>
