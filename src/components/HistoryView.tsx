@@ -290,7 +290,6 @@ function RecordDetail({ record }: { record: HistoryRecord }) {
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{record.examTitle}</h3>
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-sm text-gray-500 dark:text-gray-400">
               {record.studentName && <span>{record.studentName}</span>}
-              {record.studentId && <span className="text-xs text-gray-400 dark:text-gray-500">ID: {record.studentId}</span>}
               {record.examClass && record.studentSection && <span>{record.examClass} · {record.studentSection}</span>}
               {record.term && <span>{record.term}</span>}
               <span>{formatDate(record.savedAt)}</span>
@@ -744,7 +743,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                             }`}
                                           >
                                             <p className="text-xs font-medium truncate">{r.studentName || 'Unknown'}</p>
-                                            <p className="text-xs text-gray-400 dark:text-gray-500">{r.studentId ? `${r.studentId} · ` : ''}{r.percentage}% · {r.grade}</p>
+                                            <p className="text-xs text-gray-400 dark:text-gray-500">{r.percentage}% · {r.grade}</p>
                                           </button>
 
                                           {/* Hover action icons */}

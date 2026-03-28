@@ -161,9 +161,10 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
   const classSubjects = subjects.filter(s => s.examClass === examClass);
   const [subjectMode, setSubjectMode] = useState<'select' | 'create'>('select');
 
-  // Step 2 — new subject creation
+  // Step 2 — new subject creation / editing
   const [newName, setNewName] = useState('');
   const [newQuestions, setNewQuestions] = useState<Array<{ question: string; expectedAnswer: string; marks: number; keywords: string }>>([]);
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
 
   // Step 3
   const [studentName, setStudentName] = useState('');
@@ -220,25 +221,41 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
 
   function saveNewSubject() {
     if (!newName.trim() || newQuestions.length === 0) return;
-    const subject: SavedSubject = {
-      id: crypto.randomUUID(),
-      name: newName.trim(),
-      examClass,
-      questions: newQuestions.map((q, i) => ({
-        id: i + 1,
-        question: q.question,
-        expectedAnswer: q.expectedAnswer,
-        marks: Number(q.marks) || 5,
-        keywords: parseKeywords(q.keywords),
-      })),
-    };
-    const updated = [...subjects, subject];
+    const questions = newQuestions.map((q, i) => ({
+      id: i + 1,
+      question: q.question,
+      expectedAnswer: q.expectedAnswer,
+      marks: Number(q.marks) || 5,
+      keywords: parseKeywords(q.keywords),
+    }));
+    let updated: SavedSubject[];
+    if (editingSubjectId) {
+      updated = subjects.map(s =>
+        s.id === editingSubjectId ? { ...s, name: newName.trim(), questions } : s
+      );
+    } else {
+      const subject: SavedSubject = { id: crypto.randomUUID(), name: newName.trim(), examClass, questions };
+      updated = [...subjects, subject];
+    }
     setSubjects(updated);
     persistSubjects(userId, updated);
-    setSelectedSubjectId(subject.id);
+    setSelectedSubjectId(editingSubjectId ?? updated[updated.length - 1].id);
     setSubjectMode('select');
     setNewName('');
     setNewQuestions([]);
+    setEditingSubjectId(null);
+  }
+
+  function startEdit(s: SavedSubject) {
+    setNewName(s.name);
+    setNewQuestions(s.questions.map(q => ({
+      question: q.question,
+      expectedAnswer: q.expectedAnswer,
+      marks: q.marks,
+      keywords: (q.keywords ?? []).join(', '),
+    })));
+    setEditingSubjectId(s.id);
+    setSubjectMode('create');
   }
 
   function cancelCreate() {
@@ -246,6 +263,7 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
     setNewName('');
     setNewQuestions([]);
     setShowBankPanel(false);
+    setEditingSubjectId(null);
   }
 
   function deleteSubject(id: string) {
@@ -477,37 +495,46 @@ Guidelines:
                 return (
                   <div
                     key={s.id}
-                    className={`relative rounded-xl border-2 transition-colors ${
+                    className={`rounded-xl border-2 transition-colors overflow-hidden ${
                       selected
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                         : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
                     }`}
                   >
-                    <button
-                      onClick={() => setSelectedSubjectId(s.id)}
-                      className="w-full text-left p-4"
-                    >
+                    {/* Selectable area */}
+                    <button onClick={() => setSelectedSubjectId(s.id)} className="w-full text-left p-4">
                       <div className="flex items-start justify-between">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm pr-6">{s.name}</p>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{s.name}</p>
                         {selected && (
-                          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         )}
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{s.questions.length} Question{s.questions.length !== 1 ? 's' : ''}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{total} Total Marks</p>
                     </button>
-                    {/* Delete button */}
-                    <button
-                      onClick={e => { e.stopPropagation(); deleteSubject(s.id); }}
-                      title="Delete subject"
-                      className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-md text-gray-400 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    {/* Action footer */}
+                    <div className={`flex divide-x text-xs border-t ${selected ? 'border-blue-200 dark:border-blue-800 divide-blue-200 dark:divide-blue-800' : 'border-gray-100 dark:border-gray-700 divide-gray-100 dark:divide-gray-700'}`}>
+                      <button
+                        onClick={() => startEdit(s)}
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteSubject(s.id)}
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -552,8 +579,8 @@ Guidelines:
         <><div key="step2-create" className="animate-fade-in space-y-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Create New Subject</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Add questions and expected answers. This subject will be saved for future use.</p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{editingSubjectId ? 'Edit Subject' : 'Create New Subject'}</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{editingSubjectId ? 'Update questions and expected answers for this subject.' : 'Add questions and expected answers. This subject will be saved for future use.'}</p>
             </div>
 
             <div>
@@ -773,7 +800,7 @@ Guidelines:
             </button>
             <button onClick={saveNewSubject} disabled={!!step2CreateBlockedReason()}
               className="flex-1 py-3 bg-gray-800 dark:bg-gray-700 text-white rounded-xl font-semibold text-sm hover:bg-gray-900 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed">
-              Save Subject
+              {editingSubjectId ? 'Update Subject' : 'Save Subject'}
             </button>
           </div>
         </div>
