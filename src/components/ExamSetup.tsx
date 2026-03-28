@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { AnswerKey, CheckingMode, SavedSubject } from '../types';
 import { useExam, useExamDispatch } from '../context/ExamContext';
+import { loadChapters, type BankChapter } from '../services/questionBank';
 
 // ── Class / Semester options ─────────────────────────────────────────────────
 
@@ -159,8 +160,21 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
   const [generatingIdx, setGeneratingIdx] = useState<number | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
+  // Question bank import state
+  const [bankChapters, setBankChapters] = useState<BankChapter[]>([]);
+  const [showBankPanel, setShowBankPanel] = useState(false);
+  const [selectedChapterIds, setSelectedChapterIds] = useState<Set<string>>(new Set());
+  const [randomN, setRandomN] = useState(5);
+  const [shuffleError, setShuffleError] = useState<string | null>(null);
+
   const [suggestions] = useState<Suggestions>(() => loadSuggestions(userId));
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Load bank chapters when entering create mode with a class selected
+  useEffect(() => {
+    if (subjectMode !== 'create' || !examClass) return;
+    loadChapters(userId, examClass).then(setBankChapters);
+  }, [subjectMode, examClass, userId]);
 
   // Derived answer key from selected subject
   const selectedSubject = subjects.find(s => s.id === selectedSubjectId) ?? null;
@@ -216,6 +230,66 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
     setSubjectMode('select');
     setNewName('');
     setNewQuestions([]);
+    setShowBankPanel(false);
+  }
+
+  // ── Question Bank import helpers ────────────────────────────────────────────
+
+  function toggleChapter(id: string) {
+    setSelectedChapterIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function importFromBank() {
+    const allQs = bankChapters
+      .filter(c => selectedChapterIds.has(c.id))
+      .flatMap(c => c.questions);
+    setNewQuestions(prev => [
+      ...prev,
+      ...allQs.map(q => ({
+        question: q.question,
+        expectedAnswer: q.expectedAnswer,
+        marks: q.marks,
+        keywords: (q.keywords ?? []).join(', '),
+      })),
+    ]);
+    setShowBankPanel(false);
+  }
+
+  function randomizeFromBank() {
+    const allQs = bankChapters
+      .filter(c => selectedChapterIds.has(c.id))
+      .flatMap(c => c.questions);
+    const shuffled = [...allQs].sort(() => Math.random() - 0.5).slice(0, randomN);
+    setNewQuestions(shuffled.map(q => ({
+      question: q.question,
+      expectedAnswer: q.expectedAnswer,
+      marks: q.marks,
+      keywords: (q.keywords ?? []).join(', '),
+    })));
+    setShowBankPanel(false);
+  }
+
+  function shuffleQuestion(idx: number) {
+    setShuffleError(null);
+    const currentQ = newQuestions[idx];
+    const allBankQs = bankChapters.flatMap(c => c.questions);
+    const inUse = new Set(newQuestions.map(q => q.question));
+    const candidates = allBankQs.filter(bq => bq.marks === currentQ.marks && !inUse.has(bq.question));
+    if (candidates.length === 0) {
+      setShuffleError(`No other bank question with ${currentQ.marks} mark${currentQ.marks !== 1 ? 's' : ''} found.`);
+      return;
+    }
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    setNewQuestions(prev => prev.map((q, i) => i === idx ? {
+      question: pick.question,
+      expectedAnswer: pick.expectedAnswer,
+      marks: pick.marks,
+      keywords: (pick.keywords ?? []).join(', '),
+    } : q));
   }
 
   async function generateAnswer(idx: number) {
@@ -427,14 +501,103 @@ Guidelines:
               />
             </div>
 
+            {/* Import from Question Bank */}
+            {bankChapters.length > 0 && (
+              <div className="border border-dashed border-blue-300 dark:border-blue-700 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setShowBankPanel(p => !p)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Import from Question Bank
+                    <span className="text-xs text-blue-500 dark:text-blue-500 font-normal">({bankChapters.length} chapter{bankChapters.length !== 1 ? 's' : ''} for {examClass})</span>
+                  </span>
+                  <svg className={`w-4 h-4 transition-transform ${showBankPanel ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showBankPanel && (
+                  <div className="px-4 pb-4 space-y-3 border-t border-blue-100 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-900/10">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 pt-3">Select chapters to import from:</p>
+
+                    {/* Chapter checkboxes grouped by subject */}
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {bankChapters.map(c => (
+                        <label key={c.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-800 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedChapterIds.has(c.id)}
+                            onChange={() => toggleChapter(c.id)}
+                            className="w-4 h-4 rounded accent-blue-600"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-800 dark:text-gray-200 truncate">{c.chapter}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{c.subject} · {c.questions.length} questions</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={importFromBank}
+                        disabled={selectedChapterIds.size === 0}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-40"
+                      >
+                        Import All Selected
+                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={randomizeFromBank}
+                          disabled={selectedChapterIds.size === 0}
+                          className="px-3 py-1.5 bg-gray-700 dark:bg-gray-600 text-white rounded-lg text-xs font-medium hover:bg-gray-800 disabled:opacity-40"
+                        >
+                          Randomize
+                        </button>
+                        <input
+                          type="number" min={1} max={50} value={randomN}
+                          onChange={e => setRandomN(parseInt(e.target.value) || 5)}
+                          className="w-14 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <span className="text-xs text-gray-400">questions</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {shuffleError && (
+              <p className="text-xs text-red-600 dark:text-red-400">{shuffleError}</p>
+            )}
+
             {/* Questions */}
             <div className="space-y-4">
               {newQuestions.map((q, idx) => (
                 <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3 bg-gray-50 dark:bg-gray-800/50">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Question {idx + 1}</span>
-                    <button onClick={() => removeQuestion(idx)}
-                      className="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">Remove</button>
+                    <div className="flex items-center gap-2">
+                      {bankChapters.length > 0 && (
+                        <button
+                          onClick={() => shuffleQuestion(idx)}
+                          title="Shuffle with another bank question of same marks"
+                          className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Shuffle
+                        </button>
+                      )}
+                      <button onClick={() => removeQuestion(idx)}
+                        className="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">Remove</button>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Question</label>

@@ -12,6 +12,7 @@ import { PasswordResetScreen } from './components/PasswordResetScreen';
 import { HistoryView } from './components/HistoryView';
 import { AdminPanel } from './components/AdminPanel';
 import { AnalyticsView } from './components/AnalyticsView';
+import { QuestionBankView } from './components/QuestionBankView';
 import { ExamProvider, useExam, useExamDispatch } from './context/ExamContext';
 
 const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL as string | undefined) ?? '';
@@ -75,6 +76,22 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
         </button>
 
         <div className="flex items-center gap-2">
+          {/* Upload Questions button */}
+          <button
+            onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'question-bank' })}
+            title="Upload Questions to Bank"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'question-bank'
+                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            <span className="hidden sm:inline">Upload Questions</span>
+          </button>
+
           {/* Info button */}
           <button
             onClick={() => setShowInfo(true)}
@@ -153,6 +170,12 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
             {activeTab === 'history' && <HistoryView userId={userId} />}
             {activeTab === 'analytics' && <AnalyticsView userId={userId} />}
             {activeTab === 'admin' && isAdmin && <AdminPanel adminEmail={ADMIN_EMAIL} />}
+            {activeTab === 'question-bank' && (
+              <QuestionBankView
+                userId={userId}
+                onBack={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'setup' })}
+              />
+            )}
           </main>
 
           {/* Footer */}
