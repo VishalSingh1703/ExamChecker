@@ -20,7 +20,7 @@ async function extractTextWithGemini(file: File, apiKey: string): Promise<OCRRes
   const mimeType = file.type || 'image/jpeg';
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -136,7 +136,7 @@ Respond with ONLY valid JSON in this exact format, nothing else:
 {"extractedText":"<the corrected extracted text>","score":<number between 0.0 and 1.0>}`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -208,6 +208,91 @@ export async function extractTextFromImage(
   // No API key — use Tesseract
   const result = await extractTextWithTesseract(file, onProgress);
   return { ...result, usedGemini: false };
+}
+
+// ── Batch OCR + Grade (single API call for all questions) ────────────────────
+
+export interface BatchQuestionInput {
+  id: number;
+  question: string;
+  expectedAnswer: string;
+  keywords: string[];
+  images: File[]; // ordered pages
+}
+
+export interface BatchGradeResult {
+  questionId: number;
+  extractedText: string;
+  score: number; // 0.0–1.0
+}
+
+export async function extractAndGradeAll(
+  questions: BatchQuestionInput[],
+  apiKey: string,
+): Promise<BatchGradeResult[]> {
+  // Build parts array: preamble + per-question header + images + closing instruction
+  const preamble = `You are grading a student exam. For each question below, one or more images of the student's handwritten answer are provided (multiple images = answer spans multiple pages, read them in order).
+
+For EACH question:
+1. Extract the complete handwritten text from ALL its images (combine multi-page answers naturally)
+2. Score the answer 0.0–1.0 against the expected answer using these rules:
+   - 1.0 = correct and complete (minor spelling/grammar errors are fine)
+   - 0.6–0.9 = mostly correct but missing some detail
+   - 0.3–0.6 = partially correct, captures some key ideas
+   - 0.0–0.3 = wrong, irrelevant, or mostly random/nonsense content
+3. If keywords are specified: cap the score at 0.5 maximum if ANY keyword is missing from the answer`;
+
+  type Part = { text: string } | { inlineData: { mimeType: string; data: string } };
+  const parts: Part[] = [{ text: preamble }];
+
+  for (const q of questions) {
+    const keywordNote = q.keywords.length > 0
+      ? `\nRequired keywords (missing any caps score at 0.5): ${q.keywords.join(', ')}`
+      : '';
+    parts.push({
+      text: `\n\n--- QUESTION (questionId: ${q.id}) ---\nQuestion: "${q.question}"\nExpected Answer: "${q.expectedAnswer}"${keywordNote}\nImages for this question follow:`,
+    });
+    for (const file of q.images) {
+      const base64 = await fileToBase64(file);
+      parts.push({ inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } });
+    }
+  }
+
+  parts.push({
+    text: `\n\nReturn ONLY a JSON array — no markdown, no extra text:\n[{"questionId": <number>, "extractedText": "<text>", "score": <0.0-1.0>}, ...]`,
+  });
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: { temperature: 0, maxOutputTokens: 2048 },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const msg = (err as { error?: { message?: string } }).error?.message ?? `Gemini API error ${response.status}`;
+    throw new Error(msg);
+  }
+
+  const data = await response.json() as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+  };
+  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const match = raw.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error('Gemini returned an unexpected response format.');
+
+  const parsed = JSON.parse(match[0]) as { questionId: number; extractedText: string; score: number }[];
+  return parsed.map(r => ({
+    questionId: r.questionId,
+    extractedText: String(r.extractedText ?? '').trim(),
+    score: Math.max(0, Math.min(1, Number(r.score) || 0)),
+  }));
 }
 
 export async function terminateOCRWorker(): Promise<void> {

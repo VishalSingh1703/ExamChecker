@@ -66,6 +66,55 @@ function daysLeft(deletedAt: string): number {
   return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
 }
 
+function buildAndPrint(r: HistoryRecord) {
+  const questionsHtml = r.questions.map((q, idx) => {
+    const result = r.results.find(res => res.questionId === q.id);
+    const marksText = result
+      ? `${result.marksAwarded} / ${q.marks} marks`
+      : `0 / ${q.marks} marks — skipped`;
+    const studentAnswer = result?.extractedText
+      ? `<p style="font-size:10pt;margin:2pt 0 0;">${result.extractedText}</p>`
+      : `<p style="font-size:10pt;color:#999;font-style:italic;margin:2pt 0 0;">No answer provided.</p>`;
+    return `
+      <div style="margin-bottom:16pt;page-break-inside:avoid;">
+        <p style="font-size:11pt;font-weight:bold;margin:0 0 3pt;">
+          Q${idx + 1}. ${q.question}
+          <span style="font-weight:normal;color:#555;margin-left:8pt;">[${marksText}]</span>
+        </p>
+        <p style="font-size:9pt;text-transform:uppercase;color:#666;letter-spacing:0.05em;margin:4pt 0 1pt;">Student's Answer:</p>
+        ${studentAnswer}
+        <p style="font-size:9pt;text-transform:uppercase;color:#666;letter-spacing:0.05em;margin:6pt 0 1pt;">Expected Answer:</p>
+        <p style="font-size:10pt;color:#333;margin:2pt 0 0;">${q.expectedAnswer}</p>
+      </div>`;
+  }).join('');
+
+  const details = [
+    r.studentName && `Student: ${r.studentName}`,
+    r.studentId && `ID: ${r.studentId}`,
+    r.studentSection && `Section: ${r.studentSection}`,
+    r.term && `Term: ${r.term}`,
+    r.savedAt && `Date: ${new Date(r.savedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`,
+  ].filter(Boolean).join('  ·  ');
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${r.examTitle}</title>
+<style>body{font-family:serif;color:#000;margin:2cm;}@media print{body{margin:1.5cm;}}</style>
+</head><body>
+  <h1 style="font-size:20pt;font-weight:bold;margin:0 0 4pt;">${r.examTitle}${r.examClass ? ` — ${r.examClass}` : ''}</h1>
+  <p style="font-size:11pt;margin:0 0 3pt;color:#333;">${details}</p>
+  <p style="font-size:12pt;font-weight:bold;margin:0 0 10pt;">Marks: ${r.scored} / ${r.total} (${r.percentage}%)  —  Grade: ${r.grade}</p>
+  ${r.subject ? `<p style="font-size:13pt;font-weight:bold;border-bottom:1px solid #999;padding-bottom:4pt;margin:0 0 12pt;">${r.subject}</p>` : ''}
+  ${questionsHtml}
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); win.close(); }, 300);
+}
+
 // ── Update Modal ─────────────────────────────────────────────────────────────
 
 interface QuestionPatch {
@@ -303,7 +352,7 @@ function RecordDetail({ record }: { record: HistoryRecord }) {
       </div>
 
       <div className="flex gap-3">
-        <button onClick={() => window.print()} className="px-4 py-2 bg-gray-800 dark:bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-900 dark:hover:bg-gray-600">
+        <button onClick={() => buildAndPrint(record)} className="px-4 py-2 bg-gray-800 dark:bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-900 dark:hover:bg-gray-600">
           Print / Save as PDF
         </button>
       </div>
@@ -428,8 +477,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
   }
 
   function printRecord(r: HistoryRecord) {
-    setSelectedId(r.id);
-    setTimeout(() => window.print(), 100);
+    buildAndPrint(r);
   }
 
   if (records.length === 0 && trashRecords.length === 0) {

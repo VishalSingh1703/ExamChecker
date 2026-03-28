@@ -54,13 +54,12 @@ Important: word overlap alone does not make an answer correct. Judge the actual 
 Respond with ONLY a single decimal number between 0.0 and 1.0. No explanation, no other text.`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        // 200 tokens to accommodate gemini-2.5-flash thinking tokens before output
         generationConfig: { temperature: 0, maxOutputTokens: 200 },
       }),
     }
