@@ -85,6 +85,12 @@ const IH = H - PAD.top - PAD.bottom;
 
 function StudentChart({ records }: { records: HistoryRecord[] }) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [focused, setFocused] = useState<string | null>(null);
+
+  function handleFocus(subject: string) {
+    setFocused(prev => (prev === subject ? null : subject));
+    setTooltip(null);
+  }
 
   const { series, allTerms } = useMemo(() => {
     // Determine ordered unique terms by earliest savedAt within each term
@@ -168,7 +174,10 @@ function StudentChart({ records }: { records: HistoryRecord[] }) {
     <div className="flex gap-5 items-start">
       {/* SVG Chart */}
       <div className="flex-1 min-w-0">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900" style={{ cursor: focused ? 'pointer' : 'default' }}>
+          {/* Invisible full-area click target to clear focus */}
+          <rect x={0} y={0} width={W} height={H} fill="transparent" onClick={() => setFocused(null)} />
+
           {/* Y gridlines + labels */}
           {[0, 20, 40, 60, 80, 100].map(pct => (
             <g key={pct}>
@@ -217,14 +226,30 @@ function StudentChart({ records }: { records: HistoryRecord[] }) {
           {/* Series lines + dots */}
           {series.map(sub => {
             if (sub.points.length === 0) return null;
+            const isFaded = focused !== null && focused !== sub.subject;
+            const isFocused = focused === sub.subject;
             const pathD = sub.points.map((p, i) =>
               `${i === 0 ? 'M' : 'L'}${xPos(p.term)},${yPos(p.pct)}`
             ).join(' ');
 
             return (
-              <g key={sub.subject}>
+              <g key={sub.subject} opacity={isFaded ? 0.12 : 1} style={{ transition: 'opacity 0.2s' }}>
                 {sub.points.length > 1 && (
-                  <path d={pathD} fill="none" stroke={sub.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                  <path
+                    d={pathD} fill="none" stroke={sub.color}
+                    strokeWidth={isFocused ? 3 : 2}
+                    strokeLinejoin="round" strokeLinecap="round"
+                    style={{ cursor: 'pointer' }}
+                    onClick={e => { e.stopPropagation(); handleFocus(sub.subject); }}
+                  />
+                )}
+                {/* Wide invisible hit area for the line */}
+                {sub.points.length > 1 && (
+                  <path
+                    d={pathD} fill="none" stroke="transparent" strokeWidth={14}
+                    style={{ cursor: 'pointer' }}
+                    onClick={e => { e.stopPropagation(); handleFocus(sub.subject); }}
+                  />
                 )}
                 {sub.points.map(p => {
                   const cx = xPos(p.term);
@@ -232,10 +257,11 @@ function StudentChart({ records }: { records: HistoryRecord[] }) {
                   return (
                     <circle
                       key={`${sub.subject}-${p.term}`}
-                      cx={cx} cy={cy} r={5}
+                      cx={cx} cy={cy} r={isFocused ? 6 : 5}
                       fill={sub.color} stroke="white" strokeWidth={1.5}
                       style={{ cursor: 'pointer' }}
-                      onMouseEnter={() => setTooltip({
+                      onClick={e => { e.stopPropagation(); handleFocus(sub.subject); }}
+                      onMouseEnter={() => !isFaded && setTooltip({
                         cx, cy,
                         subject: sub.subject,
                         term: p.term,
@@ -271,22 +297,35 @@ function StudentChart({ records }: { records: HistoryRecord[] }) {
         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Subjects by Marks
         </p>
-        <div className="space-y-3">
-          {series.map((sub, i) => (
-            <div key={sub.subject} className="flex items-start gap-2">
-              <div className="w-3 h-3 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: sub.color }} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{sub.subject}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {sub.totalScored} / {sub.totalPossible} marks
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  {sub.totalPossible > 0 ? Math.round((sub.totalScored / sub.totalPossible) * 100) : 0}% avg
-                </p>
-              </div>
-              <span className="text-xs font-bold text-gray-400 dark:text-gray-500 shrink-0">#{i + 1}</span>
-            </div>
-          ))}
+        <div className="space-y-1">
+          {series.map((sub, i) => {
+            const isFaded = focused !== null && focused !== sub.subject;
+            const isFocused = focused === sub.subject;
+            return (
+              <button
+                key={sub.subject}
+                onClick={() => handleFocus(sub.subject)}
+                className={`w-full text-left flex items-start gap-2 px-2 py-2 rounded-lg transition-all ${
+                  isFocused
+                    ? 'bg-gray-100 dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                }`}
+                style={{ opacity: isFaded ? 0.3 : 1, transition: 'opacity 0.2s' }}
+              >
+                <div className="w-3 h-3 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: sub.color }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{sub.subject}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {sub.totalScored} / {sub.totalPossible} marks
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    {sub.totalPossible > 0 ? Math.round((sub.totalScored / sub.totalPossible) * 100) : 0}% avg
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-500 shrink-0">#{i + 1}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
