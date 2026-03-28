@@ -11,6 +11,7 @@ import { ProfileView } from './components/ProfileView';
 import { PasswordResetScreen } from './components/PasswordResetScreen';
 import { HistoryView } from './components/HistoryView';
 import { AdminPanel } from './components/AdminPanel';
+import { AnalyticsView } from './components/AnalyticsView';
 import { ExamProvider, useExam, useExamDispatch } from './context/ExamContext';
 
 const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL as string | undefined) ?? '';
@@ -20,6 +21,7 @@ const BASE_TABS = [
   { id: 'grade' as const, label: 'Grade' },
   { id: 'report' as const, label: 'Report' },
   { id: 'history' as const, label: 'History' },
+  { id: 'analytics' as const, label: 'Analytics' },
 ];
 
 function useDarkMode() {
@@ -144,11 +146,12 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
           </nav>
 
           {/* Content */}
-          <main className="p-4 max-w-4xl mx-auto">
+          <main className={`p-4 mx-auto ${activeTab === 'analytics' || activeTab === 'admin' ? 'max-w-6xl' : 'max-w-4xl'}`}>
             {activeTab === 'setup' && <ExamSetup userId={userId} />}
             {activeTab === 'grade' && <GradingView />}
             {activeTab === 'report' && <ReportView userId={userId} />}
             {activeTab === 'history' && <HistoryView userId={userId} />}
+            {activeTab === 'analytics' && <AnalyticsView userId={userId} />}
             {activeTab === 'admin' && isAdmin && <AdminPanel adminEmail={ADMIN_EMAIL} />}
           </main>
 

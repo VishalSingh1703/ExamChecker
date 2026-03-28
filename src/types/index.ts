@@ -84,7 +84,7 @@ export interface ExamSession {
   answerKey: AnswerKey | null;
   results: QuestionResult[];
   currentQuestionIndex: number;
-  activeTab: 'setup' | 'grade' | 'report' | 'history' | 'admin';
+  activeTab: 'setup' | 'grade' | 'report' | 'history' | 'admin' | 'analytics';
   hfApiKey: string;
   geminiApiKey: string;
   checkingMode: CheckingMode;
