@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { saveChapter, type BankQuestion } from '../services/questionBank';
+import { useExam } from '../context/ExamContext';
 
 // ── Class options (same as ExamSetup) ────────────────────────────────────────
 
@@ -10,8 +11,10 @@ const CLASS_OPTIONS = [
 
 // ── Gemini helpers ────────────────────────────────────────────────────────────
 
-function getKey(): string {
-  return (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
+// Key resolution: context key (user-entered) → env var → empty
+function resolveKey(contextKey: string): string {
+  if (contextKey?.trim()) return contextKey.trim();
+  return (import.meta.env.VITE_GEMINI_API_KEY as string | undefined)?.trim() ?? '';
 }
 
 async function toBase64(file: File): Promise<string> {
@@ -23,9 +26,8 @@ async function toBase64(file: File): Promise<string> {
   });
 }
 
-async function extractQuestionsFromImage(file: File): Promise<string[]> {
-  const key = getKey();
-  if (!key) throw new Error('VITE_GEMINI_API_KEY is not set.');
+async function extractQuestionsFromImage(file: File, key: string): Promise<string[]> {
+  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
   const base64 = await toBase64(file);
   const prompt = `Extract all exam or textbook questions from this image.
 Return a JSON array of strings where each item is one complete question (strip leading numbers like "1." or "Q1.").
@@ -56,9 +58,8 @@ Return ONLY the JSON array — no explanation, no markdown.`;
   return (JSON.parse(match[0]) as string[]).map(s => s.trim()).filter(Boolean);
 }
 
-async function geminiGenerateAnswer(question: string, cls: string, marks: number): Promise<string> {
-  const key = getKey();
-  if (!key) throw new Error('VITE_GEMINI_API_KEY is not set.');
+async function geminiGenerateAnswer(question: string, cls: string, marks: number, key: string): Promise<string> {
+  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
   const prompt = `You are an expert teacher. Write an ideal model answer for the following exam question.
 
 Question: "${question}"
@@ -117,6 +118,9 @@ interface EditableQ {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function QuestionBankView({ userId = '', onBack }: { userId?: string; onBack: () => void }) {
+  const { geminiApiKey } = useExam();
+  const apiKey = resolveKey(geminiApiKey);
+
   const [step, setStep] = useState<1 | 2>(1);
 
   // Step 1
@@ -155,7 +159,7 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
     try {
       const extracted: string[] = [];
       for (const file of Array.from(files)) {
-        extracted.push(...await extractQuestionsFromImage(file));
+        extracted.push(...await extractQuestionsFromImage(file, apiKey));
       }
       setQuestions(prev => [
         ...prev,
@@ -175,7 +179,7 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
     setGeneratingId(id);
     setGenErrors(prev => { const n = { ...prev }; delete n[id]; return n; });
     try {
-      const answer = await geminiGenerateAnswer(q.question, cls, q.marks);
+      const answer = await geminiGenerateAnswer(q.question, cls, q.marks, apiKey);
       updateQ(id, 'expectedAnswer', answer);
     } catch (err) {
       setGenErrors(prev => ({ ...prev, [id]: err instanceof Error ? err.message : 'Failed.' }));
