@@ -129,6 +129,20 @@ function invalidKeywords(raw: string, expectedAnswer: string): string[] {
   return parseKeywords(raw).filter(k => !answer.includes(k));
 }
 
+// ── Blocked-reason hint (fixed bottom-left) ───────────────────────────────────
+
+function BlockedHint({ reason }: { reason: string }) {
+  if (!reason) return null;
+  return (
+    <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-300 rounded-xl shadow-sm text-xs font-medium max-w-xs print:hidden">
+      <svg className="w-3.5 h-3.5 shrink-0 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+      </svg>
+      {reason}
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function ExamSetup({ userId = '' }: { userId?: string }) {
@@ -363,9 +377,35 @@ Guidelines:
     dispatch({ type: 'SET_ACTIVE_TAB', payload: 'grade' });
   }
 
-  const canSaveSubject = newName.trim().length > 0 && newQuestions.length > 0
-    && newQuestions.every(q => q.question.trim() && q.expectedAnswer.trim())
-    && newQuestions.every(q => invalidKeywords(q.keywords, q.expectedAnswer).length === 0);
+  // ── Blocked reason strings ─────────────────────────────────────────────────
+
+  function step1BlockedReason(): string {
+    if (!examTerm.trim()) return 'Enter an exam term to continue.';
+    if (!examClass) return 'Select a class to continue.';
+    return '';
+  }
+
+  function step2SelectBlockedReason(): string {
+    if (!selectedSubjectId) return 'Select a subject to continue.';
+    return '';
+  }
+
+  function step2CreateBlockedReason(): string {
+    if (!newName.trim()) return 'Enter a subject name.';
+    if (newQuestions.length === 0) return 'Add at least one question.';
+    if (newQuestions.some(q => !q.question.trim())) return 'Fill in the question text for all questions.';
+    if (newQuestions.some(q => !q.expectedAnswer.trim())) return 'All questions need an expected answer — type one or click "Generate Answer".';
+    if (newQuestions.some(q => invalidKeywords(q.keywords, q.expectedAnswer).length > 0))
+      return 'Some keywords are not found in their expected answer — fix or remove them.';
+    return '';
+  }
+
+  function step3BlockedReason(): string {
+    if (!studentName.trim()) return "Enter the student's name.";
+    if (!studentId.trim()) return 'Enter the student ID.';
+    if (!studentSection.trim()) return "Enter the student's section.";
+    return '';
+  }
 
   // ══ RENDER ══════════════════════════════════════════════════════════════════
 
@@ -375,7 +415,7 @@ Guidelines:
 
       {/* ── Step 1: Exam Context ─────────────────────────────────────────────── */}
       {step === 1 && (
-        <div key="step1" className="animate-fade-in space-y-6">
+        <><div key="step1" className="animate-fade-in space-y-6">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 space-y-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Exam Context</h2>
@@ -406,17 +446,18 @@ Guidelines:
 
           <button
             onClick={() => setStep(2)}
-            disabled={!examTerm.trim() || !examClass}
+            disabled={!!step1BlockedReason()}
             className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
           >
             Continue →
           </button>
         </div>
+        <BlockedHint reason={step1BlockedReason()} /></>
       )}
 
       {/* ── Step 2: Subject selection ─────────────────────────────────────────── */}
       {step === 2 && subjectMode === 'select' && (
-        <div key="step2-select" className="animate-fade-in space-y-6">
+        <><div key="step2-select" className="animate-fade-in space-y-6">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 space-y-5">
             <div className="flex items-center gap-3">
               <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -497,17 +538,18 @@ Guidelines:
               className="px-5 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
               ← Back
             </button>
-            <button onClick={() => setStep(3)} disabled={!selectedSubjectId}
+            <button onClick={() => setStep(3)} disabled={!!step2SelectBlockedReason()}
               className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
               Continue →
             </button>
           </div>
         </div>
+        <BlockedHint reason={step2SelectBlockedReason()} /></>
       )}
 
       {/* ── Step 2: Create new subject ─────────────────────────────────────────── */}
       {step === 2 && subjectMode === 'create' && (
-        <div key="step2-create" className="animate-fade-in space-y-4">
+        <><div key="step2-create" className="animate-fade-in space-y-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Create New Subject</h2>
@@ -715,8 +757,8 @@ Guidelines:
               + Add Question
             </button>
 
-            {/* Divider */}
-            {newQuestions.length > 0 && canSaveSubject && (
+            {/* Checking mode — always visible once questions exist */}
+            {newQuestions.length > 0 && (
               <>
                 <div className="border-t border-gray-100 dark:border-gray-800" />
                 <CheckingModeSelector value={checkingMode} onChange={m => dispatch({ type: 'SET_CHECKING_MODE', payload: m })} />
@@ -729,17 +771,18 @@ Guidelines:
               className="px-5 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
               Cancel
             </button>
-            <button onClick={saveNewSubject} disabled={!canSaveSubject}
+            <button onClick={saveNewSubject} disabled={!!step2CreateBlockedReason()}
               className="flex-1 py-3 bg-gray-800 dark:bg-gray-700 text-white rounded-xl font-semibold text-sm hover:bg-gray-900 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed">
               Save Subject
             </button>
           </div>
         </div>
+        <BlockedHint reason={step2CreateBlockedReason()} /></>
       )}
 
       {/* ── Step 3: Student Info ─────────────────────────────────────────────── */}
       {step === 3 && (
-        <div key="step3" className="animate-fade-in space-y-6">
+        <><div key="step3" className="animate-fade-in space-y-6">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 space-y-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Student Details</h2>
@@ -809,14 +852,14 @@ Guidelines:
               className="px-5 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
               ← Back
             </button>
-            <button onClick={handleStart} disabled={!answerKey || !studentName.trim() || !studentSection.trim() || !studentId.trim()}
+            <button onClick={handleStart} disabled={!!step3BlockedReason()}
               className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
               Start Grading →
             </button>
           </div>
-
           <input ref={fileRef} type="file" accept=".json" className="hidden" />
         </div>
+        <BlockedHint reason={step3BlockedReason()} /></>
       )}
     </div>
   );
