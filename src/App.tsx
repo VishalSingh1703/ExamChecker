@@ -14,6 +14,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { AnalyticsView } from './components/AnalyticsView';
 import { QuestionBankView } from './components/QuestionBankView';
 import { ExamProvider, useExam, useExamDispatch } from './context/ExamContext';
+import type { ExamSession } from './types';
 
 const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL as string | undefined) ?? '';
 
@@ -56,31 +57,159 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
   const dispatch = useExamDispatch();
   const [showInfo, setShowInfo] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const TABS = [
     ...BASE_TABS,
     ...(isAdmin ? [{ id: 'admin' as const, label: 'Admin' }] : []),
   ];
 
+  function navigate(tabId: ExamSession['activeTab']) {
+    dispatch({ type: 'SET_ACTIVE_TAB', payload: tabId });
+    setShowProfile(false);
+    setMenuOpen(false);
+  }
+
+  // Close drawer on ESC
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [menuOpen]);
+
+  // Prevent body scroll when drawer is open
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
+
+  const iconBtn = 'w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors';
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
 
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between print:hidden">
-        <button
-          onClick={() => setShowProfile(false)}
-          className="text-lg font-bold text-gray-900 dark:text-gray-100 hover:opacity-80"
-        >
-          Exam Checker
-        </button>
+      {/* Mobile drawer backdrop */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 sm:hidden"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
 
-        <div className="flex items-center gap-2">
-          {/* Upload Questions button */}
+      {/* Mobile slide-in drawer */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-900 shadow-2xl flex flex-col transition-transform duration-200 ease-in-out sm:hidden ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        {/* Drawer header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <span className="text-base font-bold text-gray-900 dark:text-gray-100">Exam Checker</span>
+          <button onClick={() => setMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Nav items */}
+        <nav className="flex-1 overflow-y-auto py-2">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => navigate(tab.id)}
+              className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-colors flex items-center gap-3 ${
+                activeTab === tab.id
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+
+          <div className="mx-4 my-2 border-t border-gray-100 dark:border-gray-800" />
+
           <button
-            onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'question-bank' })}
+            onClick={() => navigate('question-bank')}
+            className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-colors flex items-center gap-3 ${
+              activeTab === 'question-bank'
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Upload Questions
+          </button>
+
+          <button
+            onClick={() => { setShowInfo(true); setMenuOpen(false); }}
+            className="w-full text-left px-5 py-3.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            How it works
+          </button>
+        </nav>
+
+        {/* Drawer footer: dark mode + profile */}
+        <div className="border-t border-gray-100 dark:border-gray-800 px-5 py-4 flex items-center justify-between">
+          <button
+            onClick={() => setDark(!dark)}
+            className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
+          >
+            {dark ? (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="12" cy="12" r="5" /><path strokeLinecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+              </svg>
+            )}
+            {dark ? 'Light mode' : 'Dark mode'}
+          </button>
+          <button
+            onClick={() => { setShowProfile(p => !p); setMenuOpen(false); }}
+            className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Account
+          </button>
+        </div>
+      </div>
+
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-3 sm:px-4 py-3 flex items-center justify-between print:hidden">
+        <div className="flex items-center gap-2">
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            aria-label="Open menu"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => { setShowProfile(false); setMenuOpen(false); }}
+            className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 hover:opacity-80"
+          >
+            Exam Checker
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {/* Upload Questions — hidden on mobile (in drawer) */}
+          <button
+            onClick={() => navigate('question-bank')}
             title="Upload Questions to Bank"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               activeTab === 'question-bank'
                 ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -89,45 +218,32 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            <span className="hidden sm:inline">Upload Questions</span>
+            Upload Questions
           </button>
 
-          {/* Info button */}
-          <button
-            onClick={() => setShowInfo(true)}
-            title="How it works"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-bold text-sm border border-gray-200 dark:border-gray-700"
-          >
+          {/* Info — hidden on mobile (in drawer) */}
+          <button onClick={() => setShowInfo(true)} title="How it works" className={`hidden sm:flex ${iconBtn} border border-gray-200 dark:border-gray-700 font-bold text-sm`}>
             ?
           </button>
 
-          {/* Dark / light toggle */}
-          <button
-            onClick={() => setDark(!dark)}
-            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
+          {/* Dark mode — always visible */}
+          <button onClick={() => setDark(!dark)} title={dark ? 'Light mode' : 'Dark mode'} className={iconBtn}>
             {dark ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <circle cx="12" cy="12" r="5" />
-                <path strokeLinecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="12" cy="12" r="5" /><path strokeLinecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
               </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
               </svg>
             )}
           </button>
 
-          {/* Profile icon */}
+          {/* Profile — always visible */}
           <button
-            onClick={() => setShowProfile((p) => !p)}
+            onClick={() => { setShowProfile(p => !p); setMenuOpen(false); }}
             title="Account"
-            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
-              showProfile
-                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`}
+            className={`${iconBtn} ${showProfile ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : ''}`}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -137,19 +253,18 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
       </header>
 
       {showProfile ? (
-        /* Profile page */
-        <main className="p-4 max-w-4xl mx-auto">
+        <main className="p-3 sm:p-4 max-w-4xl mx-auto">
           <ProfileView user={session.user} onBack={() => setShowProfile(false)} />
         </main>
       ) : (
         <>
-          {/* Tabs */}
-          <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 print:hidden">
+          {/* Desktop tab bar — hidden on mobile */}
+          <nav className="hidden sm:block bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 print:hidden">
             <div className="flex gap-1 max-w-4xl mx-auto">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: tab.id })}
+                  onClick={() => navigate(tab.id)}
                   className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.id
                       ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
@@ -163,7 +278,7 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
           </nav>
 
           {/* Content */}
-          <main className={`p-4 mx-auto ${activeTab === 'analytics' || activeTab === 'admin' ? 'max-w-6xl' : 'max-w-4xl'}`}>
+          <main className={`p-3 sm:p-4 mx-auto ${activeTab === 'analytics' || activeTab === 'admin' ? 'max-w-6xl' : 'max-w-4xl'}`}>
             {activeTab === 'setup' && <ExamSetup userId={userId} />}
             {activeTab === 'grade' && <GradingView />}
             {activeTab === 'report' && <ReportView userId={userId} />}
@@ -173,7 +288,7 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
             {activeTab === 'question-bank' && (
               <QuestionBankView
                 userId={userId}
-                onBack={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'setup' })}
+                onBack={() => navigate('setup')}
               />
             )}
           </main>

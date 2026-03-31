@@ -736,7 +736,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                         <div key={r.id} className="group relative">
                                           <button
                                             onClick={() => setSelectedId(r.id)}
-                                            className={`w-full text-left pl-20 pr-16 py-2 transition-colors ${
+                                            className={`w-full text-left pl-20 pr-20 py-2 transition-colors ${
                                               selectedId === r.id
                                                 ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
                                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -746,8 +746,8 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                             <p className="text-xs text-gray-400 dark:text-gray-500">{r.percentage}% · {r.grade}</p>
                                           </button>
 
-                                          {/* Hover action icons */}
-                                          <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                                          {/* Action icons — always visible on mobile, hover-only on desktop */}
+                                          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
                                             <button
                                               onClick={e => { e.stopPropagation(); printRecord(r); }}
                                               title="Print report"
