@@ -26,42 +26,18 @@ async function toBase64(file: File): Promise<string> {
   });
 }
 
-async function extractQuestionsFromImage(file: File, key: string): Promise<string[]> {
-  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
-  const base64 = await toBase64(file);
-  const prompt = `Look at this image and extract every exam or textbook question you can find.
-Return a JSON array of strings, one string per question. Example format: ["Question one?", "Question two?"]
-Strip any leading numbers or labels like "1.", "Q1.", "Q1)" from each question.
-Return ONLY the JSON array with no other text, no markdown, no code fences.`;
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [
-          { inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } },
-          { text: prompt },
-        ]}],
-        generationConfig: { temperature: 0, maxOutputTokens: 4096 },
-      }),
-    }
-  );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: { message?: string } }).error?.message ?? `AI error ${res.status}`);
-  }
-  const data = await res.json();
-  const raw = ((data.candidates?.[0]?.content?.parts ?? []) as { text?: string }[])
-    .map(p => p.text ?? '').join('').trim();
+const EXTRACT_PROMPT = `Extract every exam or textbook question from the content.
+Return a JSON array of strings, one string per question. Example: ["Question one?", "Question two?"]
+Strip any leading numbers or labels like "1.", "Q1.", "Q1)".
+Return ONLY the JSON array — no other text, no markdown, no code fences.`;
 
-  // Try direct JSON parse first (model returned a clean array)
+function parseQuestions(raw: string): string[] {
+  // 1. Direct JSON parse
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return (parsed as unknown[]).map(s => String(s).trim()).filter(Boolean);
   } catch { /* fall through */ }
-
-  // Try extracting the first [...] block (handles markdown fences or extra text)
+  // 2. Extract first [...] block (handles surrounding text or markdown fences)
   const match = raw.match(/\[[\s\S]*\]/);
   if (match) {
     try {
@@ -69,15 +45,63 @@ Return ONLY the JSON array with no other text, no markdown, no code fences.`;
       if (Array.isArray(parsed)) return (parsed as unknown[]).map(s => String(s).trim()).filter(Boolean);
     } catch { /* fall through */ }
   }
-
-  // Fallback: model returned numbered text lines — parse them directly
+  // 3. Plain numbered lines fallback
   const lines = raw
     .split('\n')
     .map(l => l.replace(/^\s*(?:\d+[\.\)]\s*|Q\d+[\.\):\s]+)/i, '').trim())
     .filter(l => l.length > 4);
   if (lines.length > 0) return lines;
+  throw new Error('Could not extract questions. Try a clearer file or add questions manually.');
+}
 
-  throw new Error('Could not extract questions from image. Try a clearer photo or add questions manually.');
+async function callGemini(key: string, body: object): Promise<string> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: { message?: string } }).error?.message ?? `AI error ${res.status}`);
+  }
+  const data = await res.json();
+  return ((data.candidates?.[0]?.content?.parts ?? []) as { text?: string }[])
+    .map(p => p.text ?? '').join('').trim();
+}
+
+async function extractQuestionsFromImage(file: File, key: string): Promise<string[]> {
+  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
+  const base64 = await toBase64(file);
+  const raw = await callGemini(key, {
+    contents: [{ parts: [
+      { inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } },
+      { text: EXTRACT_PROMPT },
+    ]}],
+    generationConfig: { temperature: 0, maxOutputTokens: 4096 },
+  });
+  return parseQuestions(raw);
+}
+
+async function extractQuestionsFromPdf(file: File, key: string): Promise<string[]> {
+  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
+  const base64 = await toBase64(file);
+  const raw = await callGemini(key, {
+    contents: [{ parts: [
+      { inlineData: { mimeType: 'application/pdf', data: base64 } },
+      { text: EXTRACT_PROMPT },
+    ]}],
+    generationConfig: { temperature: 0, maxOutputTokens: 4096 },
+  });
+  return parseQuestions(raw);
+}
+
+async function extractQuestionsFromTxt(file: File, key: string): Promise<string[]> {
+  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
+  const text = await file.text();
+  const raw = await callGemini(key, {
+    contents: [{ parts: [{ text: `${EXTRACT_PROMPT}\n\n---\n${text.slice(0, 8000)}\n---` }] }],
+    generationConfig: { temperature: 0, maxOutputTokens: 4096 },
+  });
+  return parseQuestions(raw);
 }
 
 async function geminiGenerateAnswer(question: string, cls: string, marks: number, key: string): Promise<string> {
@@ -93,21 +117,10 @@ Guidelines:
 - For 3–5 marks: 3–5 sentences with key terms
 - For 6+ marks: detailed paragraphs with examples
 Write ONLY the answer text. No labels, no formatting markers.`;
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 600 },
-      }),
-    }
-  );
-  if (!res.ok) throw new Error(`Gemini API error ${res.status}`);
-  const data = await res.json();
-  return ((data.candidates?.[0]?.content?.parts ?? []) as { text?: string }[])
-    .map(p => p.text ?? '').join('').trim();
+  return callGemini(key, {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.3, maxOutputTokens: 600 },
+  });
 }
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -174,14 +187,18 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
     setQuestions(prev => prev.filter(q => q.id !== id));
   }
 
-  async function handlePhotoUpload(files: FileList | null) {
+  async function handleFileUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
     setExtracting(true);
     setExtractError('');
     try {
       const extracted: string[] = [];
       for (const file of Array.from(files)) {
-        extracted.push(...await extractQuestionsFromImage(file, apiKey));
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        const isTxt = file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt');
+        if (isPdf) extracted.push(...await extractQuestionsFromPdf(file, apiKey));
+        else if (isTxt) extracted.push(...await extractQuestionsFromTxt(file, apiKey));
+        else extracted.push(...await extractQuestionsFromImage(file, apiKey));
       }
       setQuestions(prev => [
         ...prev,
@@ -317,11 +334,11 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
             <span className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium">{chapter}</span>
           </div>
 
-          {/* Upload photo strip */}
+          {/* Upload strip */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4">
-            <input ref={photoRef} type="file" accept="image/*" multiple className="hidden"
-              onChange={e => handlePhotoUpload(e.target.files)} />
-            <div className="flex items-center gap-3">
+            <input ref={photoRef} type="file" accept="image/*,.pdf,.txt" multiple className="hidden"
+              onChange={e => handleFileUpload(e.target.files)} />
+            <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={() => photoRef.current?.click()}
                 disabled={extracting}
@@ -334,12 +351,15 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
                   </svg>
                 ) : (
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
                 )}
-                {extracting ? 'Extracting…' : 'Upload Photo of Questions'}
+                {extracting ? 'Extracting…' : 'Upload Questions'}
               </button>
-              <span className="text-xs text-gray-400 dark:text-gray-500">AI will extract all questions automatically</span>
+              <div className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
+                AI will extract all questions automatically
+                <span className="block text-gray-300 dark:text-gray-600">Photo · PDF · .txt file</span>
+              </div>
             </div>
             {extractError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{extractError}</p>}
           </div>
