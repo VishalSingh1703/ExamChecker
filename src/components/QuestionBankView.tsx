@@ -29,9 +29,10 @@ async function toBase64(file: File): Promise<string> {
 async function extractQuestionsFromImage(file: File, key: string): Promise<string[]> {
   if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
   const base64 = await toBase64(file);
-  const prompt = `Extract all exam or textbook questions from this image.
-Return a JSON array of strings where each item is one complete question (strip leading numbers like "1." or "Q1.").
-Return ONLY the JSON array — no explanation, no markdown.`;
+  const prompt = `Look at this image and extract every exam or textbook question you can find.
+Return a JSON array of strings, one string per question. Example format: ["Question one?", "Question two?"]
+Strip any leading numbers or labels like "1.", "Q1.", "Q1)" from each question.
+Return ONLY the JSON array with no other text, no markdown, no code fences.`;
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
     {
@@ -42,20 +43,41 @@ Return ONLY the JSON array — no explanation, no markdown.`;
           { inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } },
           { text: prompt },
         ]}],
-        generationConfig: { temperature: 0, maxOutputTokens: 2048 },
+        generationConfig: { temperature: 0, maxOutputTokens: 4096 },
       }),
     }
   );
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: { message?: string } }).error?.message ?? `Gemini error ${res.status}`);
+    throw new Error((err as { error?: { message?: string } }).error?.message ?? `AI error ${res.status}`);
   }
   const data = await res.json();
   const raw = ((data.candidates?.[0]?.content?.parts ?? []) as { text?: string }[])
     .map(p => p.text ?? '').join('').trim();
+
+  // Try direct JSON parse first (model returned a clean array)
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return (parsed as unknown[]).map(s => String(s).trim()).filter(Boolean);
+  } catch { /* fall through */ }
+
+  // Try extracting the first [...] block (handles markdown fences or extra text)
   const match = raw.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error('Could not parse questions from image response.');
-  return (JSON.parse(match[0]) as string[]).map(s => s.trim()).filter(Boolean);
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[0]);
+      if (Array.isArray(parsed)) return (parsed as unknown[]).map(s => String(s).trim()).filter(Boolean);
+    } catch { /* fall through */ }
+  }
+
+  // Fallback: model returned numbered text lines — parse them directly
+  const lines = raw
+    .split('\n')
+    .map(l => l.replace(/^\s*(?:\d+[\.\)]\s*|Q\d+[\.\):\s]+)/i, '').trim())
+    .filter(l => l.length > 4);
+  if (lines.length > 0) return lines;
+
+  throw new Error('Could not extract questions from image. Try a clearer photo or add questions manually.');
 }
 
 async function geminiGenerateAnswer(question: string, cls: string, marks: number, key: string): Promise<string> {
@@ -317,7 +339,7 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
                 )}
                 {extracting ? 'Extracting…' : 'Upload Photo of Questions'}
               </button>
-              <span className="text-xs text-gray-400 dark:text-gray-500">Gemini will extract all questions automatically</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">AI will extract all questions automatically</span>
             </div>
             {extractError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{extractError}</p>}
           </div>
