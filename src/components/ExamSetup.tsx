@@ -50,18 +50,18 @@ function SuggestInput({ label, value, onChange, placeholder, suggestions }: Sugg
   const filtered = suggestions.filter(s => s.toLowerCase().includes(value.toLowerCase()) && s !== value);
   return (
     <div className="relative">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">{label}</label>
       <input
         type="text" value={value} onChange={e => onChange(e.target.value)}
         onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder={placeholder}
-        className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+        className="w-full border border-slate-300 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
+        <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-lg overflow-hidden">
           {filtered.map(s => (
             <button key={s} onMouseDown={() => { onChange(s); setOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">{s}</button>
+              className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-700">{s}</button>
           ))}
         </div>
       )}
@@ -79,15 +79,15 @@ function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
         <div key={s.n} className="flex items-center">
           <div className="flex flex-col items-center gap-1">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-colors ${
-              step > s.n ? 'bg-blue-600 border-blue-600 text-white'
-                : step === s.n ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500'}`}>
+              step > s.n ? 'bg-purple-700 border-purple-700 text-white'
+                : step === s.n ? 'border-purple-700 text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                : 'border-slate-300 dark:border-zinc-600 text-slate-400 dark:text-zinc-500'}`}>
               {step > s.n ? (<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>) : s.n}
             </div>
-            <span className={`text-xs font-medium hidden sm:block ${step === s.n ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>{s.label}</span>
+            <span className={`text-xs font-medium hidden sm:block ${step === s.n ? 'text-purple-700 dark:text-purple-400' : 'text-slate-400 dark:text-zinc-500'}`}>{s.label}</span>
           </div>
           {i < steps.length - 1 && (
-            <div className={`h-0.5 w-12 sm:w-20 mx-1 mb-4 rounded-full transition-colors ${step > s.n ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`} />
+            <div className={`h-0.5 w-12 sm:w-20 mx-1 mb-4 rounded-full transition-colors ${step > s.n ? 'bg-purple-700' : 'bg-slate-200 dark:bg-zinc-700'}`} />
           )}
         </div>
       ))}
@@ -102,12 +102,12 @@ const MODES: CheckingMode[] = ['easy', 'medium', 'strict'];
 function CheckingModeSelector({ value, onChange }: { value: CheckingMode; onChange: (m: CheckingMode) => void }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Checking Mode</p>
+      <p className="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Checking Mode</p>
       <div className="flex gap-2">
         {MODES.map(m => (
           <button key={m} onClick={() => onChange(m)}
             className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-              value === m ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              value === m ? 'bg-purple-700 text-white' : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
             }`}>
             {m.charAt(0).toUpperCase() + m.slice(1)}
           </button>
@@ -434,21 +434,21 @@ Guidelines:
       {/* ── Step 1: Exam Context ─────────────────────────────────────────────── */}
       {step === 1 && (
         <><div key="step1" className="animate-fade-in space-y-6">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 p-6 space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Exam Context</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Define the exam term and class before selecting the answer key.</p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">Exam Context</h2>
+              <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">Define the exam term and class before selecting the answer key.</p>
             </div>
 
             <SuggestInput label="Exam Term" value={examTerm} onChange={setExamTerm}
               placeholder="e.g. Term 1, Mid-Term, Final Exam" suggestions={suggestions.terms ?? []} />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Class</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">Class</label>
               <select
                 value={examClass}
                 onChange={e => setExamClass(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                className="w-full border border-slate-300 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200"
               >
                 <option value="">Select a class…</option>
                 {CLASS_OPTIONS.map(group => (
@@ -465,7 +465,7 @@ Guidelines:
           <button
             onClick={() => setStep(2)}
             disabled={!!step1BlockedReason()}
-            className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+            className="w-full py-3 bg-purple-700 text-white rounded-xl font-semibold text-sm hover:bg-purple-800 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
           >
             Continue →
           </button>
@@ -476,14 +476,14 @@ Guidelines:
       {/* ── Step 2: Subject selection ─────────────────────────────────────────── */}
       {step === 2 && subjectMode === 'select' && (
         <><div key="step2-select" className="animate-fade-in space-y-6">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 space-y-5">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 p-6 space-y-5">
             <div className="flex items-center gap-3">
-              <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-6 h-6 text-purple-700 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Select Subject</h2>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Choose a subject with a pre-configured answer key.</p>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">Select Subject</h2>
+                <p className="text-xs text-slate-400 dark:text-zinc-500">Choose a subject with a pre-configured answer key.</p>
               </div>
             </div>
 
@@ -495,30 +495,30 @@ Guidelines:
                 return (
                   <div
                     key={s.id}
-                    className={`rounded-xl border-2 transition-colors overflow-hidden ${
+                    className={`rounded-2xl border-2 transition-colors overflow-hidden ${
                       selected
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                        ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20'
+                        : 'border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800'
                     }`}
                   >
                     {/* Selectable area */}
                     <button onClick={() => setSelectedSubjectId(s.id)} className="w-full text-left p-4">
                       <div className="flex items-start justify-between">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{s.name}</p>
+                        <p className="font-semibold text-gray-900 dark:text-zinc-100 text-sm">{s.name}</p>
                         {selected && (
-                          <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <svg className="w-4 h-4 text-purple-700 dark:text-purple-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{s.questions.length} Question{s.questions.length !== 1 ? 's' : ''}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{total} Total Marks</p>
+                      <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">{s.questions.length} Question{s.questions.length !== 1 ? 's' : ''}</p>
+                      <p className="text-xs text-slate-500 dark:text-zinc-400">{total} Total Marks</p>
                     </button>
                     {/* Action footer */}
-                    <div className={`flex divide-x text-xs border-t ${selected ? 'border-blue-200 dark:border-blue-800 divide-blue-200 dark:divide-blue-800' : 'border-gray-100 dark:border-gray-700 divide-gray-100 dark:divide-gray-700'}`}>
+                    <div className={`flex divide-x text-xs border-t ${selected ? 'border-purple-200 dark:border-purple-800 divide-purple-200 dark:divide-purple-800' : 'border-slate-100 dark:border-zinc-700 divide-slate-100 dark:divide-zinc-700'}`}>
                       <button
                         onClick={() => startEdit(s)}
-                        className="flex-1 flex items-center justify-center gap-1 py-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 text-slate-500 dark:text-zinc-400 hover:text-purple-700 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                       >
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -527,7 +527,7 @@ Guidelines:
                       </button>
                       <button
                         onClick={() => deleteSubject(s.id)}
-                        className="flex-1 flex items-center justify-center gap-1 py-1.5 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 text-slate-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       >
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -542,19 +542,19 @@ Guidelines:
               {/* New Subject dashed card */}
               <button
                 onClick={() => { setSubjectMode('create'); addQuestion(); }}
-                className="text-left rounded-xl p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 flex flex-col items-center justify-center gap-1 bg-transparent transition-colors min-h-[90px]"
+                className="text-left rounded-xl p-4 border-2 border-dashed border-slate-300 dark:border-zinc-600 hover:border-slate-400 dark:hover:border-zinc-500 flex flex-col items-center justify-center gap-1 bg-transparent transition-colors min-h-[90px]"
               >
-                <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-6 h-6 text-slate-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                <span className="text-sm text-gray-500 dark:text-gray-400">New Subject</span>
+                <span className="text-sm text-slate-500 dark:text-zinc-400">New Subject</span>
               </button>
             </div>
 
             {/* Divider */}
             {selectedSubjectId && (
               <>
-                <div className="border-t border-gray-100 dark:border-gray-800" />
+                <div className="border-t border-slate-100 dark:border-zinc-800" />
                 <CheckingModeSelector value={checkingMode} onChange={m => dispatch({ type: 'SET_CHECKING_MODE', payload: m })} />
               </>
             )}
@@ -562,11 +562,11 @@ Guidelines:
 
           <div className="flex gap-3">
             <button onClick={() => { setStep(1); setSelectedSubjectId(null); }}
-              className="px-5 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+              className="px-5 py-3 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-zinc-700">
               ← Back
             </button>
             <button onClick={() => setStep(3)} disabled={!!step2SelectBlockedReason()}
-              className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
+              className="flex-1 py-3 bg-purple-700 text-white rounded-xl font-semibold text-sm hover:bg-purple-800 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
               Continue →
             </button>
           </div>
@@ -577,34 +577,34 @@ Guidelines:
       {/* ── Step 2: Create new subject ─────────────────────────────────────────── */}
       {step === 2 && subjectMode === 'create' && (
         <><div key="step2-create" className="animate-fade-in space-y-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 space-y-5">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 p-6 space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{editingSubjectId ? 'Edit Subject' : 'Create New Subject'}</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{editingSubjectId ? 'Update questions and expected answers for this subject.' : 'Add questions and expected answers. This subject will be saved for future use.'}</p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">{editingSubjectId ? 'Edit Subject' : 'Create New Subject'}</h2>
+              <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{editingSubjectId ? 'Update questions and expected answers for this subject.' : 'Add questions and expected answers. This subject will be saved for future use.'}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject Name</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">Subject Name</label>
               <input
                 type="text" value={newName} onChange={e => setNewName(e.target.value)}
                 autoFocus placeholder="e.g. Biology, Mathematics"
-                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full border border-slate-300 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
               />
             </div>
 
             {/* Import from Question Bank */}
             {bankChapters.length > 0 && (
-              <div className="border border-dashed border-blue-300 dark:border-blue-700 rounded-xl overflow-hidden">
+              <div className="border border-dashed border-purple-300 dark:border-purple-700 rounded-xl overflow-hidden">
                 <button
                   onClick={() => { setShowBankPanel(p => !p); setChapterSearch(''); }}
-                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                 >
                   <span className="flex items-center gap-2">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Import from Question Bank
-                    <span className="text-xs text-blue-500 dark:text-blue-500 font-normal">({bankChapters.length} chapter{bankChapters.length !== 1 ? 's' : ''}{newName.trim() ? ` · ${newName.trim()}` : ''})</span>
+                    <span className="text-xs text-purple-600 dark:text-purple-500 font-normal">({bankChapters.length} chapter{bankChapters.length !== 1 ? 's' : ''}{newName.trim() ? ` · ${newName.trim()}` : ''})</span>
                   </span>
                   <svg className={`w-4 h-4 transition-transform ${showBankPanel ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -612,10 +612,10 @@ Guidelines:
                 </button>
 
                 {showBankPanel && (
-                  <div className="px-4 pb-4 space-y-3 border-t border-blue-100 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-900/10">
+                  <div className="px-4 pb-4 space-y-3 border-t border-purple-100 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-900/10">
                     {/* Search */}
                     <div className="relative pt-3">
-                      <svg className="absolute left-3 top-1/2 mt-1.5 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className="absolute left-3 top-1/2 mt-1.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                       <input
@@ -623,7 +623,7 @@ Guidelines:
                         value={chapterSearch}
                         onChange={e => setChapterSearch(e.target.value)}
                         placeholder="Search chapters…"
-                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent"
                       />
                     </div>
 
@@ -637,16 +637,16 @@ Guidelines:
                               type="checkbox"
                               checked={selectedChapterIds.has(c.id)}
                               onChange={() => toggleChapter(c.id)}
-                              className="w-4 h-4 rounded accent-blue-600"
+                              className="w-4 h-4 rounded accent-purple-700"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-800 dark:text-gray-200 truncate">{c.chapter}</p>
-                              <p className="text-xs text-gray-400 dark:text-gray-500">{c.questions.length} questions</p>
+                              <p className="text-sm text-gray-800 dark:text-zinc-200 truncate">{c.chapter}</p>
+                              <p className="text-xs text-slate-400 dark:text-zinc-500">{c.questions.length} questions</p>
                             </div>
                           </label>
                         ))}
                       {bankChapters.filter(c => !chapterSearch.trim() || c.chapter.toLowerCase().includes(chapterSearch.toLowerCase())).length === 0 && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 px-3 py-2">No chapters match "{chapterSearch}"</p>
+                        <p className="text-xs text-slate-400 dark:text-zinc-500 px-3 py-2">No chapters match "{chapterSearch}"</p>
                       )}
                     </div>
 
@@ -655,7 +655,7 @@ Guidelines:
                       <button
                         onClick={importFromBank}
                         disabled={selectedChapterIds.size === 0}
-                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-40"
+                        className="px-3 py-1.5 bg-purple-700 text-white rounded-lg text-xs font-medium hover:bg-purple-800 disabled:opacity-40"
                       >
                         Import All Selected
                       </button>
@@ -663,16 +663,16 @@ Guidelines:
                         <button
                           onClick={randomizeFromBank}
                           disabled={selectedChapterIds.size === 0}
-                          className="px-3 py-1.5 bg-gray-700 dark:bg-gray-600 text-white rounded-lg text-xs font-medium hover:bg-gray-800 disabled:opacity-40"
+                          className="px-3 py-1.5 bg-zinc-700 dark:bg-zinc-600 text-white rounded-lg text-xs font-medium hover:bg-zinc-800 disabled:opacity-40"
                         >
                           Randomize
                         </button>
                         <input
                           type="number" min={1} max={50} value={randomN}
                           onChange={e => setRandomN(parseInt(e.target.value) || 5)}
-                          className="w-14 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-14 border border-slate-300 dark:border-zinc-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-purple-700"
                         />
-                        <span className="text-xs text-gray-400">questions</span>
+                        <span className="text-xs text-slate-400">questions</span>
                       </div>
                     </div>
                   </div>
@@ -687,9 +687,9 @@ Guidelines:
             {/* Questions */}
             <div className="space-y-4">
               {newQuestions.map((q, idx) => (
-                <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3 bg-gray-50 dark:bg-gray-800/50">
+                <div key={idx} className="border border-slate-200 dark:border-zinc-700 rounded-xl p-4 space-y-3 bg-slate-50 dark:bg-zinc-800/50">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Question {idx + 1}</span>
+                    <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Question {idx + 1}</span>
                     <div className="flex items-center gap-2">
                       {bankChapters.length > 0 && (
                         <button
@@ -708,16 +708,16 @@ Guidelines:
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Question</label>
+                    <label className="block text-xs font-medium text-slate-600 dark:text-zinc-400 mb-1">Question</label>
                     <textarea
                       value={q.question} onChange={e => updateQuestion(idx, 'question', e.target.value)}
                       rows={2} placeholder="Enter the question…"
-                      className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                      className="w-full border border-slate-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent resize-none bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
                     />
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Expected Answer</label>
+                      <label className="block text-xs font-medium text-slate-600 dark:text-zinc-400">Expected Answer</label>
                       <button
                         type="button"
                         onClick={() => generateAnswer(idx)}
@@ -745,21 +745,21 @@ Guidelines:
                     <textarea
                       value={q.expectedAnswer} onChange={e => updateQuestion(idx, 'expectedAnswer', e.target.value)}
                       rows={3} placeholder="Enter the ideal/expected answer…"
-                      className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                      className="w-full border border-slate-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent resize-none bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
                     />
                     {generateError && generatingIdx === null && (
                       <p className="mt-1 text-xs text-red-600 dark:text-red-400">{generateError}</p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    <label className="block text-xs font-medium text-slate-600 dark:text-zinc-400 mb-1">
                       Keywords
-                      <span className="ml-1.5 font-normal text-gray-400">(optional · comma-separated · must appear in the answer above)</span>
+                      <span className="ml-1.5 font-normal text-slate-400">(optional · comma-separated · must appear in the answer above)</span>
                     </label>
                     <textarea
                       value={q.keywords} onChange={e => updateQuestion(idx, 'keywords', e.target.value)}
                       rows={2} placeholder="e.g. photosynthesis, chlorophyll, glucose"
-                      className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                      className="w-full border border-slate-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent resize-none bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
                     />
                     {invalidKeywords(q.keywords, q.expectedAnswer).length > 0 && (
                       <p className="mt-1 text-xs text-red-600 dark:text-red-400">
@@ -768,11 +768,11 @@ Guidelines:
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Marks</label>
+                    <label className="block text-xs font-medium text-slate-600 dark:text-zinc-400 mb-1">Marks</label>
                     <input
                       type="number" min={1} max={100} value={q.marks}
                       onChange={e => updateQuestion(idx, 'marks', parseInt(e.target.value) || 5)}
-                      className="w-24 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                      className="w-24 border border-slate-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200"
                     />
                   </div>
                 </div>
@@ -780,14 +780,14 @@ Guidelines:
             </div>
 
             <button onClick={addQuestion}
-              className="w-full py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-medium hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              className="w-full py-2.5 border-2 border-dashed border-slate-300 dark:border-zinc-600 text-slate-600 dark:text-zinc-400 rounded-xl text-sm font-medium hover:border-purple-400 dark:hover:border-purple-600 hover:text-purple-700 dark:hover:text-purple-400 transition-colors">
               + Add Question
             </button>
 
             {/* Checking mode — always visible once questions exist */}
             {newQuestions.length > 0 && (
               <>
-                <div className="border-t border-gray-100 dark:border-gray-800" />
+                <div className="border-t border-slate-100 dark:border-zinc-800" />
                 <CheckingModeSelector value={checkingMode} onChange={m => dispatch({ type: 'SET_CHECKING_MODE', payload: m })} />
               </>
             )}
@@ -795,11 +795,11 @@ Guidelines:
 
           <div className="flex gap-3">
             <button onClick={cancelCreate}
-              className="px-5 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+              className="px-5 py-3 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-zinc-700">
               Cancel
             </button>
             <button onClick={saveNewSubject} disabled={!!step2CreateBlockedReason()}
-              className="flex-1 py-3 bg-gray-800 dark:bg-gray-700 text-white rounded-xl font-semibold text-sm hover:bg-gray-900 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed">
+              className="flex-1 py-3 bg-zinc-800 dark:bg-zinc-700 text-white rounded-xl font-semibold text-sm hover:bg-zinc-900 dark:hover:bg-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed">
               {editingSubjectId ? 'Update Subject' : 'Save Subject'}
             </button>
           </div>
@@ -810,27 +810,27 @@ Guidelines:
       {/* ── Step 3: Student Info ─────────────────────────────────────────────── */}
       {step === 3 && (
         <><div key="step3" className="animate-fade-in space-y-6">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 p-6 space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Student Details</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Enter the student's name and section for this grading session.</p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">Student Details</h2>
+              <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">Enter the student's name and section for this grading session.</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Student Name</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">Student Name</label>
               <input
                 type="text" value={studentName} onChange={e => setStudentName(e.target.value)}
                 placeholder="e.g. Rahul Sharma" autoFocus
-                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full border border-slate-300 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Student ID</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">Student ID</label>
               <input
                 type="text" value={studentId} onChange={e => setStudentId(e.target.value)}
                 placeholder="e.g. STU-001"
-                className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full border border-slate-300 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
               />
             </div>
 
@@ -839,19 +839,19 @@ Guidelines:
 
             {/* Session summary */}
             {selectedSubject && (
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex flex-wrap gap-x-4 gap-y-1">
-                <span><span className="font-medium text-gray-700 dark:text-gray-300">Term:</span> {examTerm}</span>
-                <span><span className="font-medium text-gray-700 dark:text-gray-300">Class:</span> {examClass}</span>
-                <span><span className="font-medium text-gray-700 dark:text-gray-300">Subject:</span> {selectedSubject.name}</span>
-                <span><span className="font-medium text-gray-700 dark:text-gray-300">Questions:</span> {selectedSubject.questions.length}</span>
-                <span><span className="font-medium text-gray-700 dark:text-gray-300">Mode:</span> {checkingMode.charAt(0).toUpperCase() + checkingMode.slice(1)}</span>
+              <div className="bg-slate-50 dark:bg-zinc-800 rounded-xl px-4 py-3 text-xs text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700 flex flex-wrap gap-x-4 gap-y-1">
+                <span><span className="font-medium text-slate-700 dark:text-zinc-300">Term:</span> {examTerm}</span>
+                <span><span className="font-medium text-slate-700 dark:text-zinc-300">Class:</span> {examClass}</span>
+                <span><span className="font-medium text-slate-700 dark:text-zinc-300">Subject:</span> {selectedSubject.name}</span>
+                <span><span className="font-medium text-slate-700 dark:text-zinc-300">Questions:</span> {selectedSubject.questions.length}</span>
+                <span><span className="font-medium text-slate-700 dark:text-zinc-300">Mode:</span> {checkingMode.charAt(0).toUpperCase() + checkingMode.slice(1)}</span>
               </div>
             )}
 
             {/* Advanced: HF key */}
             <div>
               <button onClick={() => setShowAdvanced(p => !p)}
-                className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+                className="flex items-center gap-2 text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300">
                 <svg className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 6 10">
                   <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -859,16 +859,16 @@ Guidelines:
               </button>
               {showAdvanced && (
                 <div className="mt-3">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
                     Hugging Face API Key
-                    <span className="ml-2 text-xs font-normal text-gray-400">(optional — semantic similarity)</span>
+                    <span className="ml-2 text-xs font-normal text-slate-400">(optional — semantic similarity)</span>
                   </label>
                   <input
                     type="password" value={hfApiKey} placeholder="hf_…"
                     onChange={e => dispatch({ type: 'SET_HF_API_KEY', payload: e.target.value })}
-                    className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                    className="w-full border border-slate-300 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
                   />
-                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Without this, keyword overlap is used as fallback.</p>
+                  <p className="mt-1 text-xs text-slate-400 dark:text-zinc-500">Without this, keyword overlap is used as fallback.</p>
                 </div>
               )}
             </div>
@@ -876,11 +876,11 @@ Guidelines:
 
           <div className="flex gap-3">
             <button onClick={() => setStep(2)}
-              className="px-5 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+              className="px-5 py-3 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-zinc-700">
               ← Back
             </button>
             <button onClick={handleStart} disabled={!!step3BlockedReason()}
-              className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
+              className="flex-1 py-3 bg-purple-700 text-white rounded-xl font-semibold text-sm hover:bg-purple-800 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
               Start Grading →
             </button>
           </div>

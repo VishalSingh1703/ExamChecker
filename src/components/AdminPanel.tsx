@@ -68,11 +68,11 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
   return (
     <div className="max-w-6xl mx-auto space-y-4">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 p-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Access Control</h2>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Access Control</h2>
+            <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
               Manage user access requests for ExamChecker.
               Logged in as <span className="font-medium">{adminEmail}</span>.
             </p>
@@ -89,9 +89,9 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-gray-400 dark:text-gray-500 text-sm">
+          <div className="flex items-center justify-center py-16 text-slate-400 dark:text-zinc-500 text-sm">
             <svg className="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -99,7 +99,7 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
             Loading users…
           </div>
         ) : users.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+          <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-zinc-500">
             <svg className="w-10 h-10 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
@@ -109,39 +109,39 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trial Ends</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Requested</th>
-                  <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Reports</th>
-                  <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Pages</th>
-                  <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Words</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                <tr className="border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Email</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Status</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Trial Ends</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Requested</th>
+                  <th className="text-right px-3 py-3 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider whitespace-nowrap">Reports</th>
+                  <th className="text-right px-3 py-3 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider whitespace-nowrap">Pages</th>
+                  <th className="text-right px-3 py-3 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider whitespace-nowrap">Words</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
                 {users.map(u => (
-                  <tr key={u.user_id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                    <td className="px-5 py-4 text-gray-800 dark:text-gray-200 font-medium truncate max-w-[200px]">
+                  <tr key={u.user_id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td className="px-5 py-4 text-slate-800 dark:text-zinc-200 font-medium truncate max-w-[200px]">
                       {u.email}
                     </td>
                     <td className="px-5 py-4">
                       <StatusBadge status={u.status} />
                     </td>
-                    <td className="px-5 py-4 text-gray-500 dark:text-gray-400">
+                    <td className="px-5 py-4 text-slate-500 dark:text-zinc-400">
                       {formatDate(u.trial_ends_at)}
                     </td>
-                    <td className="px-5 py-4 text-gray-500 dark:text-gray-400">
+                    <td className="px-5 py-4 text-slate-500 dark:text-zinc-400">
                       {formatDate(u.requested_at)}
                     </td>
-                    <td className="px-3 py-4 text-right font-semibold text-gray-800 dark:text-gray-200">
+                    <td className="px-3 py-4 text-right font-semibold text-slate-800 dark:text-zinc-200">
                       {stats.get(u.user_id)?.reports_generated ?? 0}
                     </td>
-                    <td className="px-3 py-4 text-right text-gray-500 dark:text-gray-400">
+                    <td className="px-3 py-4 text-right text-slate-500 dark:text-zinc-400">
                       {stats.get(u.user_id)?.pages_scanned ?? 0}
                     </td>
-                    <td className="px-3 py-4 text-right text-gray-500 dark:text-gray-400">
+                    <td className="px-3 py-4 text-right text-slate-500 dark:text-zinc-400">
                       {(stats.get(u.user_id)?.words_extracted ?? 0).toLocaleString()}
                     </td>
                     <td className="px-4 py-4">
@@ -150,7 +150,7 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
                           <button
                             onClick={() => handleApprove(u.user_id)}
                             disabled={actionLoading === u.user_id + '-approve'}
-                            className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-3 py-1.5 rounded-lg bg-purple-700 text-white text-xs font-medium hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {actionLoading === u.user_id + '-approve' ? 'Approving…' : 'Approve (30 days)'}
                           </button>
@@ -160,7 +160,7 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
                             <button
                               onClick={() => handleExtend(u.user_id)}
                               disabled={actionLoading === u.user_id + '-extend'}
-                              className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-700 text-slate-700 dark:text-zinc-300 text-xs font-medium hover:bg-slate-200 dark:hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {actionLoading === u.user_id + '-extend' ? 'Extending…' : 'Extend +30d'}
                             </button>
@@ -177,7 +177,7 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
                           <button
                             onClick={() => handleApprove(u.user_id)}
                             disabled={actionLoading === u.user_id + '-approve'}
-                            className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-3 py-1.5 rounded-lg bg-purple-700 text-white text-xs font-medium hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {actionLoading === u.user_id + '-approve' ? 'Approving…' : 'Re-approve (30 days)'}
                           </button>

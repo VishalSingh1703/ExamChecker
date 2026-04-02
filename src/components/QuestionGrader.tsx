@@ -131,7 +131,7 @@ export function QuestionGrader({
     full: 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
     partial: 'text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
     zero: 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
-    skipped: 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
+    skipped: 'text-slate-600 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700',
   };
 
   return (
@@ -139,9 +139,9 @@ export function QuestionGrader({
       {/* Confirm re-analyze popup */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 w-full max-w-sm mx-4">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Re-analyze answer?</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-slate-200 dark:border-zinc-800 p-6 w-full max-w-sm mx-4">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-zinc-100 mb-2">Re-analyze answer?</h3>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 mb-5">
               This will overwrite the current result with a fresh analysis of the edited text.
             </p>
             <div className="flex gap-3">
@@ -153,7 +153,7 @@ export function QuestionGrader({
               </button>
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-zinc-700"
               >
                 Cancel
               </button>
@@ -163,15 +163,15 @@ export function QuestionGrader({
       )}
 
       {/* Question header */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-5">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide mb-1">
+            <p className="text-xs text-slate-400 dark:text-zinc-500 font-medium uppercase tracking-wide mb-1">
               Question {questionNumber} of {totalQuestions}
             </p>
-            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{question.question}</p>
+            <p className="text-base font-semibold text-gray-900 dark:text-zinc-100">{question.question}</p>
           </div>
-          <span className="shrink-0 text-sm font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-1">
+          <span className="shrink-0 text-sm font-semibold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg px-3 py-1">
             {question.marks} marks
           </span>
         </div>
@@ -180,11 +180,11 @@ export function QuestionGrader({
       {/* Two-column grading area */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Left: image */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Answer Image</h3>
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 p-5 flex flex-col gap-3">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-zinc-300">Answer Image</h3>
           <button
             onClick={() => fileRef.current?.click()}
-            className="flex items-center justify-center gap-2 w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400"
+            className="flex items-center justify-center gap-2 w-full py-2 border-2 border-dashed border-slate-300 dark:border-zinc-700 rounded-xl text-sm text-slate-500 dark:text-zinc-400 hover:border-purple-400 dark:hover:border-purple-600 hover:text-purple-700 dark:hover:text-purple-400"
           >
             {imageFile ? 'Change Image' : 'Upload Image'}
           </button>
@@ -194,19 +194,19 @@ export function QuestionGrader({
             <img
               src={imageUrl}
               alt="Answer"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 object-contain max-h-64"
+              className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 object-contain max-h-64"
             />
           )}
 
           {(ocrLoading || analyzing) && (
             <div className="space-y-1">
-              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex justify-between text-xs text-slate-500 dark:text-zinc-400">
                 <span>{ocrLoading ? 'Reading & grading…' : 'Analyzing…'}</span>
                 <span>{ocrLoading ? `${ocrProgress}%` : ''}</span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+              <div className="w-full bg-slate-200 dark:bg-zinc-700 rounded-full h-1.5">
                 <div
-                  className="bg-blue-500 h-1.5 rounded-full transition-all"
+                  className="bg-purple-600 h-1.5 rounded-full transition-all"
                   style={{ width: ocrLoading ? `${ocrProgress}%` : '60%' }}
                 />
               </div>
@@ -214,7 +214,7 @@ export function QuestionGrader({
           )}
 
           {ocrEngine && !ocrLoading && (
-            <p className={`text-xs rounded-lg px-3 py-1.5 border ${ocrEngine === 'gemini' ? 'text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+            <p className={`text-xs rounded-lg px-3 py-1.5 border ${ocrEngine === 'gemini' ? 'text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : 'text-slate-600 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700'}`}>
               {ocrEngine === 'gemini' ? 'AI reading — OCR + graded in one pass ✓' : 'OCR fallback mode'}
             </p>
           )}
@@ -227,12 +227,12 @@ export function QuestionGrader({
         </div>
 
         {/* Right: extracted text + analysis */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Extracted Text</h3>
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 p-5 flex flex-col gap-3">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-zinc-300">Extracted Text</h3>
           <textarea
             value={ocrText}
             onChange={(e) => setOcrText(e.target.value)}
-            className="flex-1 min-h-[120px] border border-gray-300 dark:border-gray-700 rounded-xl p-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600"
+            className="flex-1 min-h-[120px] border border-slate-300 dark:border-zinc-700 rounded-xl p-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent resize-none bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600"
             placeholder="Upload an image to extract and grade automatically, or type directly…"
           />
 
@@ -240,7 +240,7 @@ export function QuestionGrader({
             <button
               onClick={() => setShowConfirm(true)}
               disabled={!ocrText.trim() || analyzing || ocrLoading}
-              className="w-full py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed border border-gray-200 dark:border-gray-700"
+              className="w-full py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-200 dark:border-zinc-700"
             >
               {analyzing ? 'Analyzing…' : 'Analyze Again'}
             </button>
@@ -276,7 +276,7 @@ export function QuestionGrader({
         </button>
         <button
           onClick={onSkip}
-          className="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="px-5 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-zinc-700"
         >
           Skip
         </button>

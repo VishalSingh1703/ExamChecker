@@ -13,6 +13,7 @@ import { HistoryView } from './components/HistoryView';
 import { AdminPanel } from './components/AdminPanel';
 import { AnalyticsView } from './components/AnalyticsView';
 import { QuestionBankView } from './components/QuestionBankView';
+import { LandingPage } from './components/LandingPage';
 import { ExamProvider, useExam, useExamDispatch } from './context/ExamContext';
 import type { ExamSession } from './types';
 
@@ -29,9 +30,7 @@ const BASE_TABS = [
 function useDarkMode() {
   const [dark, setDark] = useState(() => {
     const stored = localStorage.getItem('dark-mode');
-    const isDark = stored !== null
-      ? stored === 'true'
-      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = stored !== null ? stored === 'true' : false;
     document.documentElement.classList.toggle('dark', isDark);
     return isDark;
   });
@@ -84,10 +83,10 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
     return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
 
-  const iconBtn = 'w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors';
+  const iconBtn = 'w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
       {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
 
       {/* Mobile drawer backdrop */}
@@ -99,11 +98,11 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
       )}
 
       {/* Mobile slide-in drawer */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-900 shadow-2xl flex flex-col transition-transform duration-200 ease-in-out sm:hidden ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-zinc-900 shadow-2xl flex flex-col transition-transform duration-200 ease-in-out sm:hidden ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Drawer header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <span className="text-base font-bold text-gray-900 dark:text-gray-100">Exam Checker</span>
-          <button onClick={() => setMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-zinc-800">
+          <span className="text-base font-bold text-gray-900 dark:text-zinc-100">Exam Checker</span>
+          <button onClick={() => setMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -118,22 +117,22 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
               onClick={() => navigate(tab.id)}
               className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-colors flex items-center gap-3 ${
                 activeTab === tab.id
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-r-2 border-purple-700 dark:border-purple-400'
+                  : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
               }`}
             >
               {tab.label}
             </button>
           ))}
 
-          <div className="mx-4 my-2 border-t border-gray-100 dark:border-gray-800" />
+          <div className="mx-4 my-2 border-t border-slate-100 dark:border-zinc-800" />
 
           <button
             onClick={() => navigate('question-bank')}
             className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-colors flex items-center gap-3 ${
               activeTab === 'question-bank'
-                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-r-2 border-purple-700 dark:border-purple-400'
+                : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
             }`}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -144,7 +143,7 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
 
           <button
             onClick={() => { setShowInfo(true); setMenuOpen(false); }}
-            className="w-full text-left px-5 py-3.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3"
+            className="w-full text-left px-5 py-3.5 text-sm font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 flex items-center gap-3"
           >
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -154,10 +153,10 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
         </nav>
 
         {/* Drawer footer: dark mode + profile */}
-        <div className="border-t border-gray-100 dark:border-gray-800 px-5 py-4 flex items-center justify-between">
+        <div className="border-t border-slate-100 dark:border-zinc-800 px-5 py-4 flex items-center justify-between">
           <button
             onClick={() => setDark(!dark)}
-            className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
+            className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-400"
           >
             {dark ? (
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -172,7 +171,7 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
           </button>
           <button
             onClick={() => { setShowProfile(p => !p); setMenuOpen(false); }}
-            className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
+            className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-400"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -183,12 +182,12 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-3 sm:px-4 py-3 flex items-center justify-between print:hidden">
+      <header className="sticky top-0 z-30 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 px-3 sm:px-4 py-3 flex items-center justify-between print:hidden">
         <div className="flex items-center gap-2">
           {/* Hamburger — mobile only */}
           <button
             onClick={() => setMenuOpen(true)}
-            className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800"
             aria-label="Open menu"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -198,7 +197,7 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
 
           <button
             onClick={() => { setShowProfile(false); setMenuOpen(false); }}
-            className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 hover:opacity-80"
+            className="text-base sm:text-lg font-bold text-gray-900 dark:text-zinc-100 hover:opacity-80"
           >
             Exam Checker
           </button>
@@ -211,8 +210,8 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
             title="Upload Questions to Bank"
             className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               activeTab === 'question-bank'
-                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
+                : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
             }`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -222,7 +221,7 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
           </button>
 
           {/* Info — hidden on mobile (in drawer) */}
-          <button onClick={() => setShowInfo(true)} title="How it works" className={`hidden sm:flex ${iconBtn} border border-gray-200 dark:border-gray-700 font-bold text-sm`}>
+          <button onClick={() => setShowInfo(true)} title="How it works" className={`hidden sm:flex ${iconBtn} border border-slate-200 dark:border-zinc-700 font-bold text-sm`}>
             ?
           </button>
 
@@ -243,7 +242,7 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
           <button
             onClick={() => { setShowProfile(p => !p); setMenuOpen(false); }}
             title="Account"
-            className={`${iconBtn} ${showProfile ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : ''}`}
+            className={`${iconBtn} ${showProfile ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400' : ''}`}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -259,7 +258,7 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
       ) : (
         <>
           {/* Desktop tab bar — hidden on mobile */}
-          <nav className="hidden sm:block bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 print:hidden">
+          <nav className="hidden sm:block bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 px-4 print:hidden">
             <div className="flex gap-1 max-w-4xl mx-auto">
               {TABS.map((tab) => (
                 <button
@@ -267,8 +266,8 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
                   onClick={() => navigate(tab.id)}
                   className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.id
-                      ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                      ? 'border-purple-700 text-purple-700 dark:text-purple-400 dark:border-purple-400'
+                      : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
                   }`}
                 >
                   {tab.label}
@@ -294,7 +293,7 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
           </main>
 
           {/* Footer */}
-          <footer className="mt-8 pb-6 text-center text-xs text-gray-400 dark:text-gray-600 print:hidden">
+          <footer className="mt-8 pb-6 text-center text-xs text-slate-400 dark:text-zinc-600 print:hidden">
             © {new Date().getFullYear()} Vishal Singh. All rights reserved.
           </footer>
         </>
@@ -307,11 +306,11 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
 
 function AccessScreen({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center p-4 gap-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 w-full max-w-sm border border-gray-200 dark:border-gray-800 text-center">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4 gap-4">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-8 w-full max-w-sm border border-slate-200 dark:border-zinc-800 text-center">
         {children}
       </div>
-      <p className="text-xs text-gray-400 dark:text-gray-600">© {new Date().getFullYear()} Vishal Singh. All rights reserved.</p>
+      <p className="text-xs text-slate-400 dark:text-zinc-600">© {new Date().getFullYear()} Vishal Singh. All rights reserved.</p>
     </div>
   );
 }
@@ -321,9 +320,9 @@ function AdminContactLink({ userEmail }: { userEmail?: string }) {
   const body = encodeURIComponent(`Hello, I have requested access to ExamChecker with email: ${userEmail ?? ''}`);
   const href = `mailto:${ADMIN_EMAIL}?subject=Access%20Request%20-%20ExamChecker&body=${body}`;
   return (
-    <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+    <p className="text-sm text-slate-500 dark:text-zinc-400 mt-3">
       Need help? Email the admin:{' '}
-      <a href={href} className="text-blue-600 dark:text-blue-400 hover:underline break-all">
+      <a href={href} className="text-purple-700 dark:text-purple-400 hover:underline break-all">
         {ADMIN_EMAIL}
       </a>
     </p>
@@ -334,7 +333,7 @@ function SignOutButton() {
   return (
     <button
       onClick={() => supabase?.auth.signOut()}
-      className="mt-5 w-full py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+      className="mt-5 w-full py-2.5 border border-slate-300 dark:border-zinc-700 rounded-xl text-sm font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
     >
       Sign Out
     </button>
@@ -351,8 +350,8 @@ function PendingScreen({ userEmail }: { userEmail?: string }) {
           </svg>
         </div>
       </div>
-      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Awaiting Approval</h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-zinc-100 mb-2">Awaiting Approval</h2>
+      <p className="text-sm text-slate-500 dark:text-zinc-400">
         Your access request has been submitted. The admin will review and approve your account.
       </p>
       <AdminContactLink userEmail={userEmail} />
@@ -371,16 +370,16 @@ function RevokedScreen({ userEmail }: { userEmail?: string }) {
           </svg>
         </div>
       </div>
-      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Access Revoked</h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-zinc-100 mb-2">Access Revoked</h2>
+      <p className="text-sm text-slate-500 dark:text-zinc-400">
         Your access to ExamChecker has been revoked. Please contact the admin to restore access.
       </p>
       {ADMIN_EMAIL && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+        <p className="text-sm text-slate-500 dark:text-zinc-400 mt-3">
           Contact admin:{' '}
           <a
             href={`mailto:${ADMIN_EMAIL}?subject=Access%20Request%20-%20ExamChecker&body=${encodeURIComponent(`Hello, I have requested access to ExamChecker with email: ${userEmail ?? ''}`)}`}
-            className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+            className="text-purple-700 dark:text-purple-400 hover:underline break-all"
           >
             {ADMIN_EMAIL}
           </a>
@@ -401,16 +400,16 @@ function ExpiredScreen({ userEmail }: { userEmail?: string }) {
           </svg>
         </div>
       </div>
-      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Trial Expired</h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-zinc-100 mb-2">Trial Expired</h2>
+      <p className="text-sm text-slate-500 dark:text-zinc-400">
         Your trial period has ended. Please contact the admin to renew your access.
       </p>
       {ADMIN_EMAIL && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+        <p className="text-sm text-slate-500 dark:text-zinc-400 mt-3">
           Contact admin:{' '}
           <a
             href={`mailto:${ADMIN_EMAIL}?subject=Access%20Request%20-%20ExamChecker&body=${encodeURIComponent(`Hello, I have requested access to ExamChecker with email: ${userEmail ?? ''}`)}`}
-            className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+            className="text-purple-700 dark:text-purple-400 hover:underline break-all"
           >
             {ADMIN_EMAIL}
           </a>
@@ -428,6 +427,7 @@ export default function App() {
   const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [dark, setDark] = useDarkMode();
   const [accessStatus, setAccessStatus] = useState<'loading' | 'ok' | 'pending' | 'revoked' | 'expired'>('loading');
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     if (!supabase) { setSession(null); return; }
@@ -475,8 +475,8 @@ export default function App() {
 
   if (session === undefined) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-400 text-sm">Loading…</div>
+      <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex items-center justify-center">
+        <div className="text-slate-400 text-sm">Loading…</div>
       </div>
     );
   }
@@ -506,8 +506,8 @@ export default function App() {
     // Access check screens
     if (accessStatus === 'loading') {
       return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-          <div className="flex items-center gap-2 text-gray-400 text-sm">
+        <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-slate-400 text-sm">
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -543,5 +543,8 @@ export default function App() {
     );
   }
 
+  if (!showAuth) {
+    return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+  }
   return <AuthGate onAuth={() => {}} />;
 }

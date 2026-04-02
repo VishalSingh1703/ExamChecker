@@ -14,7 +14,7 @@ const statusColors = {
   full: 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
   partial: 'text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
   zero: 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
-  skipped: 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
+  skipped: 'text-slate-600 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700',
 };
 
 type QImages = { files: File[]; urls: string[] };
@@ -35,7 +35,7 @@ export function GradingView() {
 
   if (!answerKey) {
     return (
-      <div className="text-center text-gray-500 dark:text-gray-400 py-16">
+      <div className="text-center text-slate-500 dark:text-zinc-400 py-16">
         No answer key loaded. Go to Setup first.
       </div>
     );
@@ -185,7 +185,7 @@ export function GradingView() {
           <div className="relative w-full max-w-3xl px-4" onClick={e => e.stopPropagation()}>
             <button
               onClick={() => setViewModal(null)}
-              className="absolute -top-10 right-4 text-white text-2xl font-bold hover:text-gray-300"
+              className="absolute -top-10 right-4 text-white text-2xl font-bold hover:text-zinc-300"
             >
               ✕
             </button>
@@ -220,28 +220,28 @@ export function GradingView() {
       <div className="max-w-4xl mx-auto space-y-4">
         {/* Student info bar */}
         {(studentName || examClass || studentSection || examTerm) && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 px-5 py-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
-            {examTerm && <span><span className="font-medium text-gray-800 dark:text-gray-200">Term:</span> {examTerm}</span>}
-            {examClass && <span><span className="font-medium text-gray-800 dark:text-gray-200">Class:</span> {examClass}</span>}
-            {studentSection && <span><span className="font-medium text-gray-800 dark:text-gray-200">Section:</span> {studentSection}</span>}
-            {studentName && <span><span className="font-medium text-gray-800 dark:text-gray-200">Student:</span> {studentName}</span>}
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 px-5 py-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-zinc-400">
+            {examTerm && <span><span className="font-medium text-gray-800 dark:text-zinc-200">Term:</span> {examTerm}</span>}
+            {examClass && <span><span className="font-medium text-gray-800 dark:text-zinc-200">Class:</span> {examClass}</span>}
+            {studentSection && <span><span className="font-medium text-gray-800 dark:text-zinc-200">Section:</span> {studentSection}</span>}
+            {studentName && <span><span className="font-medium text-gray-800 dark:text-zinc-200">Student:</span> {studentName}</span>}
           </div>
         )}
 
         {/* Phase indicator */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 px-5 py-3 flex items-center gap-3 text-sm">
-          <span className={`font-medium ${!batchResults ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 px-5 py-3 flex items-center gap-3 text-sm">
+          <span className={`font-medium ${!batchResults ? 'text-purple-700 dark:text-purple-400' : 'text-slate-400 dark:text-zinc-500'}`}>
             1 · Upload Images
           </span>
-          <span className="text-gray-300 dark:text-gray-600">→</span>
-          <span className={`font-medium ${evaluating ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-600'}`}>
+          <span className="text-slate-300 dark:text-zinc-600">→</span>
+          <span className={`font-medium ${evaluating ? 'text-purple-700 dark:text-purple-400' : 'text-slate-400 dark:text-zinc-600'}`}>
             2 · Evaluate All
           </span>
-          <span className="text-gray-300 dark:text-gray-600">→</span>
-          <span className={`font-medium ${allEvaluated ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-600'}`}>
+          <span className="text-slate-300 dark:text-zinc-600">→</span>
+          <span className={`font-medium ${allEvaluated ? 'text-purple-700 dark:text-purple-400' : 'text-slate-400 dark:text-zinc-600'}`}>
             3 · Generate Report
           </span>
-          <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
+          <span className="ml-auto text-xs text-slate-400 dark:text-zinc-500">
             {totalImages} image{totalImages !== 1 ? 's' : ''} · {questionsWithImages}/{questions.length} questions
           </span>
         </div>
@@ -253,16 +253,16 @@ export function GradingView() {
           const isReEval = reEvalLoading === q.id;
 
           return (
-            <div key={q.id} className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div key={q.id} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 overflow-hidden">
               {/* Question header */}
-              <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3 border-b border-slate-100 dark:border-zinc-800">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide mb-1">
+                  <p className="text-xs text-slate-400 dark:text-zinc-500 font-medium uppercase tracking-wide mb-1">
                     Question {idx + 1} of {questions.length}
                   </p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{q.question}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">{q.question}</p>
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-1">
+                <span className="shrink-0 text-sm font-semibold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg px-3 py-1">
                   {q.marks} marks
                 </span>
               </div>
@@ -273,7 +273,7 @@ export function GradingView() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <button
                       onClick={() => fileRefs.current[q.id]?.click()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400"
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-slate-300 dark:border-zinc-600 rounded-lg text-sm text-slate-500 dark:text-zinc-400 hover:border-purple-400 dark:hover:border-purple-500 hover:text-purple-700 dark:hover:text-purple-400"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -291,7 +291,7 @@ export function GradingView() {
                     {imgs && (
                       <button
                         onClick={() => setViewModal({ urls: imgs.urls, page: 0 })}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-xs text-purple-700 dark:text-purple-400 hover:underline"
                       >
                         View Images ({imgs.files.length})
                       </button>
@@ -307,7 +307,7 @@ export function GradingView() {
                             src={url}
                             alt={`Page ${i + 1}`}
                             onClick={() => setViewModal({ urls: imgs.urls, page: i })}
-                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-80"
+                            className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-zinc-700 cursor-pointer hover:opacity-80"
                           />
                           <span className="absolute bottom-0.5 left-0.5 text-xs bg-black/50 text-white rounded px-1 leading-tight">
                             {i + 1}
@@ -326,7 +326,7 @@ export function GradingView() {
 
                 {/* Result panel (shown after evaluation) */}
                 {result && (
-                  <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-zinc-800">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[result.status]}`}>
                         {result.marks} / {q.marks} marks · {Math.round(result.score * 100)}% · {result.status}
@@ -342,7 +342,7 @@ export function GradingView() {
                       )}
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      <p className="text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1">
                         Extracted Text{result.status === 'skipped' ? ' (no image uploaded — skipped)' : ''}
                       </p>
                       <textarea
@@ -353,7 +353,7 @@ export function GradingView() {
                         } : prev)}
                         rows={3}
                         placeholder="No text extracted"
-                        className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600"
+                        className="w-full border border-slate-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent resize-none bg-slate-50 dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600"
                       />
                     </div>
                   </div>
@@ -371,12 +371,12 @@ export function GradingView() {
         )}
 
         {/* Bottom action bar */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 px-5 py-4">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 px-5 py-4">
           {!allEvaluated ? (
             <button
               onClick={handleEvaluateAll}
               disabled={evaluating || totalImages === 0}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 bg-purple-700 text-white rounded-xl text-sm font-semibold hover:bg-purple-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {evaluating ? (
                 <>

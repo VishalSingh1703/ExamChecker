@@ -167,14 +167,14 @@ function StudentChart({ records }: { records: HistoryRecord[] }) {
   }
 
   if (records.length === 0) {
-    return <div className="flex items-center justify-center h-48 text-gray-400 dark:text-gray-500 text-sm">No records found.</div>;
+    return <div className="flex items-center justify-center h-48 text-slate-400 dark:text-zinc-500 text-sm">No records found.</div>;
   }
 
   return (
     <div className="flex gap-5 items-start">
       {/* SVG Chart */}
       <div className="flex-1 min-w-0">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900" style={{ cursor: focused ? 'pointer' : 'default' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto rounded-xl border border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-900" style={{ cursor: focused ? 'pointer' : 'default' }}>
           {/* Invisible full-area click target to clear focus */}
           <rect x={0} y={0} width={W} height={H} fill="transparent" onClick={() => setFocused(null)} />
 
@@ -294,7 +294,7 @@ function StudentChart({ records }: { records: HistoryRecord[] }) {
 
       {/* Subject rankings sidebar */}
       <div className="w-44 shrink-0">
-        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide mb-3">
           Subjects by Marks
         </p>
         <div className="space-y-1">
@@ -307,22 +307,22 @@ function StudentChart({ records }: { records: HistoryRecord[] }) {
                 onClick={() => handleFocus(sub.subject)}
                 className={`w-full text-left flex items-start gap-2 px-2 py-2 rounded-lg transition-all ${
                   isFocused
-                    ? 'bg-gray-100 dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700'
-                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    ? 'bg-slate-100 dark:bg-zinc-800 ring-1 ring-slate-200 dark:ring-zinc-700'
+                    : 'hover:bg-slate-50 dark:hover:bg-zinc-800/50'
                 }`}
                 style={{ opacity: isFaded ? 0.3 : 1, transition: 'opacity 0.2s' }}
               >
                 <div className="w-3 h-3 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: sub.color }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{sub.subject}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-sm font-medium text-slate-800 dark:text-zinc-200 truncate">{sub.subject}</p>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">
                     {sub.totalScored} / {sub.totalPossible} marks
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-slate-400 dark:text-zinc-500">
                     {sub.totalPossible > 0 ? Math.round((sub.totalScored / sub.totalPossible) * 100) : 0}% avg
                   </p>
                 </div>
-                <span className="text-xs font-bold text-gray-400 dark:text-gray-500 shrink-0">#{i + 1}</span>
+                <span className="text-xs font-bold text-slate-400 dark:text-zinc-500 shrink-0">#{i + 1}</span>
               </button>
             );
           })}
@@ -389,17 +389,17 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
   if (records.length === 0) {
     return (
       <div className="max-w-5xl mx-auto py-20 text-center">
-        <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-slate-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
           </svg>
         </div>
-        <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">No analytics yet</h3>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">Grade some students first — their reports will appear here.</p>
+        <h3 className="text-base font-semibold text-slate-700 dark:text-zinc-300 mb-1">No analytics yet</h3>
+        <p className="text-sm text-slate-400 dark:text-zinc-500 mb-5">Grade some students first — their reports will appear here.</p>
         <button
           onClick={handleLoadDemo}
           disabled={demoLoading}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-sm font-medium disabled:opacity-60"
         >
           {demoLoading ? (
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -428,7 +428,7 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
         <button
           onClick={handleLoadDemo}
           disabled={demoLoading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg text-xs font-medium disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-400 rounded-lg text-xs font-medium disabled:opacity-60"
         >
           {demoLoading ? (
             <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -447,10 +447,10 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 items-start">
 
         {/* Left: student tree */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Students</h3>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{records.length} report{records.length !== 1 ? 's' : ''}</p>
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 dark:border-zinc-800">
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">Students</h3>
+            <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{records.length} report{records.length !== 1 ? 's' : ''}</p>
           </div>
 
           <div className="py-1">
@@ -461,7 +461,7 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
                 <div key={cls}>
                   <button
                     onClick={() => setOpenClasses(toggle(openClasses, cls))}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
                   >
                     <svg className={`w-3 h-3 transition-transform shrink-0 ${clsOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 6 10">
                       <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -477,13 +477,13 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
                       <div key={sec}>
                         <button
                           onClick={() => setOpenSections(toggle(openSections, secToggleKey))}
-                          className="w-full flex items-center gap-2 pl-8 pr-4 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          className="w-full flex items-center gap-2 pl-8 pr-4 py-1.5 text-sm text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800"
                         >
                           <svg className={`w-3 h-3 transition-transform shrink-0 ${secOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 6 10">
                             <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                           Section {sec}
-                          <span className="ml-auto text-xs text-gray-400">{studentMap.size}</span>
+                          <span className="ml-auto text-xs text-slate-400">{studentMap.size}</span>
                         </button>
 
                         {secOpen && [...studentMap.entries()]
@@ -494,12 +494,12 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
                               onClick={() => setSelectedKey(key)}
                               className={`w-full text-left pl-12 pr-4 py-2 transition-colors ${
                                 selectedKey === key
-                                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
-                                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                  ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
+                                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
                               }`}
                             >
                               <p className="text-xs font-medium truncate">{student.name}</p>
-                              <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                              <p className="text-xs text-slate-400 dark:text-zinc-500 truncate">
                                 {student.studentId || 'No ID'} · {student.records.length} report{student.records.length !== 1 ? 's' : ''}
                               </p>
                             </button>
@@ -516,10 +516,10 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
         {/* Right: chart panel */}
         <div>
           {selectedStudent ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 space-y-4">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-5 space-y-4">
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedStudent.name}</h3>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-400 dark:text-gray-500">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-zinc-100">{selectedStudent.name}</h3>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-slate-400 dark:text-zinc-500">
                   {selectedStudent.studentId && <span>ID: {selectedStudent.studentId}</span>}
                   <span>{selectedStudent.records.length} exam report{selectedStudent.records.length !== 1 ? 's' : ''}</span>
                 </div>
@@ -527,11 +527,11 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
               <StudentChart records={selectedStudent.records} />
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 py-24 text-center">
-              <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 py-24 text-center">
+              <svg className="w-10 h-10 text-slate-300 dark:text-zinc-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
               </svg>
-              <p className="text-sm text-gray-400 dark:text-gray-500">Select a student to view their performance graph.</p>
+              <p className="text-sm text-slate-400 dark:text-zinc-500">Select a student to view their performance graph.</p>
             </div>
           )}
         </div>

@@ -14,14 +14,14 @@ const MODE_THRESHOLDS: Record<CheckingMode, number> = { easy: 0.45, medium: 0.6,
 
 const MODE_LABELS: Record<CheckingMode, { label: string; color: string }> = {
   easy: { label: 'Easy', color: 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800' },
-  medium: { label: 'Medium', color: 'text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' },
+  medium: { label: 'Medium', color: 'text-purple-700 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800' },
   strict: { label: 'Strict', color: 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800' },
 };
 
 const gradeColors: Record<string, string> = {
   'A+': 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30',
   A: 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30',
-  B: 'text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30',
+  B: 'text-purple-700 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30',
   C: 'text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30',
   D: 'text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30',
   F: 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30',
@@ -31,7 +31,7 @@ const rowColors = {
   full: 'bg-green-50 dark:bg-green-900/10',
   partial: 'bg-yellow-50 dark:bg-yellow-900/10',
   zero: 'bg-red-50 dark:bg-red-900/10',
-  skipped: 'bg-gray-50 dark:bg-gray-800/50',
+  skipped: 'bg-slate-50 dark:bg-zinc-800/50',
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -184,17 +184,17 @@ function UpdateModal({ record, hfApiKey, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-800">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100 dark:border-zinc-800">
           <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Update Answers</h2>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{record.studentName} · {record.examTitle}</p>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-zinc-100">Update Answers</h2>
+            <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{record.studentName} · {record.examTitle}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 text-xl">×</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xl">×</button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Select a question to re-upload its image.</p>
+          <p className="text-xs text-slate-500 dark:text-zinc-400">Select a question to re-upload its image.</p>
 
           {record.questions.map((q, idx) => {
             const existing = record.results.find(r => r.questionId === q.id);
@@ -202,34 +202,34 @@ function UpdateModal({ record, hfApiKey, onClose, onSave }: {
             const isActive = activeId === q.id;
 
             return (
-              <div key={q.id} className={`border rounded-xl transition-colors ${isActive ? 'border-blue-400 dark:border-blue-600' : 'border-gray-200 dark:border-gray-700'}`}>
+              <div key={q.id} className={`border rounded-xl transition-colors ${isActive ? 'border-purple-400 dark:border-purple-600' : 'border-slate-200 dark:border-zinc-700'}`}>
                 <button
                   className="w-full text-left px-4 py-3 flex items-center gap-3"
                   onClick={() => { setActiveId(isActive ? null : q.id); setOcrText(''); setOcrError(''); }}
                 >
-                  <span className="text-xs font-semibold text-gray-400 w-5">Q{idx + 1}</span>
-                  <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 truncate">{q.question}</span>
+                  <span className="text-xs font-semibold text-slate-400 w-5">Q{idx + 1}</span>
+                  <span className="flex-1 text-sm text-gray-800 dark:text-zinc-200 truncate">{q.question}</span>
                   {patch?.changed && (
-                    <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Updated</span>
+                    <span className="text-xs text-purple-700 dark:text-purple-400 font-medium">Updated</span>
                   )}
                   {!patch && existing && (
-                    <span className="text-xs text-gray-400">{existing.marksAwarded}/{q.marks}</span>
+                    <span className="text-xs text-slate-400">{existing.marksAwarded}/{q.marks}</span>
                   )}
                 </button>
 
                 {isActive && (
-                  <div className="px-4 pb-4 space-y-3 border-t border-gray-100 dark:border-gray-800 pt-3">
+                  <div className="px-4 pb-4 space-y-3 border-t border-slate-100 dark:border-zinc-800 pt-3">
                     {existing?.extractedText && (
                       <div>
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Current Answer</p>
-                        <p className="text-xs font-mono text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">{existing.extractedText}</p>
+                        <p className="text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1">Current Answer</p>
+                        <p className="text-xs font-mono text-slate-600 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-zinc-700">{existing.extractedText}</p>
                       </div>
                     )}
 
                     <button
                       onClick={() => fileRef.current?.click()}
                       disabled={ocrLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg text-sm font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 disabled:opacity-50"
                     >
                       {ocrLoading ? 'Reading image…' : 'Re-upload Image'}
                     </button>
@@ -239,10 +239,10 @@ function UpdateModal({ record, hfApiKey, onClose, onSave }: {
 
                     {ocrText && (
                       <div className="space-y-2">
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">New Extracted Text</p>
+                        <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">New Extracted Text</p>
                         <textarea
                           value={ocrText} onChange={e => setOcrText(e.target.value)} rows={3}
-                          className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                          className="w-full border border-slate-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent resize-none bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200"
                         />
                         <button onClick={handleAnalyze} disabled={analyzing}
                           className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
@@ -263,12 +263,12 @@ function UpdateModal({ record, hfApiKey, onClose, onSave }: {
           })}
         </div>
 
-        <div className="px-6 pb-5 pt-3 border-t border-gray-100 dark:border-gray-800 flex gap-3">
-          <button onClick={onClose} className="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+        <div className="px-6 pb-5 pt-3 border-t border-slate-100 dark:border-zinc-800 flex gap-3">
+          <button onClick={onClose} className="px-5 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-zinc-700">
             Cancel
           </button>
           <button onClick={handleSave} disabled={!hasChanges}
-            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
+            className="flex-1 py-2.5 bg-purple-700 text-white rounded-xl text-sm font-semibold hover:bg-purple-800 disabled:opacity-40 disabled:cursor-not-allowed">
             Save Changes
           </button>
         </div>
@@ -284,11 +284,11 @@ function RecordDetail({ record }: { record: HistoryRecord }) {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-5">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
           <div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{record.examTitle}</h3>
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-zinc-100">{record.examTitle}</h3>
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-sm text-slate-500 dark:text-zinc-400">
               {record.studentName && <span>{record.studentName}</span>}
               {record.examClass && record.studentSection && <span>{record.examClass} · {record.studentSection}</span>}
               {record.term && <span>{record.term}</span>}
@@ -300,19 +300,19 @@ function RecordDetail({ record }: { record: HistoryRecord }) {
           </span>
         </div>
         <div className="flex items-center gap-5 flex-wrap">
-          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {record.scored}<span className="text-gray-400 dark:text-gray-500 text-xl"> / {record.total}</span>
+          <div className="text-3xl font-bold text-gray-900 dark:text-zinc-100">
+            {record.scored}<span className="text-slate-400 dark:text-zinc-500 text-xl"> / {record.total}</span>
           </div>
-          <div className="text-xl font-semibold text-gray-600 dark:text-gray-400">{record.percentage}%</div>
-          <span className={`px-3 py-0.5 rounded-full text-lg font-bold ${gradeColors[record.grade] ?? 'bg-gray-100 dark:bg-gray-800'}`}>{record.grade}</span>
+          <div className="text-xl font-semibold text-slate-600 dark:text-zinc-400">{record.percentage}%</div>
+          <span className={`px-3 py-0.5 rounded-full text-lg font-bold ${gradeColors[record.grade] ?? 'bg-slate-100 dark:bg-zinc-800'}`}>{record.grade}</span>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800">
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Question Breakdown</h4>
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
+        <div className="px-5 py-3 border-b border-slate-100 dark:border-zinc-800">
+          <h4 className="text-sm font-semibold text-slate-700 dark:text-zinc-300">Question Breakdown</h4>
         </div>
-        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+        <div className="divide-y divide-slate-100 dark:divide-zinc-800">
           {record.questions.map((q, idx) => {
             const result = record.results.find(r => r.questionId === q.id);
             const status = result?.status ?? 'skipped';
@@ -320,27 +320,27 @@ function RecordDetail({ record }: { record: HistoryRecord }) {
             return (
               <div key={q.id} className={rowColors[status]}>
                 <button className="w-full text-left px-5 py-3 flex items-center gap-4" onClick={() => setExpandedId(expanded ? null : q.id)}>
-                  <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 w-5">Q{idx + 1}</span>
-                  <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-medium truncate">{q.question}</span>
+                  <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500 w-5">Q{idx + 1}</span>
+                  <span className="flex-1 text-sm text-gray-800 dark:text-zinc-200 font-medium truncate">{q.question}</span>
                   {result && (
                     <>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 w-20 text-right">{Math.round(result.similarityScore * 100)}% sim</span>
-                      <span className="text-sm font-semibold w-16 text-right text-gray-800 dark:text-gray-200">{result.marksAwarded} / {q.marks}</span>
+                      <span className="text-xs text-slate-500 dark:text-zinc-400 w-20 text-right">{Math.round(result.similarityScore * 100)}% sim</span>
+                      <span className="text-sm font-semibold w-16 text-right text-gray-800 dark:text-zinc-200">{result.marksAwarded} / {q.marks}</span>
                     </>
                   )}
-                  {!result && <span className="text-xs text-gray-400 italic">not graded</span>}
+                  {!result && <span className="text-xs text-slate-400 italic">not graded</span>}
                 </button>
                 {expanded && result && (
                   <div className="px-10 pb-4 space-y-2">
                     {result.extractedText && (
                       <div>
-                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">Student's Answer</p>
-                        <p className="text-xs font-mono text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">{result.extractedText}</p>
+                        <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide mb-0.5">Student's Answer</p>
+                        <p className="text-xs font-mono text-slate-700 dark:text-zinc-300 whitespace-pre-wrap bg-slate-50 dark:bg-zinc-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-zinc-700">{result.extractedText}</p>
                       </div>
                     )}
                     <div>
-                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">Expected Answer</p>
-                      <p className="text-xs font-mono text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">{q.expectedAnswer}</p>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wide mb-0.5">Expected Answer</p>
+                      <p className="text-xs font-mono text-slate-700 dark:text-zinc-300 whitespace-pre-wrap bg-slate-50 dark:bg-zinc-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-zinc-700">{q.expectedAnswer}</p>
                     </div>
                   </div>
                 )}
@@ -351,7 +351,7 @@ function RecordDetail({ record }: { record: HistoryRecord }) {
       </div>
 
       <div className="flex gap-3">
-        <button onClick={() => buildAndPrint(record)} className="px-4 py-2 bg-gray-800 dark:bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-900 dark:hover:bg-gray-600">
+        <button onClick={() => buildAndPrint(record)} className="px-4 py-2 bg-zinc-800 dark:bg-zinc-700 text-white rounded-xl text-sm font-medium hover:bg-zinc-900 dark:hover:bg-zinc-600">
           Print / Save as PDF
         </button>
       </div>
@@ -482,13 +482,13 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
   if (records.length === 0 && trashRecords.length === 0) {
     return (
       <div className="max-w-4xl mx-auto py-20 text-center">
-        <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-slate-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">No history yet</h3>
-        <p className="text-sm text-gray-400 dark:text-gray-500">Complete grading a student — reports are saved automatically.</p>
+        <h3 className="text-base font-semibold text-slate-700 dark:text-zinc-300 mb-1">No history yet</h3>
+        <p className="text-sm text-slate-400 dark:text-zinc-500">Complete grading a student — reports are saved automatically.</p>
       </div>
     );
   }
@@ -500,7 +500,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
       {/* Permanent delete modal (from trash) */}
       {permDeleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 w-full max-w-sm mx-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-slate-200 dark:border-zinc-800 p-6 w-full max-w-sm mx-4">
             <div className="flex justify-center mb-4">
               <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                 <svg className="w-6 h-6 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -508,19 +508,19 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                 </svg>
               </div>
             </div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 text-center mb-1">Delete Permanently</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-1">
-              <span className="font-medium text-gray-700 dark:text-gray-300">{permDeleteTarget.record.studentName}</span> — {permDeleteTarget.record.examTitle}
+            <h3 className="text-base font-semibold text-gray-900 dark:text-zinc-100 text-center mb-1">Delete Permanently</h3>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 text-center mb-1">
+              <span className="font-medium text-slate-700 dark:text-zinc-300">{permDeleteTarget.record.studentName}</span> — {permDeleteTarget.record.examTitle}
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 text-center mb-4">This cannot be undone.</p>
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type <span className="font-bold text-red-500">DELETE</span> to confirm</p>
+            <p className="text-xs text-slate-400 dark:text-zinc-500 text-center mb-4">This cannot be undone.</p>
+            <p className="text-xs font-medium text-slate-600 dark:text-zinc-400 mb-1">Type <span className="font-bold text-red-500">DELETE</span> to confirm</p>
             <input
               type="text"
               value={permDeleteInput}
               onChange={e => setPermDeleteInput(e.target.value)}
               placeholder="DELETE"
               autoFocus
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 mb-4 font-mono"
+              className="w-full border border-slate-300 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 mb-4 font-mono"
             />
             <div className="flex gap-3">
               <button
@@ -532,7 +532,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
               </button>
               <button
                 onClick={() => { setPermDeleteTarget(null); setPermDeleteInput(''); }}
-                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-zinc-700"
               >
                 Cancel
               </button>
@@ -544,7 +544,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
       {/* Move-to-trash confirmation modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 w-full max-w-sm mx-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-slate-200 dark:border-zinc-800 p-6 w-full max-w-sm mx-4">
             <div className="flex justify-center mb-4">
               <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                 <svg className="w-6 h-6 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -552,19 +552,19 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                 </svg>
               </div>
             </div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 text-center mb-1">Move to Trash</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-1">
-              <span className="font-medium text-gray-700 dark:text-gray-300">{deleteTarget.studentName}</span> — {deleteTarget.examTitle}
+            <h3 className="text-base font-semibold text-gray-900 dark:text-zinc-100 text-center mb-1">Move to Trash</h3>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 text-center mb-1">
+              <span className="font-medium text-slate-700 dark:text-zinc-300">{deleteTarget.studentName}</span> — {deleteTarget.examTitle}
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 text-center mb-4">Report will be permanently deleted after 7 days.</p>
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type <span className="font-bold text-red-500">DELETE</span> to confirm</p>
+            <p className="text-xs text-slate-400 dark:text-zinc-500 text-center mb-4">Report will be permanently deleted after 7 days.</p>
+            <p className="text-xs font-medium text-slate-600 dark:text-zinc-400 mb-1">Type <span className="font-bold text-red-500">DELETE</span> to confirm</p>
             <input
               type="text"
               value={deleteInput}
               onChange={e => setDeleteInput(e.target.value)}
               placeholder="DELETE"
               autoFocus
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 mb-4 font-mono"
+              className="w-full border border-slate-300 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 mb-4 font-mono"
             />
             <div className="flex gap-3">
               <button
@@ -576,7 +576,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
               </button>
               <button
                 onClick={() => { setDeleteTarget(null); setDeleteInput(''); }}
-                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-zinc-700"
               >
                 Cancel
               </button>
@@ -599,14 +599,14 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setView('history')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'history' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'history' ? 'bg-purple-700 text-white' : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800'}`}
           >
             Archive
             {records.length > 0 && <span className="ml-1.5 text-xs opacity-75">({records.length})</span>}
           </button>
           <button
             onClick={() => setView('trash')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'trash' ? 'bg-red-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'trash' ? 'bg-red-600 text-white' : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800'}`}
           >
             Trash
             {trashRecords.length > 0 && <span className="ml-1.5 text-xs opacity-75">({trashRecords.length})</span>}
@@ -615,30 +615,30 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
 
         {/* Trash panel */}
         {view === 'trash' && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Trash</h3>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Reports are permanently deleted 7 days after being trashed.</p>
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-zinc-800">
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-zinc-200">Trash</h3>
+              <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">Reports are permanently deleted 7 days after being trashed.</p>
             </div>
             {trashRecords.length === 0 ? (
               <div className="py-16 text-center">
-                <p className="text-sm text-gray-400 dark:text-gray-500">Trash is empty.</p>
+                <p className="text-sm text-slate-400 dark:text-zinc-500">Trash is empty.</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              <div className="divide-y divide-slate-100 dark:divide-zinc-800">
                 {trashRecords.map(entry => {
                   const days = daysLeft(entry.deletedAt);
                   return (
                     <div key={entry.record.id} className="flex items-center gap-4 px-5 py-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                        <p className="text-sm font-medium text-gray-800 dark:text-zinc-200 truncate">
                           {entry.record.studentName || 'Unknown'} — {entry.record.examTitle}
                         </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
                           Deleted {formatDate(entry.deletedAt)} · {entry.record.examClass} {entry.record.studentSection}
                         </p>
                       </div>
-                      <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full border ${days <= 1 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+                      <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full border ${days <= 1 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'text-slate-500 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700'}`}>
                         {days}d left
                       </span>
                       <button
@@ -667,10 +667,10 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
         {view === 'history' && <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 items-start">
 
           {/* Left: tree */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Archive</h3>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{records.length} record{records.length !== 1 ? 's' : ''}</p>
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-zinc-800">
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-zinc-200">Archive</h3>
+              <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{records.length} record{records.length !== 1 ? 's' : ''}</p>
             </div>
 
             <div className="py-1">
@@ -680,7 +680,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                 return (
                   <div key={year}>
                     <button onClick={() => setOpenYears(toggle(openYears, year))}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800">
                       <svg className={`w-3 h-3 transition-transform ${yearOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 6 10">
                         <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
@@ -694,7 +694,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                       return (
                         <div key={cls}>
                           <button onClick={() => setOpenClasses(toggle(openClasses, clsKey))}
-                            className="w-full flex items-center gap-2 pl-8 pr-4 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800">
+                            className="w-full flex items-center gap-2 pl-8 pr-4 py-1.5 text-sm text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800">
                             <svg className={`w-3 h-3 transition-transform ${clsOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 6 10">
                               <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
@@ -709,12 +709,12 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                             return (
                               <div key={sec}>
                                 <button onClick={() => setOpenSections(toggle(openSections, secKey))}
-                                  className="w-full flex items-center gap-2 pl-12 pr-4 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                  className="w-full flex items-center gap-2 pl-12 pr-4 py-1.5 text-xs text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800">
                                   <svg className={`w-3 h-3 transition-transform ${secOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 6 10">
                                     <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                   </svg>
                                   Section {sec}
-                                  <span className="ml-auto text-gray-400">{secTotal}</span>
+                                  <span className="ml-auto text-slate-400">{secTotal}</span>
                                 </button>
 
                                 {secOpen && [...subjectMap.keys()].map(sub => {
@@ -724,12 +724,12 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                   return (
                                     <div key={sub}>
                                       <button onClick={() => setOpenSubjects(toggle(openSubjects, subKey))}
-                                        className="w-full flex items-center gap-2 pl-16 pr-4 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 italic">
+                                        className="w-full flex items-center gap-2 pl-16 pr-4 py-1.5 text-xs text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 italic">
                                         <svg className={`w-3 h-3 transition-transform shrink-0 ${subOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 6 10">
                                           <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                         <span className="truncate">{sub}</span>
-                                        <span className="ml-auto text-gray-400 shrink-0">{subRecords.length}</span>
+                                        <span className="ml-auto text-slate-400 shrink-0">{subRecords.length}</span>
                                       </button>
 
                                       {subOpen && subRecords.map(r => (
@@ -738,12 +738,12 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                             onClick={() => setSelectedId(r.id)}
                                             className={`w-full text-left pl-20 pr-20 py-2 transition-colors ${
                                               selectedId === r.id
-                                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
-                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
+                                                : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
                                             }`}
                                           >
                                             <p className="text-xs font-medium truncate">{r.studentName || 'Unknown'}</p>
-                                            <p className="text-xs text-gray-400 dark:text-gray-500">{r.percentage}% · {r.grade}</p>
+                                            <p className="text-xs text-slate-400 dark:text-zinc-500">{r.percentage}% · {r.grade}</p>
                                           </button>
 
                                           {/* Action icons — always visible on mobile, hover-only on desktop */}
@@ -751,7 +751,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                             <button
                                               onClick={e => { e.stopPropagation(); printRecord(r); }}
                                               title="Print report"
-                                              className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+                                              className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-700"
                                             >
                                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -760,7 +760,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                             <button
                                               onClick={e => { e.stopPropagation(); setUpdateRecord(r); }}
                                               title="Update answers"
-                                              className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+                                              className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-700"
                                             >
                                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -798,8 +798,8 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
             {selected
               ? <RecordDetail record={selected} />
               : (
-                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 py-20 text-center">
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Select a record from the archive to view details.</p>
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 py-20 text-center">
+                  <p className="text-sm text-slate-400 dark:text-zinc-500">Select a record from the archive to view details.</p>
                 </div>
               )
             }
