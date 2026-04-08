@@ -427,7 +427,8 @@ export default function App() {
   const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [dark, setDark] = useDarkMode();
   const [accessStatus, setAccessStatus] = useState<'loading' | 'ok' | 'pending' | 'revoked' | 'expired'>('loading');
-  const [showAuth, setShowAuth] = useState(false);
+  // Show landing page only on wide screens (laptops/desktops); phones go straight to login
+  const [showAuth, setShowAuth] = useState(() => window.innerWidth < 1024);
 
   useEffect(() => {
     if (!supabase) { setSession(null); return; }
