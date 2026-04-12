@@ -33,23 +33,30 @@ export function keywordOverlapScore(extracted: string, expected: string): number
 
 // ── Gemini meaning-match (primary) ───────────────────────────────────────────
 
-async function getGeminiScore(extracted: string, expected: string, apiKey: string, keywords: string[]): Promise<number> {
+async function getGeminiScore(extracted: string, expected: string, apiKey: string, keywords: string[], marks = 1): Promise<number> {
   const keywordNote = keywords.length > 0
-    ? `\nCritical keywords the student must include: ${keywords.join(', ')}.\nIf ALL keywords are present and used correctly: score can reach 1.0.\nIf keywords are present but in wrong context: partial credit only.\nIf ANY keyword is missing: cap the score at 0.5 maximum.`
+    ? `\nRequired keywords — cap score at 0.5 if ANY keyword is absent from the student's answer: ${keywords.join(', ')}.`
     : '';
 
-  const prompt = `You are an exam grader evaluating a student's answer.
+  const prompt = `You are an expert exam grader using a mark-scheme approach.
 
-Expected answer: "${expected}"
+Question allocated marks: ${marks}
+Expected answer (full mark scheme): "${expected}"
 Student's answer: "${extracted}"${keywordNote}
 
-Rate how correctly and completely the student's answer matches the MEANING of the expected answer.
-- 1.0 = correct and complete answer (minor spelling/grammar errors are fine)
-- 0.6–0.9 = mostly correct but missing some detail
-- 0.3–0.6 = partially correct, captures some key ideas
-- 0.0–0.3 = wrong, irrelevant, or mostly random/nonsense content
+GRADING METHOD:
+1. Identify the distinct scoreable points in the expected answer. A ${marks}-mark question has approximately ${marks} distinct points worth ~1 mark each.
+2. For each point, award:
+   - 1.0 credit: student stated it correctly (ignore minor spelling/grammar)
+   - 0.5 credit: student partially addressed it — vague, incomplete, or minor error
+   - 0.0 credit: student got it wrong, reversed key facts, or didn't mention it at all
+3. Final score = (total credits earned) / (total points in expected answer), capped at 1.0.
 
-Important: word overlap alone does not make an answer correct. Judge the actual meaning.
+Critical rules:
+- Factual errors (e.g. swapping artery/vein, reversing cause/effect) MUST lose credit for that specific point.
+- A brief answer that correctly covers all points earns full score — brevity alone is not penalised.
+- A long answer with significant errors still loses credit for incorrect points.
+- Do NOT reward partial answers generously just because they "mention the topic".
 
 Respond with ONLY a single decimal number between 0.0 and 1.0. No explanation, no other text.`;
 
@@ -128,6 +135,7 @@ export async function getSemanticSimilarity(
   expected: string,
   apiKey?: string,
   keywords: string[] = [],
+  marks = 1,
 ): Promise<SimilarityResult> {
   if (!extracted.trim()) {
     return { score: 0, method: 'keyword' };
@@ -139,7 +147,7 @@ export async function getSemanticSimilarity(
   // 1. Try Gemini (understands meaning + enforces keyword rules)
   if (geminiKey) {
     try {
-      const score = await getGeminiScore(extracted, expected, geminiKey, keywords);
+      const score = await getGeminiScore(extracted, expected, geminiKey, keywords, marks);
       return { score, method: 'semantic' };
     } catch (err) {
       console.error('[similarity] Gemini failed, trying HF:', err instanceof Error ? err.message : err);

@@ -26,6 +26,7 @@ export function GradingView() {
   const threshold = MODE_THRESHOLDS[checkingMode];
 
   const [questionImages, setQuestionImages] = useState<Record<number, QImages>>({});
+  const [skippedQuestions, setSkippedQuestions] = useState<Set<number>>(new Set());
   const [batchResults, setBatchResults] = useState<Record<number, QResult> | null>(null);
   const [evaluating, setEvaluating] = useState(false);
   const [evalError, setEvalError] = useState('');
@@ -42,8 +43,6 @@ export function GradingView() {
   }
 
   const questions = answerKey.questions;
-  const totalImages = Object.values(questionImages).reduce((n, q) => n + q.files.length, 0);
-
   // ── Image helpers ──────────────────────────────────────────────────────────
 
   function addImages(questionId: number, newFiles: FileList | null) {
@@ -60,6 +59,27 @@ export function GradingView() {
         },
       };
     });
+  }
+
+  function toggleSkip(questionId: number) {
+    setSkippedQuestions(prev => {
+      const next = new Set(prev);
+      if (next.has(questionId)) {
+        next.delete(questionId);
+      } else {
+        next.add(questionId);
+      }
+      return next;
+    });
+    // Clear any existing result for this question so it re-evaluates
+    if (batchResults) {
+      setBatchResults(prev => {
+        if (!prev) return prev;
+        const next = { ...prev };
+        delete next[questionId];
+        return next;
+      });
+    }
   }
 
   function removeImage(questionId: number, index: number) {
@@ -97,25 +117,30 @@ export function GradingView() {
     setEvalError('');
     try {
       const inputs = questions
-        .filter(q => questionImages[q.id]?.files.length > 0)
+        .filter(q => !skippedQuestions.has(q.id) && questionImages[q.id]?.files.length > 0)
         .map(q => ({
           id: q.id,
           question: q.question,
           expectedAnswer: q.expectedAnswer,
           keywords: q.keywords ?? [],
+          marks: q.marks,
           images: questionImages[q.id].files,
         }));
 
-      const raw = await extractAndGradeAll(inputs, geminiApiKey.trim());
+      const raw = inputs.length > 0 ? await extractAndGradeAll(inputs, geminiApiKey.trim()) : [];
 
       const map: Record<number, QResult> = {};
       for (const q of questions) {
-        const r = raw.find(x => x.questionId === q.id);
-        if (!r) {
+        if (skippedQuestions.has(q.id)) {
           map[q.id] = { extractedText: '', score: 0, marks: 0, status: 'skipped' };
         } else {
-          const { marks, status } = calculateMarks(r.score, threshold, q.marks);
-          map[q.id] = { extractedText: r.extractedText, score: r.score, marks, status };
+          const r = raw.find(x => x.questionId === q.id);
+          if (!r) {
+            map[q.id] = { extractedText: '', score: 0, marks: 0, status: 'skipped' };
+          } else {
+            const { marks, status } = calculateMarks(r.score, threshold, q.marks);
+            map[q.id] = { extractedText: r.extractedText, score: r.score, marks, status };
+          }
         }
       }
       setBatchResults(map);
@@ -135,7 +160,7 @@ export function GradingView() {
     setReEvalLoading(questionId);
     try {
       const [r] = await extractAndGradeAll(
-        [{ id: q.id, question: q.question, expectedAnswer: q.expectedAnswer, keywords: q.keywords ?? [], images }],
+        [{ id: q.id, question: q.question, expectedAnswer: q.expectedAnswer, keywords: q.keywords ?? [], marks: q.marks, images }],
         geminiApiKey.trim(),
       );
       const { marks, status } = calculateMarks(r.score, threshold, q.marks);
@@ -171,7 +196,10 @@ export function GradingView() {
     dispatch({ type: 'SET_ACTIVE_TAB', payload: 'report' });
   }
 
-  const questionsWithImages = Object.keys(questionImages).length;
+  const activeQuestions = questions.filter(q => !skippedQuestions.has(q.id));
+  const totalImages = activeQuestions.reduce((n, q) => n + (questionImages[q.id]?.files.length ?? 0), 0);
+  const questionsWithImages = activeQuestions.filter(q => questionImages[q.id]?.files.length > 0).length;
+  const canEvaluate = skippedQuestions.size > 0 || totalImages > 0;
   const allEvaluated = batchResults !== null && questions.every(q => batchResults[q.id] !== undefined);
 
   return (
@@ -242,7 +270,8 @@ export function GradingView() {
             3 · Generate Report
           </span>
           <span className="ml-auto text-xs text-slate-400 dark:text-zinc-500">
-            {totalImages} image{totalImages !== 1 ? 's' : ''} · {questionsWithImages}/{questions.length} questions
+            {totalImages} image{totalImages !== 1 ? 's' : ''} · {questionsWithImages}/{activeQuestions.length} answered
+            {skippedQuestions.size > 0 && ` · ${skippedQuestions.size} skipped`}
           </span>
         </div>
 
@@ -251,9 +280,10 @@ export function GradingView() {
           const imgs = questionImages[q.id];
           const result = batchResults?.[q.id];
           const isReEval = reEvalLoading === q.id;
+          const isSkipped = skippedQuestions.has(q.id);
 
           return (
-            <div key={q.id} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 overflow-hidden">
+            <div key={q.id} className={`bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border overflow-hidden ${isSkipped ? 'border-slate-200 dark:border-zinc-700 opacity-60' : 'border-slate-200 dark:border-zinc-800'}`}>
               {/* Question header */}
               <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3 border-b border-slate-100 dark:border-zinc-800">
                 <div className="flex-1 min-w-0">
@@ -262,67 +292,92 @@ export function GradingView() {
                   </p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">{q.question}</p>
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg px-3 py-1">
-                  {q.marks} marks
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm font-semibold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg px-3 py-1">
+                    {q.marks} marks
+                  </span>
+                  <button
+                    onClick={() => toggleSkip(q.id)}
+                    title={isSkipped ? 'Student answered this question — click to unskip' : 'Student did not answer — click to skip'}
+                    className={`text-xs font-medium px-3 py-1 rounded-lg border transition-colors ${
+                      isSkipped
+                        ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30'
+                        : 'bg-slate-50 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-700 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800'
+                    }`}
+                  >
+                    {isSkipped ? '↩ Unskip' : 'Skip'}
+                  </button>
+                </div>
               </div>
 
               <div className="px-5 py-4 space-y-3">
-                {/* Upload area */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <button
-                      onClick={() => fileRefs.current[q.id]?.click()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-slate-300 dark:border-zinc-600 rounded-lg text-sm text-slate-500 dark:text-zinc-400 hover:border-purple-400 dark:hover:border-purple-500 hover:text-purple-700 dark:hover:text-purple-400"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                      </svg>
-                      {imgs ? 'Add More Images' : 'Upload Image(s)'}
-                    </button>
-                    <input
-                      ref={el => { fileRefs.current[q.id] = el; }}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={e => { addImages(q.id, e.target.files); e.target.value = ''; }}
-                    />
-                    {imgs && (
-                      <button
-                        onClick={() => setViewModal({ urls: imgs.urls, page: 0 })}
-                        className="text-xs text-purple-700 dark:text-purple-400 hover:underline"
-                      >
-                        View Images ({imgs.files.length})
-                      </button>
-                    )}
+                {isSkipped ? (
+                  /* Skipped state */
+                  <div className="flex items-center gap-2 py-2 text-sm text-amber-700 dark:text-amber-400">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Student did not answer this question — will be marked as 0.
                   </div>
-
-                  {/* Thumbnails */}
-                  {imgs && imgs.urls.length > 0 && (
-                    <div className="flex gap-2 flex-wrap">
-                      {imgs.urls.map((url, i) => (
-                        <div key={i} className="relative group">
-                          <img
-                            src={url}
-                            alt={`Page ${i + 1}`}
-                            onClick={() => setViewModal({ urls: imgs.urls, page: i })}
-                            className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-zinc-700 cursor-pointer hover:opacity-80"
-                          />
-                          <span className="absolute bottom-0.5 left-0.5 text-xs bg-black/50 text-white rounded px-1 leading-tight">
-                            {i + 1}
-                          </span>
+                ) : (
+                  <>
+                    {/* Upload area */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <button
+                          onClick={() => fileRefs.current[q.id]?.click()}
+                          className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-slate-300 dark:border-zinc-600 rounded-lg text-sm text-slate-500 dark:text-zinc-400 hover:border-purple-400 dark:hover:border-purple-500 hover:text-purple-700 dark:hover:text-purple-400"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
+                          {imgs ? 'Add More Images' : 'Upload Image(s)'}
+                        </button>
+                        <input
+                          ref={el => { fileRefs.current[q.id] = el; }}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={e => { addImages(q.id, e.target.files); e.target.value = ''; }}
+                        />
+                        {imgs && (
                           <button
-                            onClick={() => removeImage(q.id, i)}
-                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity leading-none"
+                            onClick={() => setViewModal({ urls: imgs.urls, page: 0 })}
+                            className="text-xs text-purple-700 dark:text-purple-400 hover:underline"
                           >
-                            ✕
+                            View Images ({imgs.files.length})
                           </button>
+                        )}
+                      </div>
+
+                      {/* Thumbnails */}
+                      {imgs && imgs.urls.length > 0 && (
+                        <div className="flex gap-2 flex-wrap">
+                          {imgs.urls.map((url, i) => (
+                            <div key={i} className="relative group">
+                              <img
+                                src={url}
+                                alt={`Page ${i + 1}`}
+                                onClick={() => setViewModal({ urls: imgs.urls, page: i })}
+                                className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-zinc-700 cursor-pointer hover:opacity-80"
+                              />
+                              <span className="absolute bottom-0.5 left-0.5 text-xs bg-black/50 text-white rounded px-1 leading-tight">
+                                {i + 1}
+                              </span>
+                              <button
+                                onClick={() => removeImage(q.id, i)}
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity leading-none"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
 
                 {/* Result panel (shown after evaluation) */}
                 {result && (
@@ -331,7 +386,7 @@ export function GradingView() {
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[result.status]}`}>
                         {result.marks} / {q.marks} marks · {Math.round(result.score * 100)}% · {result.status}
                       </span>
-                      {imgs && imgs.files.length > 0 && (
+                      {!isSkipped && imgs && imgs.files.length > 0 && (
                         <button
                           onClick={() => handleReEvaluate(q.id)}
                           disabled={isReEval}
@@ -375,7 +430,7 @@ export function GradingView() {
           {!allEvaluated ? (
             <button
               onClick={handleEvaluateAll}
-              disabled={evaluating || totalImages === 0}
+              disabled={evaluating || !canEvaluate}
               className="w-full py-3 bg-purple-700 text-white rounded-xl text-sm font-semibold hover:bg-purple-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {evaluating ? (
@@ -387,7 +442,7 @@ export function GradingView() {
                   Evaluating all questions…
                 </>
               ) : (
-                `Evaluate All  (${questionsWithImages} / ${questions.length} questions have images)`
+                `Evaluate All  (${questionsWithImages} answered${skippedQuestions.size > 0 ? ` · ${skippedQuestions.size} skipped` : ''} / ${questions.length} questions)`
               )}
             </button>
           ) : (

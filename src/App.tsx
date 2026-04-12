@@ -13,6 +13,7 @@ import { HistoryView } from './components/HistoryView';
 import { AdminPanel } from './components/AdminPanel';
 import { AnalyticsView } from './components/AnalyticsView';
 import { QuestionBankView } from './components/QuestionBankView';
+import { QuestionPaperBuilder } from './components/QuestionPaperBuilder';
 import { LandingPage } from './components/LandingPage';
 import { ExamProvider, useExam, useExamDispatch } from './context/ExamContext';
 import type { ExamSession } from './types';
@@ -142,6 +143,20 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
           </button>
 
           <button
+            onClick={() => navigate('question-paper')}
+            className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-colors flex items-center gap-3 ${
+              activeTab === 'question-paper'
+                ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-r-2 border-purple-700 dark:border-purple-400'
+                : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
+            }`}
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Generate Question Paper
+          </button>
+
+          <button
             onClick={() => { setShowInfo(true); setMenuOpen(false); }}
             className="w-full text-left px-5 py-3.5 text-sm font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 flex items-center gap-3"
           >
@@ -220,6 +235,22 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
             Upload Questions
           </button>
 
+          {/* Generate Question Paper — hidden on mobile (in drawer) */}
+          <button
+            onClick={() => navigate('question-paper')}
+            title="Generate Question Paper"
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'question-paper'
+                ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
+                : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Question Paper
+          </button>
+
           {/* Info — hidden on mobile (in drawer) */}
           <button onClick={() => setShowInfo(true)} title="How it works" className={`hidden sm:flex ${iconBtn} border border-slate-200 dark:border-zinc-700 font-bold text-sm`}>
             ?
@@ -277,7 +308,7 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
           </nav>
 
           {/* Content */}
-          <main className={`p-3 sm:p-4 mx-auto ${activeTab === 'analytics' || activeTab === 'admin' ? 'max-w-6xl' : 'max-w-4xl'}`}>
+          <main className={`p-3 sm:p-4 mx-auto ${activeTab === 'analytics' || activeTab === 'admin' || activeTab === 'question-paper' ? 'max-w-6xl' : 'max-w-4xl'}`}>
             {activeTab === 'setup' && <ExamSetup userId={userId} />}
             {activeTab === 'grade' && <GradingView />}
             {activeTab === 'report' && <ReportView userId={userId} />}
@@ -286,6 +317,12 @@ function AppInner({ session, dark, setDark, isAdmin }: AppInnerProps) {
             {activeTab === 'admin' && isAdmin && <AdminPanel adminEmail={ADMIN_EMAIL} />}
             {activeTab === 'question-bank' && (
               <QuestionBankView
+                userId={userId}
+                onBack={() => navigate('setup')}
+              />
+            )}
+            {activeTab === 'question-paper' && (
+              <QuestionPaperBuilder
                 userId={userId}
                 onBack={() => navigate('setup')}
               />

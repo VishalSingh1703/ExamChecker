@@ -107,33 +107,32 @@ export async function extractAndGrade(
   expectedAnswer: string,
   keywords: string[],
   apiKey: string,
+  marks = 1,
 ): Promise<OcrGradeResult> {
   const base64 = await fileToBase64(file);
   const mimeType = file.type || 'image/jpeg';
 
   const keywordNote = keywords.length > 0
-    ? `\nCritical keywords the student must include: ${keywords.join(', ')}. If ANY keyword is missing, cap the score at 0.5 maximum.`
+    ? `\nRequired keywords — cap score at 0.5 if ANY keyword is missing: ${keywords.join(', ')}.`
     : '';
 
-  const prompt = `You are an exam grader. You will see a handwritten student answer.
+  const prompt = `You are an expert exam grader. You will see a handwritten student answer.
 
-Question: "${question}"
-Expected answer: "${expectedAnswer}"${keywordNote}
+Question: "${question}" [${marks} marks]
+Expected answer (full mark scheme): "${expectedAnswer}"${keywordNote}
 
 Do TWO things:
-1. Extract the handwritten text from the image, correcting obvious spelling mistakes while preserving the student's intended meaning.
-2. Rate how well the extracted text matches the MEANING of the expected answer.
+1. Extract the handwritten text from the image, correcting obvious OCR/spelling errors while preserving the student's intended meaning.
+2. Grade using a KEY-POINTS approach:
+   - Identify the ~${marks} distinct scoreable points in the expected answer.
+   - For each point: award 1.0 if correct, 0.5 if partially right / minor error, 0.0 if wrong or absent.
+   - score = (total credits) / (total points), capped at 1.0.
+   - Factual errors (swapped terms, reversed facts) MUST reduce credit for that point.
+   - Brevity alone is not penalised — a short answer covering all points earns full score.
+   - A long answer with errors still loses credit for each wrong point.
 
-Score guide:
-- 1.0 = correct and complete (minor spelling/grammar errors are fine)
-- 0.6–0.9 = mostly correct but missing some detail
-- 0.3–0.6 = partially correct, captures some key ideas
-- 0.0–0.3 = wrong, irrelevant, or mostly nonsense
-
-Important: judge MEANING, not word overlap. "H2O" and "water molecule" mean the same thing.
-
-Respond with ONLY valid JSON in this exact format, nothing else:
-{"extractedText":"<the corrected extracted text>","score":<number between 0.0 and 1.0>}`;
+Respond with ONLY valid JSON — no markdown, no extra text:
+{"extractedText":"<corrected extracted text>","score":<0.0–1.0>}`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
@@ -147,7 +146,7 @@ Respond with ONLY valid JSON in this exact format, nothing else:
             { text: prompt },
           ],
         }],
-        generationConfig: { temperature: 0, maxOutputTokens: 400 },
+        generationConfig: { temperature: 0, maxOutputTokens: 1024 },
       }),
     }
   );
@@ -217,6 +216,7 @@ export interface BatchQuestionInput {
   question: string;
   expectedAnswer: string;
   keywords: string[];
+  marks: number;
   images: File[]; // ordered pages
 }
 
@@ -231,16 +231,24 @@ export async function extractAndGradeAll(
   apiKey: string,
 ): Promise<BatchGradeResult[]> {
   // Build parts array: preamble + per-question header + images + closing instruction
-  const preamble = `You are grading a student exam. For each question below, one or more images of the student's handwritten answer are provided (multiple images = answer spans multiple pages, read them in order).
+  const preamble = `You are an expert exam grader. For each question below, one or more images of the student's handwritten answer follow (multiple images = multi-page answer; read them in order).
 
-For EACH question:
-1. Extract the complete handwritten text from ALL its images (combine multi-page answers naturally)
-2. Score the answer 0.0–1.0 against the expected answer using these rules:
-   - 1.0 = correct and complete (minor spelling/grammar errors are fine)
-   - 0.6–0.9 = mostly correct but missing some detail
-   - 0.3–0.6 = partially correct, captures some key ideas
-   - 0.0–0.3 = wrong, irrelevant, or mostly random/nonsense content
-3. If keywords are specified: cap the score at 0.5 maximum if ANY keyword is missing from the answer`;
+For EACH question you must:
+1. Extract the complete handwritten text from ALL its images, correcting obvious OCR errors while preserving the student's intended meaning.
+2. Grade using a MARK-SCHEME KEY-POINTS approach:
+   a. Identify the distinct scoreable points in the expected answer.
+      - For 1–3 mark questions: usually 1–3 key facts or definitions.
+      - For 4–7 mark questions: typically 4–7 concepts, causes, or steps.
+      - For 8–15 mark questions: major themes/arguments; the mark count is the target but use however many distinct points the expected answer actually contains as your denominator.
+   b. For each point, award: 1.0 (correct), 0.5 (partially right or minor error), 0.0 (wrong / absent).
+   c. score = (sum of credits) / (number of scoreable points found), capped at 1.0.
+
+Scoring rules you MUST follow:
+- Factual errors (swapped terms, reversed cause/effect, wrong names) MUST reduce credit for that specific point — do not overlook them.
+- Incompleteness is penalised proportionally: a student who addresses only 2 out of 8 points should score ~0.25, not 0.5+.
+- Brevity is NOT penalised: a concise answer covering all key points earns full score.
+- Spelling/grammar mistakes are ignored as long as the meaning is clear.
+- If keywords are specified: cap the final score at 0.5 if ANY required keyword is absent.`;
 
   type Part = { text: string } | { inlineData: { mimeType: string; data: string } };
   const parts: Part[] = [{ text: preamble }];
@@ -250,7 +258,7 @@ For EACH question:
       ? `\nRequired keywords (missing any caps score at 0.5): ${q.keywords.join(', ')}`
       : '';
     parts.push({
-      text: `\n\n--- QUESTION (questionId: ${q.id}) ---\nQuestion: "${q.question}"\nExpected Answer: "${q.expectedAnswer}"${keywordNote}\nImages for this question follow:`,
+      text: `\n\n--- QUESTION (questionId: ${q.id}) ---\nQuestion: "${q.question}" [${q.marks} marks — ~${q.marks} distinct scoreable points]\nExpected Answer (full mark scheme): "${q.expectedAnswer}"${keywordNote}\nImages for this question follow:`,
     });
     for (const file of q.images) {
       const base64 = await fileToBase64(file);
@@ -269,7 +277,7 @@ For EACH question:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts }],
-        generationConfig: { temperature: 0, maxOutputTokens: 2048 },
+        generationConfig: { temperature: 0, maxOutputTokens: 8192 },
       }),
     },
   );

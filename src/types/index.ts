@@ -1,3 +1,9 @@
+export interface SubPart {
+  id: string;
+  label: string; // 'a', 'b', 'c', ...
+  question: string;
+}
+
 export interface ExamMeta {
   title: string;
   subject: string;
@@ -11,6 +17,8 @@ export interface Question {
   marks: number;
   threshold: number;
   keywords?: string[];
+  subparts?: SubPart[];
+  diagram?: string;
 }
 
 export interface AnswerKey {
@@ -52,6 +60,8 @@ export interface SavedSubjectQuestion {
   expectedAnswer: string;
   marks: number;
   keywords?: string[];
+  subparts?: SubPart[];
+  diagram?: string;
 }
 
 export interface SavedSubject {
@@ -84,7 +94,7 @@ export interface ExamSession {
   answerKey: AnswerKey | null;
   results: QuestionResult[];
   currentQuestionIndex: number;
-  activeTab: 'setup' | 'grade' | 'report' | 'history' | 'admin' | 'analytics' | 'question-bank';
+  activeTab: 'setup' | 'grade' | 'report' | 'history' | 'admin' | 'analytics' | 'question-bank' | 'question-paper';
   hfApiKey: string;
   geminiApiKey: string;
   checkingMode: CheckingMode;

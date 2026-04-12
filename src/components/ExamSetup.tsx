@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import type { AnswerKey, CheckingMode, SavedSubject } from '../types';
+import type { AnswerKey, CheckingMode, SavedSubject, SubPart } from '../types';
 import { useExam, useExamDispatch } from '../context/ExamContext';
 import { loadChapters, type BankChapter } from '../services/questionBank';
+import { SubPartsEditor } from './SubPartsEditor';
 
 // ── Class / Semester options ─────────────────────────────────────────────────
 
@@ -163,7 +164,7 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
 
   // Step 2 — new subject creation / editing
   const [newName, setNewName] = useState('');
-  const [newQuestions, setNewQuestions] = useState<Array<{ question: string; expectedAnswer: string; marks: number; keywords: string }>>([]);
+  const [newQuestions, setNewQuestions] = useState<Array<{ question: string; expectedAnswer: string; marks: number; keywords: string; subparts: SubPart[]; diagram?: string }>>([]);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
 
   // Step 3
@@ -174,6 +175,9 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
 
   const [generatingIdx, setGeneratingIdx] = useState<number | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [shorteningIdx, setShorteningIdx] = useState<number | null>(null);
+  const [definingIdx, setDefiningIdx] = useState<number | null>(null);
+  const [generatingAll, setGeneratingAll] = useState(false);
 
   // Question bank import state
   const [bankChapters, setBankChapters] = useState<BankChapter[]>([]);
@@ -208,11 +212,19 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
   // ── New subject actions ─────────────────────────────────────────────────────
 
   function addQuestion() {
-    setNewQuestions(prev => [...prev, { question: '', expectedAnswer: '', marks: 5, keywords: '' }]);
+    setNewQuestions(prev => [...prev, { question: '', expectedAnswer: '', marks: 5, keywords: '', subparts: [] }]);
   }
 
   function updateQuestion(idx: number, field: 'question' | 'expectedAnswer' | 'marks' | 'keywords', value: string | number) {
     setNewQuestions(prev => prev.map((q, i) => i === idx ? { ...q, [field]: value } : q));
+  }
+
+  function updateQuestionSubparts(idx: number, subparts: SubPart[]) {
+    setNewQuestions(prev => prev.map((q, i) => i === idx ? { ...q, subparts } : q));
+  }
+
+  function updateQuestionDiagram(idx: number, diagram: string | undefined) {
+    setNewQuestions(prev => prev.map((q, i) => i === idx ? { ...q, diagram } : q));
   }
 
   function removeQuestion(idx: number) {
@@ -227,6 +239,8 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
       expectedAnswer: q.expectedAnswer,
       marks: Number(q.marks) || 5,
       keywords: parseKeywords(q.keywords),
+      subparts: q.subparts?.length ? q.subparts : undefined,
+      diagram: q.diagram,
     }));
     let updated: SavedSubject[];
     if (editingSubjectId) {
@@ -253,6 +267,8 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
       expectedAnswer: q.expectedAnswer,
       marks: q.marks,
       keywords: (q.keywords ?? []).join(', '),
+      subparts: q.subparts ?? [],
+      diagram: q.diagram,
     })));
     setEditingSubjectId(s.id);
     setSubjectMode('create');
@@ -294,6 +310,8 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
         expectedAnswer: q.expectedAnswer,
         marks: q.marks,
         keywords: (q.keywords ?? []).join(', '),
+        subparts: q.subparts ?? [],
+        diagram: q.diagram,
       })),
     ]);
     setShowBankPanel(false);
@@ -309,6 +327,8 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
       expectedAnswer: q.expectedAnswer,
       marks: q.marks,
       keywords: (q.keywords ?? []).join(', '),
+      subparts: q.subparts ?? [],
+      diagram: q.diagram,
     })));
     setShowBankPanel(false);
   }
@@ -329,6 +349,8 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
       expectedAnswer: pick.expectedAnswer,
       marks: pick.marks,
       keywords: (pick.keywords ?? []).join(', '),
+      subparts: pick.subparts ?? [],
+      diagram: pick.diagram,
     } : q));
   }
 
@@ -377,6 +399,64 @@ Guidelines:
     }
   }
 
+  async function processAnswer(idx: number, mode: 'shorten' | 'define') {
+    const q = newQuestions[idx];
+    if (!q.expectedAnswer.trim()) return;
+    const key = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+    if (!key) { setGenerateError('VITE_GEMINI_API_KEY is not set.'); return; }
+    if (mode === 'shorten') setShorteningIdx(idx); else setDefiningIdx(idx);
+    setGenerateError(null);
+    const prompt = mode === 'shorten'
+      ? `You are an expert teacher. Shorten the following answer to be more concise while keeping every key point.
+
+Question: "${q.question}"
+Class/Level: ${examClass}
+Marks allocated: ${q.marks}
+Current answer: "${q.expectedAnswer}"
+
+Remove repetition and filler. Preserve all essential facts and key terms.
+Write ONLY the shortened answer. No labels, no formatting markers.`
+      : `You are an expert teacher. Expand and enrich the following answer with definitions, examples, and detail appropriate for the class level.
+
+Question: "${q.question}"
+Class/Level: ${examClass}
+Marks allocated: ${q.marks}
+Current answer: "${q.expectedAnswer}"
+
+Add relevant explanations and technical vocabulary for ${examClass}. Scale depth to ${q.marks} mark${q.marks !== 1 ? 's' : ''}.
+Write ONLY the expanded answer. No labels, no formatting markers.`;
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: 800 } }) }
+      );
+      if (!res.ok) throw new Error(`Gemini error: ${res.status}`);
+      const data = await res.json();
+      const text = ((data.candidates?.[0]?.content?.parts ?? []) as Array<{ text?: string }>)
+        .map(p => p.text ?? '').join('').trim();
+      if (!text) throw new Error('No text returned.');
+      updateQuestion(idx, 'expectedAnswer', text);
+    } catch (err) {
+      setGenerateError(err instanceof Error ? err.message : 'Failed.');
+    } finally {
+      if (mode === 'shorten') setShorteningIdx(null); else setDefiningIdx(null);
+    }
+  }
+
+  async function generateAllAnswers() {
+    const indices = newQuestions
+      .map((q, i) => ({ q, i }))
+      .filter(({ q }) => q.question.trim() && !q.expectedAnswer.trim())
+      .map(({ i }) => i);
+    if (indices.length === 0) return;
+    setGeneratingAll(true);
+    for (const idx of indices) {
+      await generateAnswer(idx);
+    }
+    setGeneratingAll(false);
+  }
+
   // ── Start grading ───────────────────────────────────────────────────────────
 
   function handleStart() {
@@ -413,6 +493,8 @@ Guidelines:
     if (newQuestions.length === 0) return 'Add at least one question.';
     if (newQuestions.some(q => !q.question.trim())) return 'Fill in the question text for all questions.';
     if (newQuestions.some(q => !q.expectedAnswer.trim())) return 'All questions need an expected answer — type one or click "Generate Answer".';
+    if (newQuestions.some(q => q.marks === 0)) return 'Enter marks for all questions.';
+    if (newQuestions.some(q => q.marks > 20)) return 'Marks cannot exceed 20 for any question.';
     if (newQuestions.some(q => invalidKeywords(q.keywords, q.expectedAnswer).length > 0))
       return 'Some keywords are not found in their expected answer — fix or remove them.';
     return '';
@@ -684,6 +766,20 @@ Guidelines:
               <p className="text-xs text-red-600 dark:text-red-400">{shuffleError}</p>
             )}
 
+            {/* Generate All — top */}
+            {newQuestions.length > 0 && (() => {
+              const missing = newQuestions.filter(q => q.question.trim() && !q.expectedAnswer.trim()).length;
+              return (
+                <button onClick={generateAllAnswers}
+                  disabled={generatingAll || generatingIdx !== null || shorteningIdx !== null || definingIdx !== null || missing === 0}
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                  {generatingAll
+                    ? <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Generating all answers…</>
+                    : `Generate All Answers${missing > 0 ? ` (${missing} missing)` : ''}`}
+                </button>
+              );
+            })()}
+
             {/* Questions */}
             <div className="space-y-4">
               {newQuestions.map((q, idx) => (
@@ -712,40 +808,50 @@ Guidelines:
                     <textarea
                       value={q.question} onChange={e => updateQuestion(idx, 'question', e.target.value)}
                       rows={2} placeholder="Enter the question…"
-                      className="w-full border border-slate-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent resize-none bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
+                      className="w-full border border-slate-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent resize-y bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
+                    />
+                    <SubPartsEditor
+                      subparts={q.subparts}
+                      diagram={q.diagram}
+                      onSubpartsChange={sp => updateQuestionSubparts(idx, sp)}
+                      onDiagramChange={d => updateQuestionDiagram(idx, d)}
                     />
                   </div>
                   <div>
-                    <div className="flex items-center justify-between mb-1">
+                    {/* Expected Answer label + action buttons */}
+                    <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
                       <label className="block text-xs font-medium text-slate-600 dark:text-zinc-400">Expected Answer</label>
-                      <button
-                        type="button"
-                        onClick={() => generateAnswer(idx)}
-                        disabled={generatingIdx !== null || !q.question.trim()}
-                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {generatingIdx === idx ? (
-                          <>
-                            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                            </svg>
-                            Generating…
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                            </svg>
-                            Generate Answer
-                          </>
-                        )}
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {/* − Shorten */}
+                        <button type="button" onClick={() => processAnswer(idx, 'shorten')}
+                          disabled={shorteningIdx !== null || definingIdx !== null || generatingIdx !== null || generatingAll || !q.expectedAnswer.trim()}
+                          className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                          {shorteningIdx === idx ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg> : '−'}
+                          {shorteningIdx === idx ? 'Shortening…' : 'Shorten'}
+                        </button>
+                        {/* Generate Answer */}
+                        <button type="button" onClick={() => generateAnswer(idx)}
+                          disabled={generatingIdx !== null || shorteningIdx !== null || definingIdx !== null || generatingAll || !q.question.trim()}
+                          className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                          {generatingIdx === idx ? (
+                            <><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Generating…</>
+                          ) : (
+                            <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>Generate</>
+                          )}
+                        </button>
+                        {/* + Define */}
+                        <button type="button" onClick={() => processAnswer(idx, 'define')}
+                          disabled={shorteningIdx !== null || definingIdx !== null || generatingIdx !== null || generatingAll || !q.expectedAnswer.trim()}
+                          className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                          {definingIdx === idx ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg> : '+'}
+                          {definingIdx === idx ? 'Defining…' : 'Define'}
+                        </button>
+                      </div>
                     </div>
                     <textarea
                       value={q.expectedAnswer} onChange={e => updateQuestion(idx, 'expectedAnswer', e.target.value)}
                       rows={3} placeholder="Enter the ideal/expected answer…"
-                      className="w-full border border-slate-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent resize-none bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
+                      className="w-full border border-slate-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent resize-y bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500"
                     />
                     {generateError && generatingIdx === null && (
                       <p className="mt-1 text-xs text-red-600 dark:text-red-400">{generateError}</p>
@@ -770,14 +876,39 @@ Guidelines:
                   <div>
                     <label className="block text-xs font-medium text-slate-600 dark:text-zinc-400 mb-1">Marks</label>
                     <input
-                      type="number" min={1} max={100} value={q.marks}
-                      onChange={e => updateQuestion(idx, 'marks', parseInt(e.target.value) || 5)}
-                      className="w-24 border border-slate-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200"
+                      type="text" inputMode="numeric" pattern="[0-9]*"
+                      value={q.marks === 0 ? '' : String(q.marks)}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        updateQuestion(idx, 'marks', raw === '' ? 0 : parseInt(raw, 10));
+                      }}
+                      placeholder="1–20"
+                      className={`w-24 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent bg-white dark:bg-zinc-800 text-gray-800 dark:text-zinc-200 ${
+                        q.marks === 0 || q.marks > 20
+                          ? 'border-red-400 dark:border-red-600'
+                          : 'border-slate-300 dark:border-zinc-700'
+                      }`}
                     />
+                    {q.marks === 0 && <p className="mt-1 text-xs text-red-600 dark:text-red-400">Marks are required.</p>}
+                    {q.marks > 20 && <p className="mt-1 text-xs text-red-600 dark:text-red-400">Marks cannot exceed 20.</p>}
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Generate All — bottom */}
+            {newQuestions.length > 0 && (() => {
+              const missing = newQuestions.filter(q => q.question.trim() && !q.expectedAnswer.trim()).length;
+              return (
+                <button onClick={generateAllAnswers}
+                  disabled={generatingAll || generatingIdx !== null || shorteningIdx !== null || definingIdx !== null || missing === 0}
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                  {generatingAll
+                    ? <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Generating all answers…</>
+                    : `Generate All Answers${missing > 0 ? ` (${missing} missing)` : ''}`}
+                </button>
+              );
+            })()}
 
             <button onClick={addQuestion}
               className="w-full py-2.5 border-2 border-dashed border-slate-300 dark:border-zinc-600 text-slate-600 dark:text-zinc-400 rounded-xl text-sm font-medium hover:border-purple-400 dark:hover:border-purple-600 hover:text-purple-700 dark:hover:text-purple-400 transition-colors">

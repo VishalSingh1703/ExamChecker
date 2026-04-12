@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import type { SubPart } from '../types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -8,6 +9,8 @@ export interface BankQuestion {
   expectedAnswer: string;
   marks: number;
   keywords?: string[];
+  subparts?: SubPart[];
+  diagram?: string;
 }
 
 export interface BankChapter {
