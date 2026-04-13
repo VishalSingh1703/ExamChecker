@@ -2,15 +2,13 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import type { HistoryRecord, CheckingMode, QuestionResult } from '../types';
 import { extractTextFromImage } from '../services/ocr';
 import { getSemanticSimilarity } from '../services/similarity';
-import { calculateMarks } from '../utils/scoring';
+import { calculateMarksByMode } from '../utils/scoring';
 import { useExam } from '../context/ExamContext';
 import { loadReports, updateReport, moveToTrash, restoreFromTrash, loadTrash, purgeExpiredTrash, deleteReport } from '../services/reports';
 import type { TrashEntry } from '../services/reports';
 import { supabase } from '../lib/supabase';
 
 // ── Constants ────────────────────────────────────────────────────────────────
-
-const MODE_THRESHOLDS: Record<CheckingMode, number> = { easy: 0.45, medium: 0.6, strict: 0.75 };
 
 const MODE_LABELS: Record<CheckingMode, { label: string; color: string }> = {
   easy: { label: 'Easy', color: 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800' },
@@ -140,7 +138,6 @@ function UpdateModal({ record, hfApiKey, onClose, onSave }: {
   const [ocrError, setOcrError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const threshold = MODE_THRESHOLDS[record.checkingMode];
   const activeQuestion = record.questions.find(q => q.id === activeId);
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -160,7 +157,7 @@ function UpdateModal({ record, hfApiKey, onClose, onSave }: {
     if (!ocrText.trim() || !activeQuestion) return;
     setAnalyzing(true);
     const sim = await getSemanticSimilarity(ocrText, activeQuestion.expectedAnswer, hfApiKey || undefined, activeQuestion.keywords ?? []);
-    const { marks, status } = calculateMarks(sim.score, threshold, activeQuestion.marks);
+    const { marks, status } = calculateMarksByMode(sim.score, record.checkingMode, activeQuestion.marks);
     setPatches(prev => new Map(prev).set(activeId!, {
       newText: ocrText, newScore: sim.score, newMarks: marks, newStatus: status, changed: true,
     }));

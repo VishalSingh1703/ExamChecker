@@ -209,65 +209,87 @@ export async function extractTextFromImage(
   return { ...result, usedGemini: false };
 }
 
-// ── Batch OCR + Grade (single API call for all questions) ────────────────────
+// ── Segment all pages + grade all questions in one Gemini call ────────────────
 
-export interface BatchQuestionInput {
+export interface SheetPage {
+  id: string;
+  file: File;
+  url: string;
+}
+
+export interface SegmentGradeInput {
   id: number;
   question: string;
   expectedAnswer: string;
   keywords: string[];
   marks: number;
-  images: File[]; // ordered pages
 }
 
-export interface BatchGradeResult {
+export interface SegmentGradeResult {
   questionId: number;
   extractedText: string;
   score: number; // 0.0–1.0
+  notFound: boolean;
 }
 
-export async function extractAndGradeAll(
-  questions: BatchQuestionInput[],
+export async function segmentAndGradeAll(
+  pages: SheetPage[],
+  questions: SegmentGradeInput[],
   apiKey: string,
-): Promise<BatchGradeResult[]> {
-  // Build parts array: preamble + per-question header + images + closing instruction
-  const preamble = `You are an expert exam grader. For each question below, one or more images of the student's handwritten answer follow (multiple images = multi-page answer; read them in order).
+): Promise<SegmentGradeResult[]> {
+  const preamble = `You are an expert exam grader processing a student's complete handwritten answer sheet.
 
-For EACH question you must:
-1. Extract the complete handwritten text from ALL its images, correcting obvious OCR errors while preserving the student's intended meaning.
-2. Grade using a MARK-SCHEME KEY-POINTS approach:
-   a. Identify the distinct scoreable points in the expected answer.
-      - For 1–3 mark questions: usually 1–3 key facts or definitions.
-      - For 4–7 mark questions: typically 4–7 concepts, causes, or steps.
-      - For 8–15 mark questions: major themes/arguments; the mark count is the target but use however many distinct points the expected answer actually contains as your denominator.
-   b. For each point, award: 1.0 (correct), 0.5 (partially right or minor error), 0.0 (wrong / absent).
-   c. score = (sum of credits) / (number of scoreable points found), capped at 1.0.
+The images that follow are consecutive pages of the answer sheet, in order.
 
-Scoring rules you MUST follow:
-- Factual errors (swapped terms, reversed cause/effect, wrong names) MUST reduce credit for that specific point — do not overlook them.
-- Incompleteness is penalised proportionally: a student who addresses only 2 out of 8 points should score ~0.25, not 0.5+.
-- Brevity is NOT penalised: a concise answer covering all key points earns full score.
-- Spelling/grammar mistakes are ignored as long as the meaning is clear.
-- If keywords are specified: cap the final score at 0.5 if ANY required keyword is absent.`;
+YOUR TASK — 3 STEPS:
+
+STEP 1 — SEGMENTATION
+Identify each answer by the label the student wrote. Labels may appear as:
+"Q1", "Q.1", "1.", "1)", "(1)", "Ans 1", "Answer 1", "Question 1", or simply a number starting a new section.
+Collect ALL text for each label until the next label appears. Answers may span across page boundaries.
+If a question has sub-parts (a, b, c …), include all sub-part text as part of that question's answer.
+If you cannot locate any answer for a question, set "notFound": true for that entry.
+
+STEP 2 — EXTRACTION
+For each identified answer, extract the complete handwritten text.
+Correct obvious OCR/spelling errors while preserving the student's intended meaning.
+
+STEP 3 — GRADING (KEY-POINTS METHOD)
+For each extracted answer:
+  a. Identify the distinct scoreable points in the expected answer.
+     - 1–3 mark questions: 1–3 key facts or definitions.
+     - 4–7 mark questions: 4–7 concepts, causes, or steps.
+     - 8–20 mark questions: major themes/arguments — use however many distinct points the expected answer actually contains as the denominator.
+  b. Award per point: 1.0 (correct), 0.5 (partially right / minor error), 0.0 (wrong or absent).
+  c. score = (sum of credits) / (number of scoreable points), capped at 1.0.
+
+SCORING RULES you MUST follow:
+- Factual errors (swapped terms, reversed cause/effect, wrong names) MUST reduce credit for that specific point.
+- Incompleteness is penalised proportionally — a student addressing only 2 of 8 points scores ~0.25.
+- Brevity is NOT penalised — a concise correct answer earns full score.
+- Spelling/grammar mistakes are ignored if the meaning is clear.
+- If required keywords are listed and ANY are absent, cap the final score at 0.5.
+
+The answer sheet pages follow:`;
 
   type Part = { text: string } | { inlineData: { mimeType: string; data: string } };
   const parts: Part[] = [{ text: preamble }];
 
-  for (const q of questions) {
-    const keywordNote = q.keywords.length > 0
-      ? `\nRequired keywords (missing any caps score at 0.5): ${q.keywords.join(', ')}`
-      : '';
-    parts.push({
-      text: `\n\n--- QUESTION (questionId: ${q.id}) ---\nQuestion: "${q.question}" [${q.marks} marks — ~${q.marks} distinct scoreable points]\nExpected Answer (full mark scheme): "${q.expectedAnswer}"${keywordNote}\nImages for this question follow:`,
-    });
-    for (const file of q.images) {
-      const base64 = await fileToBase64(file);
-      parts.push({ inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } });
-    }
+  for (let i = 0; i < pages.length; i++) {
+    parts.push({ text: `\n\n--- PAGE ${i + 1} ---` });
+    const base64 = await fileToBase64(pages[i].file);
+    parts.push({ inlineData: { mimeType: pages[i].file.type || 'image/jpeg', data: base64 } });
   }
 
+  const questionList = questions.map(q => {
+    const kw = q.keywords.length > 0
+      ? `, "keywords": [${q.keywords.map(k => `"${k}"`).join(', ')}]`
+      : '';
+    return `  { "questionId": ${q.id}, "question": "${q.question.replace(/"/g, '\\"')}", "expectedAnswer": "${q.expectedAnswer.replace(/"/g, '\\"')}", "marks": ${q.marks}${kw} }`;
+  }).join(',\n');
+
   parts.push({
-    text: `\n\nReturn ONLY a JSON array — no markdown, no extra text:\n[{"questionId": <number>, "extractedText": "<text>", "score": <0.0-1.0>}, ...]`,
+    text: `\n\nQUESTIONS TO GRADE:\n[\n${questionList}\n]\n\nReturn ONLY a JSON array — no markdown, no extra text:\n[{"questionId": <number>, "extractedText": "<complete student answer>", "score": <0.0-1.0>, "notFound": <true|false>}, ...]\n\nInclude an entry for EVERY question in the list, even if no answer was found.`,
   });
 
   const response = await fetch(
@@ -291,14 +313,100 @@ Scoring rules you MUST follow:
   const data = await response.json() as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
   };
-  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const rawParts: Array<{ text?: string }> = data.candidates?.[0]?.content?.parts ?? [];
+  const raw = rawParts.map(p => p.text ?? '').join('').trim();
   const match = raw.match(/\[[\s\S]*\]/);
   if (!match) throw new Error('Gemini returned an unexpected response format.');
 
-  const parsed = JSON.parse(match[0]) as { questionId: number; extractedText: string; score: number }[];
+  const parsed = JSON.parse(match[0]) as {
+    questionId: number; extractedText: string; score: number; notFound?: boolean;
+  }[];
   return parsed.map(r => ({
     questionId: r.questionId,
     extractedText: String(r.extractedText ?? '').trim(),
+    score: Math.max(0, Math.min(1, Number(r.score) || 0)),
+    notFound: Boolean(r.notFound),
+  }));
+}
+
+// ── Re-grade from edited text (no OCR, text-only Gemini call) ─────────────────
+
+export interface ReGradeInput {
+  id: number;
+  question: string;
+  expectedAnswer: string;
+  keywords: string[];
+  marks: number;
+  extractedText: string;
+}
+
+export interface ReGradeResult {
+  questionId: number;
+  score: number;
+}
+
+export async function gradeExtractedText(
+  inputs: ReGradeInput[],
+  apiKey: string,
+): Promise<ReGradeResult[]> {
+  const answersJson = inputs.map(i => {
+    const kw = i.keywords.length > 0
+      ? `, "keywords": [${i.keywords.map(k => `"${k}"`).join(', ')}]`
+      : '';
+    return `  { "questionId": ${i.id}, "question": "${i.question.replace(/"/g, '\\"')}", "expectedAnswer": "${i.expectedAnswer.replace(/"/g, '\\"')}", "marks": ${i.marks}, "studentAnswer": "${i.extractedText.replace(/"/g, '\\"').replace(/\n/g, ' ')}"${kw} }`;
+  }).join(',\n');
+
+  const prompt = `You are an expert exam grader. Re-grade the following student answers using the KEY-POINTS method.
+
+For each entry:
+  a. Identify the distinct scoreable points in the expected answer (~1 point per mark).
+  b. Award per point: 1.0 (correct), 0.5 (partially right / minor error), 0.0 (wrong or absent).
+  c. score = (sum of credits) / (number of scoreable points), capped at 1.0.
+
+SCORING RULES:
+- Factual errors MUST reduce credit for that specific point.
+- Incompleteness is penalised proportionally.
+- Brevity alone is NOT penalised.
+- Spelling/grammar ignored if meaning is clear.
+- If required keywords are listed and ANY are absent, cap score at 0.5.
+
+Answers to grade:
+[
+${answersJson}
+]
+
+Return ONLY a JSON array — no markdown, no extra text:
+[{"questionId": <number>, "score": <0.0-1.0>}, ...]`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0, maxOutputTokens: 1024 },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const msg = (err as { error?: { message?: string } }).error?.message ?? `Gemini API error ${response.status}`;
+    throw new Error(msg);
+  }
+
+  const data = await response.json() as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+  };
+  const rawParts: Array<{ text?: string }> = data.candidates?.[0]?.content?.parts ?? [];
+  const raw = rawParts.map(p => p.text ?? '').join('').trim();
+  const match = raw.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error('Gemini returned an unexpected response format.');
+
+  const parsed = JSON.parse(match[0]) as { questionId: number; score: number }[];
+  return parsed.map(r => ({
+    questionId: r.questionId,
     score: Math.max(0, Math.min(1, Number(r.score) || 0)),
   }));
 }
