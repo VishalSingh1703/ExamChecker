@@ -49,7 +49,6 @@ export function generateDemoRecords(): HistoryRecord[] {
         question: `${subject} — ${exam.term}`,
         expectedAnswer: 'Demo record',
         marks: total,
-        threshold: 0.6,
       };
 
       const simScore = scored / total;
@@ -93,7 +92,8 @@ export function generateDemoRecords(): HistoryRecord[] {
  */
 export async function seedDemoData(userId: string): Promise<number> {
   const histKey = userId ? `exam-history-${userId}` : 'exam-history';
-  const existing: HistoryRecord[] = JSON.parse(localStorage.getItem(histKey) ?? '[]');
+  let existing: HistoryRecord[] = [];
+  try { existing = JSON.parse(localStorage.getItem(histKey) ?? '[]'); } catch { existing = []; }
   const existingIds = new Set(existing.map(r => r.id));
 
   const records = generateDemoRecords();
@@ -101,7 +101,11 @@ export async function seedDemoData(userId: string): Promise<number> {
   if (fresh.length === 0) return 0;
 
   // Save to localStorage
-  localStorage.setItem(histKey, JSON.stringify([...fresh, ...existing]));
+  try {
+    localStorage.setItem(histKey, JSON.stringify([...fresh, ...existing]));
+  } catch (storageErr) {
+    console.error('[demoData] localStorage quota exceeded:', storageErr);
+  }
 
   // Save to Supabase (fire-and-forget, best-effort)
   if (supabase && userId) {

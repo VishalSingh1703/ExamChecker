@@ -3,6 +3,7 @@ import type { AnswerKey, CheckingMode, SavedSubject, SubPart } from '../types';
 import { useExam, useExamDispatch } from '../context/ExamContext';
 import { loadChapters, type BankChapter } from '../services/questionBank';
 import { SubPartsEditor } from './SubPartsEditor';
+import { geminiUrl } from '../services/geminiModel';
 
 // ── Class / Semester options ─────────────────────────────────────────────────
 
@@ -376,7 +377,7 @@ Guidelines:
 - Write ONLY the answer text. No labels, no "Expected answer:", no formatting markers.`;
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
+        geminiUrl(key),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -386,11 +387,11 @@ Guidelines:
           }),
         }
       );
-      if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+      if (!res.ok) throw new Error(`AI error: ${res.status}`);
       const data = await res.json();
       const parts: Array<{ text?: string }> = data.candidates?.[0]?.content?.parts ?? [];
       const text = parts.map((p) => p.text ?? '').join('').trim();
-      if (!text) throw new Error('No text returned from Gemini.');
+      if (!text) throw new Error('No text returned from AI.');
       updateQuestion(idx, 'expectedAnswer', text);
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : 'Generation failed.');
@@ -427,11 +428,11 @@ Add relevant explanations and technical vocabulary for ${examClass}. Scale depth
 Write ONLY the expanded answer. No labels, no formatting markers.`;
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
+        geminiUrl(key),
         { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: 800 } }) }
       );
-      if (!res.ok) throw new Error(`Gemini error: ${res.status}`);
+      if (!res.ok) throw new Error(`AI error: ${res.status}`);
       const data = await res.json();
       const text = ((data.candidates?.[0]?.content?.parts ?? []) as Array<{ text?: string }>)
         .map(p => p.text ?? '').join('').trim();
@@ -466,7 +467,6 @@ Write ONLY the expanded answer. No labels, no formatting markers.`;
       terms: dedupe([examTerm, ...(s.terms ?? [])]),
       sections: dedupe([studentSection, ...(s.sections ?? [])]),
     });
-    dispatch({ type: 'SET_CHECKING_MODE', payload: checkingMode });
     dispatch({ type: 'SET_EXAM_META', payload: { examTerm, examClass } });
     const resolvedStudentId =
       `${studentName}-${studentId}-${examClass}-${studentSection}`.replace(/\s+/g, '').toLowerCase();

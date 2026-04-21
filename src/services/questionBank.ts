@@ -35,7 +35,11 @@ function loadLocal(userId: string): BankChapter[] {
 }
 
 function saveLocal(userId: string, chapters: BankChapter[]) {
-  localStorage.setItem(bankKey(userId), JSON.stringify(chapters));
+  try {
+    localStorage.setItem(bankKey(userId), JSON.stringify(chapters));
+  } catch (err) {
+    console.error('[questionBank] localStorage quota exceeded:', err);
+  }
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────

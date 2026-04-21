@@ -15,7 +15,7 @@ export interface Question {
   question: string;
   expectedAnswer: string;
   marks: number;
-  threshold: number;
+  threshold?: number; // legacy — no longer used for scoring; kept for backwards compat with saved JSON
   keywords?: string[];
   subparts?: SubPart[];
   diagram?: string;
@@ -29,13 +29,12 @@ export interface AnswerKey {
 export interface OCRResult {
   text: string;
   confidence: number;
-  error?: string;
 }
 
 export interface SimilarityResult {
   score: number;
   method: 'semantic' | 'keyword';
-  error?: string;
+  error?: string; // set when all semantic APIs failed; indicates keyword fallback was used
 }
 
 export interface QuestionResult {
@@ -46,10 +45,6 @@ export interface QuestionResult {
   marksAwarded: number;
   maxMarks: number;
   status: 'full' | 'partial' | 'zero' | 'skipped';
-}
-
-export interface OCRMethod {
-  method: 'gemini' | 'tesseract';
 }
 
 export type CheckingMode = 'easy' | 'medium' | 'strict';
@@ -93,7 +88,6 @@ export interface HistoryRecord {
 export interface ExamSession {
   answerKey: AnswerKey | null;
   results: QuestionResult[];
-  currentQuestionIndex: number;
   activeTab: 'setup' | 'grade' | 'report' | 'history' | 'admin' | 'analytics' | 'question-bank' | 'question-paper';
   hfApiKey: string;
   geminiApiKey: string;

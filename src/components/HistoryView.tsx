@@ -8,6 +8,13 @@ import { loadReports, updateReport, moveToTrash, restoreFromTrash, loadTrash, pu
 import type { TrashEntry } from '../services/reports';
 import { supabase } from '../lib/supabase';
 
+// ── Safe localStorage write ───────────────────────────────────────────────────
+
+function lsSet(key: string, value: string) {
+  try { localStorage.setItem(key, value); }
+  catch (err) { console.error('[HistoryView] localStorage quota exceeded:', err); }
+}
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const MODE_LABELS: Record<CheckingMode, { label: string; color: string }> = {
@@ -123,13 +130,13 @@ interface QuestionPatch {
   changed: boolean;
 }
 
-function UpdateModal({ record, hfApiKey, onClose, onSave }: {
+function UpdateModal({ record, hfApiKey, geminiApiKey, onClose, onSave }: {
   record: HistoryRecord;
   hfApiKey: string;
+  geminiApiKey: string;
   onClose: () => void;
   onSave: (updated: HistoryRecord) => void;
 }) {
-  const geminiKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
   const [patches, setPatches] = useState<Map<number, QuestionPatch>>(new Map());
   const [activeId, setActiveId] = useState<number | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -147,16 +154,16 @@ function UpdateModal({ record, hfApiKey, onClose, onSave }: {
     setOcrLoading(true);
     setOcrError('');
     setOcrText('');
-    const ocr = await extractTextFromImage(file, undefined, geminiKey || undefined);
+    const ocr = await extractTextFromImage(file, undefined, geminiApiKey || undefined);
     setOcrLoading(false);
-    if (ocr.error && !ocr.text) { setOcrError(ocr.error); return; }
+    if (!ocr.text) { setOcrError('Could not extract text from image.'); return; }
     setOcrText(ocr.text);
   }
 
   async function handleAnalyze() {
     if (!ocrText.trim() || !activeQuestion) return;
     setAnalyzing(true);
-    const sim = await getSemanticSimilarity(ocrText, activeQuestion.expectedAnswer, hfApiKey || undefined, activeQuestion.keywords ?? []);
+    const sim = await getSemanticSimilarity(ocrText, activeQuestion.expectedAnswer, hfApiKey || undefined, activeQuestion.keywords ?? [], activeQuestion.marks, geminiApiKey || undefined);
     const { marks, status } = calculateMarksByMode(sim.score, record.checkingMode, activeQuestion.marks);
     setPatches(prev => new Map(prev).set(activeId!, {
       newText: ocrText, newScore: sim.score, newMarks: marks, newStatus: status, changed: true,
@@ -359,7 +366,7 @@ function RecordDetail({ record }: { record: HistoryRecord }) {
 // ── Main HistoryView ──────────────────────────────────────────────────────────
 
 export function HistoryView({ userId = '' }: { userId?: string }) {
-  const { hfApiKey } = useExam();
+  const { hfApiKey, geminiApiKey } = useExam();
   const histKey = userId ? `exam-history-${userId}` : 'exam-history';
   const [records, setRecords] = useState<HistoryRecord[]>(() => {
     try { return JSON.parse(localStorage.getItem(histKey) ?? '[]'); }
@@ -382,7 +389,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
         const merged = [...localById.values()].sort(
           (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
         );
-        localStorage.setItem(histKey, JSON.stringify(merged));
+        lsSet(histKey, JSON.stringify(merged));
         return merged;
       });
     });
@@ -413,7 +420,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
   function saveUpdated(updated: HistoryRecord) {
     const next = records.map(r => r.id === updated.id ? updated : r);
     setRecords(next);
-    localStorage.setItem(histKey, JSON.stringify(next));
+    lsSet(histKey, JSON.stringify(next));
     setUpdateRecord(null);
     // Persist to Supabase (fire-and-forget)
     if (supabase) {
@@ -429,7 +436,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
     const trashedEntry: TrashEntry = { record: deleteTarget, deletedAt: new Date().toISOString() };
     const next = records.filter(r => r.id !== deleteTarget.id);
     setRecords(next);
-    localStorage.setItem(histKey, JSON.stringify(next));
+    lsSet(histKey, JSON.stringify(next));
     if (selectedId === deleteTarget.id) setSelectedId(null);
     setTrashRecords(prev => [trashedEntry, ...prev]);
     if (supabase) {
@@ -448,7 +455,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
       const next = [entry.record, ...prev].sort(
         (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
       );
-      localStorage.setItem(histKey, JSON.stringify(next));
+      lsSet(histKey, JSON.stringify(next));
       return next;
     });
     if (supabase) {
@@ -586,6 +593,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
         <UpdateModal
           record={updateRecord}
           hfApiKey={hfApiKey}
+          geminiApiKey={geminiApiKey}
           onClose={() => setUpdateRecord(null)}
           onSave={saveUpdated}
         />

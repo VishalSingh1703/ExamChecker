@@ -3,6 +3,7 @@ import { saveChapter, type BankQuestion } from '../services/questionBank';
 import { useExam } from '../context/ExamContext';
 import type { SubPart } from '../types';
 import { SubPartsEditor } from './SubPartsEditor';
+import { geminiUrl } from '../services/geminiModel';
 
 // ── Class options (same as ExamSetup) ────────────────────────────────────────
 
@@ -22,8 +23,13 @@ function resolveKey(contextKey: string): string {
 async function toBase64(file: File): Promise<string> {
   return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = () => res((r.result as string).split(',')[1]);
-    r.onerror = rej;
+    r.onload = () => {
+      if (typeof r.result !== 'string') { rej(new Error('FileReader result is not a string')); return; }
+      const idx = r.result.indexOf(',');
+      if (idx === -1) { rej(new Error('FileReader result missing base64 separator')); return; }
+      res(r.result.slice(idx + 1));
+    };
+    r.onerror = () => rej(r.error ?? new Error('FileReader error'));
     r.readAsDataURL(file);
   });
 }
@@ -85,7 +91,7 @@ function parseStructuredQuestions(raw: string): ExtractedQuestion[] {
 
 async function callGemini(key: string, body: object): Promise<string> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
+    geminiUrl(key),
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
   );
   if (!res.ok) {
@@ -98,7 +104,7 @@ async function callGemini(key: string, body: object): Promise<string> {
 }
 
 async function extractQuestionsFromImage(file: File, key: string): Promise<ExtractedQuestion[]> {
-  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
+  if (!key) throw new Error('No AI API key. Enter your key in Setup → Advanced Settings.');
   const base64 = await toBase64(file);
   const raw = await callGemini(key, {
     contents: [{ parts: [
@@ -111,7 +117,7 @@ async function extractQuestionsFromImage(file: File, key: string): Promise<Extra
 }
 
 async function extractQuestionsFromPdf(file: File, key: string): Promise<ExtractedQuestion[]> {
-  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
+  if (!key) throw new Error('No AI API key. Enter your key in Setup → Advanced Settings.');
   const base64 = await toBase64(file);
   const raw = await callGemini(key, {
     contents: [{ parts: [
@@ -124,7 +130,7 @@ async function extractQuestionsFromPdf(file: File, key: string): Promise<Extract
 }
 
 async function extractQuestionsFromTxt(file: File, key: string): Promise<ExtractedQuestion[]> {
-  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
+  if (!key) throw new Error('No AI API key. Enter your key in Setup → Advanced Settings.');
   const text = await file.text();
   const raw = await callGemini(key, {
     contents: [{ parts: [{ text: `${EXTRACT_PROMPT}\n\n---\n${text.slice(0, 8000)}\n---` }] }],
@@ -134,7 +140,7 @@ async function extractQuestionsFromTxt(file: File, key: string): Promise<Extract
 }
 
 async function geminiGenerateAnswer(question: string, cls: string, marks: number, key: string): Promise<string> {
-  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
+  if (!key) throw new Error('No AI API key. Enter your key in Setup → Advanced Settings.');
   const prompt = `You are an expert teacher. Write an ideal model answer for the following exam question.
 
 Question: "${question}"

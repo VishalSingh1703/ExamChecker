@@ -16,6 +16,7 @@ import { QuestionBankView } from './components/QuestionBankView';
 import { QuestionPaperBuilder } from './components/QuestionPaperBuilder';
 import { LandingPage } from './components/LandingPage';
 import { ExamProvider, useExam, useExamDispatch } from './context/ExamContext';
+import { terminateOCRWorker } from './services/ocr';
 import type { ExamSession } from './types';
 
 const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL as string | undefined) ?? '';
@@ -27,6 +28,11 @@ const BASE_TABS = [
   { id: 'history' as const, label: 'History' },
   { id: 'analytics' as const, label: 'Analytics' },
 ];
+
+// Terminate Tesseract worker when the page unloads
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => { terminateOCRWorker(); });
+}
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => {

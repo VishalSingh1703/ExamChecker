@@ -26,7 +26,8 @@ export function ReportView({ userId = '' }: { userId?: string }) {
     if (!answerKey || results.length === 0 || !sessionId) return;
 
     const idsKey = userId ? `saved-session-ids-${userId}` : 'saved-session-ids';
-    const savedIds: string[] = JSON.parse(localStorage.getItem(idsKey) ?? '[]');
+    let savedIds: string[] = [];
+    try { savedIds = JSON.parse(localStorage.getItem(idsKey) ?? '[]'); } catch { savedIds = []; }
     if (savedIds.includes(sessionId)) return;
 
     const record: HistoryRecord = {
@@ -50,12 +51,16 @@ export function ReportView({ userId = '' }: { userId?: string }) {
 
     // Persist to localStorage
     const histKey = userId ? `exam-history-${userId}` : 'exam-history';
-    const existing: HistoryRecord[] = JSON.parse(localStorage.getItem(histKey) ?? '[]');
-    localStorage.setItem(histKey, JSON.stringify([record, ...existing]));
-
-    // Mark session as saved (keep last 100)
-    const updated = [sessionId, ...savedIds].slice(0, 100);
-    localStorage.setItem(idsKey, JSON.stringify(updated));
+    let existing: HistoryRecord[] = [];
+    try { existing = JSON.parse(localStorage.getItem(histKey) ?? '[]'); } catch { existing = []; }
+    try {
+      localStorage.setItem(histKey, JSON.stringify([record, ...existing]));
+      // Mark session as saved (keep last 100)
+      const updated = [sessionId, ...savedIds].slice(0, 100);
+      localStorage.setItem(idsKey, JSON.stringify(updated));
+    } catch (storageErr) {
+      console.error('[ReportView] localStorage quota exceeded, report not saved locally:', storageErr);
+    }
 
     // Persist to Supabase and record usage stats (fire-and-forget)
     if (supabase) {

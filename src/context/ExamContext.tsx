@@ -9,17 +9,16 @@ type Action =
   | { type: 'SET_EXAM_META'; payload: { examTerm: string; examClass: string } }
   | { type: 'SET_STUDENT_INFO'; payload: { studentName: string; studentSection: string; studentId: string } }
   | { type: 'UPDATE_QUESTION_RESULT'; payload: QuestionResult }
-  | { type: 'SET_CURRENT_QUESTION'; payload: number }
   | { type: 'SET_ACTIVE_TAB'; payload: ExamSession['activeTab'] }
   | { type: 'RESET_SESSION' };
 
 const initialState: ExamSession = {
   answerKey: null,
   results: [],
-  currentQuestionIndex: 0,
   activeTab: 'setup',
   hfApiKey: (import.meta.env.VITE_HF_API_KEY as string | undefined) ?? '',
-  geminiApiKey: (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? localStorage.getItem('gemini-api-key') ?? '',
+  // API key comes from the build-time env var only — never persisted to localStorage
+  geminiApiKey: (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '',
   checkingMode: 'medium',
   examTerm: '',
   examClass: '',
@@ -32,7 +31,7 @@ const initialState: ExamSession = {
 function examReducer(state: ExamSession, action: Action): ExamSession {
   switch (action.type) {
     case 'SET_ANSWER_KEY':
-      return { ...state, answerKey: action.payload, results: [], currentQuestionIndex: 0, sessionId: crypto.randomUUID() };
+      return { ...state, answerKey: action.payload, results: [], sessionId: crypto.randomUUID() };
     case 'SET_HF_API_KEY':
       return { ...state, hfApiKey: action.payload };
     case 'SET_GEMINI_API_KEY':
@@ -53,8 +52,6 @@ function examReducer(state: ExamSession, action: Action): ExamSession {
           : [...state.results, action.payload];
       return { ...state, results };
     }
-    case 'SET_CURRENT_QUESTION':
-      return { ...state, currentQuestionIndex: action.payload };
     case 'SET_ACTIVE_TAB':
       return { ...state, activeTab: action.payload };
     case 'RESET_SESSION':
@@ -65,7 +62,9 @@ function examReducer(state: ExamSession, action: Action): ExamSession {
 }
 
 const ExamStateContext = createContext<ExamSession>(initialState);
-const ExamDispatchContext = createContext<React.Dispatch<Action>>(() => {});
+const ExamDispatchContext = createContext<React.Dispatch<Action>>(() => {
+  throw new Error('useExamDispatch must be used within ExamProvider');
+});
 
 export function ExamProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(examReducer, initialState);

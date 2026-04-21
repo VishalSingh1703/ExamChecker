@@ -1,50 +1,79 @@
 import Tesseract from 'tesseract.js';
 import type { OCRResult } from '../types';
+import { geminiUrl } from './geminiModel';
 
-// ── Gemini OCR (primary) ─────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(',')[1]); // strip "data:image/...;base64," prefix
+      const result = reader.result;
+      if (typeof result !== 'string') {
+        reject(new Error('FileReader produced unexpected result type'));
+        return;
+      }
+      const commaIdx = result.indexOf(',');
+      if (commaIdx === -1) {
+        reject(new Error('FileReader result missing base64 separator'));
+        return;
+      }
+      resolve(result.slice(commaIdx + 1));
     };
-    reader.onerror = reject;
+    reader.onerror = () => reject(reader.error ?? new Error('FileReader error'));
     reader.readAsDataURL(file);
   });
 }
+
+/**
+ * Safely extracts the first JSON object `{...}` or array `[...]` from a string
+ * that may contain surrounding markdown fences or prose.
+ * Uses try/parse rather than greedy regex to avoid mis-matching nested braces.
+ */
+function extractJson(raw: string, kind: 'object'): string;
+function extractJson(raw: string, kind: 'array'): string;
+function extractJson(raw: string, kind: 'object' | 'array'): string {
+  const open = kind === 'object' ? '{' : '[';
+  const close = kind === 'object' ? '}' : ']';
+  let depth = 0;
+  let start = -1;
+  for (let i = 0; i < raw.length; i++) {
+    if (raw[i] === open) {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (raw[i] === close) {
+      depth--;
+      if (depth === 0 && start !== -1) {
+        return raw.slice(start, i + 1);
+      }
+    }
+  }
+  throw new Error(`No JSON ${kind} found in AI response`);
+}
+
+// ── AI OCR (primary) ──────────────────────────────────────────────────────────
 
 async function extractTextWithGemini(file: File, apiKey: string): Promise<OCRResult> {
   const base64 = await fileToBase64(file);
   const mimeType = file.type || 'image/jpeg';
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            {
-              inlineData: { mimeType, data: base64 },
-            },
-            {
-              text: 'Extract all the handwritten text from this image exactly as written. Preserve line breaks and the original structure. Return only the extracted text — no labels, no commentary, no formatting marks.',
-            },
-          ],
-        }],
-        generationConfig: {
-          temperature: 0,
-        },
-      }),
-    }
-  );
+  const response = await fetch(geminiUrl(apiKey), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { inlineData: { mimeType, data: base64 } },
+          { text: 'Extract all the handwritten text from this image exactly as written. Preserve line breaks and the original structure. Return only the extracted text — no labels, no commentary, no formatting marks.' },
+        ],
+      }],
+      generationConfig: { temperature: 0 },
+    }),
+  });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    const msg = (err as { error?: { message?: string } }).error?.message ?? `Gemini API error ${response.status}`;
+    const msg = (err as { error?: { message?: string } }).error?.message ?? `AI API error ${response.status}`;
     throw new Error(msg);
   }
 
@@ -93,12 +122,11 @@ async function extractTextWithTesseract(
   return { text: clean, confidence: result.data.confidence };
 }
 
-// ── Combined OCR + semantic grade (single Gemini call) ───────────────────────
+// ── Combined OCR + semantic grade (single AI call) ────────────────────────────
 
 export interface OcrGradeResult {
   extractedText: string;
   score: number;
-  error?: string;
 }
 
 export async function extractAndGrade(
@@ -122,7 +150,7 @@ Question: "${question}" [${marks} marks]
 Expected answer (full mark scheme): "${expectedAnswer}"${keywordNote}
 
 Do TWO things:
-1. Extract the handwritten text from the image, correcting obvious OCR/spelling errors while preserving the student's intended meaning.
+1. Extract the handwritten text from the image, correcting obvious spelling errors while preserving the student's intended meaning.
 2. Grade using a KEY-POINTS approach:
    - Identify the ~${marks} distinct scoreable points in the expected answer.
    - For each point: award 1.0 if correct, 0.5 if partially right / minor error, 0.0 if wrong or absent.
@@ -134,26 +162,23 @@ Do TWO things:
 Respond with ONLY valid JSON — no markdown, no extra text:
 {"extractedText":"<corrected extracted text>","score":<0.0–1.0>}`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inlineData: { mimeType, data: base64 } },
-            { text: prompt },
-          ],
-        }],
-        generationConfig: { temperature: 0, maxOutputTokens: 1024 },
-      }),
-    }
-  );
+  const response = await fetch(geminiUrl(apiKey), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { inlineData: { mimeType, data: base64 } },
+          { text: prompt },
+        ],
+      }],
+      generationConfig: { temperature: 0, maxOutputTokens: 1024 },
+    }),
+  });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    const msg = (err as { error?: { message?: string } }).error?.message ?? `Gemini API error ${response.status}`;
+    const msg = (err as { error?: { message?: string } }).error?.message ?? `AI API error ${response.status}`;
     throw new Error(msg);
   }
 
@@ -161,17 +186,13 @@ Respond with ONLY valid JSON — no markdown, no extra text:
     candidates?: { content?: { parts?: { text?: string }[] } }[];
   };
 
-  // Concatenate all parts (thinking model may emit multiple)
   const parts: Array<{ text?: string }> = data.candidates?.[0]?.content?.parts ?? [];
   const raw = parts.map(p => p.text ?? '').join('').trim();
 
-  // Extract JSON from the response (may be wrapped in markdown code fences)
-  const jsonMatch = raw.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error(`Gemini returned non-JSON: "${raw.slice(0, 80)}"`);
-
-  const parsed = JSON.parse(jsonMatch[0]) as { extractedText?: string; score?: number };
+  const jsonStr = extractJson(raw, 'object');
+  const parsed = JSON.parse(jsonStr) as { extractedText?: string; score?: number };
   if (typeof parsed.extractedText !== 'string' || typeof parsed.score !== 'number') {
-    throw new Error('Gemini JSON missing required fields');
+    throw new Error('AI JSON response missing required fields');
   }
 
   return {
@@ -180,7 +201,7 @@ Respond with ONLY valid JSON — no markdown, no extra text:
   };
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
+// ── Public OCR API ────────────────────────────────────────────────────────────
 
 export async function extractTextFromImage(
   file: File,
@@ -194,22 +215,18 @@ export async function extractTextFromImage(
       onProgress?.(100);
       return { ...result, usedGemini: true };
     } catch (err) {
-      // Fall through to Tesseract with the error attached
+      // Fall through to Tesseract
+      console.error('[ocr] AI extraction failed, falling back to Tesseract:', err instanceof Error ? err.message : err);
       const fallback = await extractTextWithTesseract(file, onProgress);
-      return {
-        ...fallback,
-        usedGemini: false,
-        error: `Gemini failed (${err instanceof Error ? err.message : 'unknown'}), using Tesseract fallback.`,
-      };
+      return { ...fallback, usedGemini: false };
     }
   }
 
-  // No API key — use Tesseract
   const result = await extractTextWithTesseract(file, onProgress);
   return { ...result, usedGemini: false };
 }
 
-// ── Segment all pages + grade all questions in one Gemini call ────────────────
+// ── Segment all pages + grade all questions in one AI call ────────────────────
 
 export interface SheetPage {
   id: string;
@@ -236,6 +253,7 @@ export async function segmentAndGradeAll(
   pages: SheetPage[],
   questions: SegmentGradeInput[],
   apiKey: string,
+  signal?: AbortSignal,
 ): Promise<SegmentGradeResult[]> {
   const preamble = `You are an expert exam grader processing a student's complete handwritten answer sheet.
 
@@ -252,7 +270,7 @@ If you cannot locate any answer for a question, set "notFound": true for that en
 
 STEP 2 — EXTRACTION
 For each identified answer, extract the complete handwritten text.
-Correct obvious OCR/spelling errors while preserving the student's intended meaning.
+Correct obvious spelling errors while preserving the student's intended meaning.
 
 STEP 3 — GRADING (KEY-POINTS METHOD)
 For each extracted answer:
@@ -292,21 +310,19 @@ The answer sheet pages follow:`;
     text: `\n\nQUESTIONS TO GRADE:\n[\n${questionList}\n]\n\nReturn ONLY a JSON array — no markdown, no extra text:\n[{"questionId": <number>, "extractedText": "<complete student answer>", "score": <0.0-1.0>, "notFound": <true|false>}, ...]\n\nInclude an entry for EVERY question in the list, even if no answer was found.`,
   });
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: { temperature: 0, maxOutputTokens: 8192 },
-      }),
-    },
-  );
+  const response = await fetch(geminiUrl(apiKey), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts }],
+      generationConfig: { temperature: 0, maxOutputTokens: 8192 },
+    }),
+    signal,
+  });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    const msg = (err as { error?: { message?: string } }).error?.message ?? `Gemini API error ${response.status}`;
+    const msg = (err as { error?: { message?: string } }).error?.message ?? `AI API error ${response.status}`;
     throw new Error(msg);
   }
 
@@ -315,10 +331,9 @@ The answer sheet pages follow:`;
   };
   const rawParts: Array<{ text?: string }> = data.candidates?.[0]?.content?.parts ?? [];
   const raw = rawParts.map(p => p.text ?? '').join('').trim();
-  const match = raw.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error('Gemini returned an unexpected response format.');
 
-  const parsed = JSON.parse(match[0]) as {
+  const jsonStr = extractJson(raw, 'array');
+  const parsed = JSON.parse(jsonStr) as {
     questionId: number; extractedText: string; score: number; notFound?: boolean;
   }[];
   return parsed.map(r => ({
@@ -329,7 +344,7 @@ The answer sheet pages follow:`;
   }));
 }
 
-// ── Re-grade from edited text (no OCR, text-only Gemini call) ─────────────────
+// ── Re-grade from edited text (no image, text-only AI call) ───────────────────
 
 export interface ReGradeInput {
   id: number;
@@ -348,6 +363,7 @@ export interface ReGradeResult {
 export async function gradeExtractedText(
   inputs: ReGradeInput[],
   apiKey: string,
+  signal?: AbortSignal,
 ): Promise<ReGradeResult[]> {
   const answersJson = inputs.map(i => {
     const kw = i.keywords.length > 0
@@ -378,21 +394,19 @@ ${answersJson}
 Return ONLY a JSON array — no markdown, no extra text:
 [{"questionId": <number>, "score": <0.0-1.0>}, ...]`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 1024 },
-      }),
-    },
-  );
+  const response = await fetch(geminiUrl(apiKey), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0, maxOutputTokens: 1024 },
+    }),
+    signal,
+  });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    const msg = (err as { error?: { message?: string } }).error?.message ?? `Gemini API error ${response.status}`;
+    const msg = (err as { error?: { message?: string } }).error?.message ?? `AI API error ${response.status}`;
     throw new Error(msg);
   }
 
@@ -401,10 +415,9 @@ Return ONLY a JSON array — no markdown, no extra text:
   };
   const rawParts: Array<{ text?: string }> = data.candidates?.[0]?.content?.parts ?? [];
   const raw = rawParts.map(p => p.text ?? '').join('').trim();
-  const match = raw.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error('Gemini returned an unexpected response format.');
 
-  const parsed = JSON.parse(match[0]) as { questionId: number; score: number }[];
+  const jsonStr = extractJson(raw, 'array');
+  const parsed = JSON.parse(jsonStr) as { questionId: number; score: number }[];
   return parsed.map(r => ({
     questionId: r.questionId,
     score: Math.max(0, Math.min(1, Number(r.score) || 0)),

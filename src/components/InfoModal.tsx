@@ -1,34 +1,3 @@
-const SAMPLE_JSON = `{
-  "exam": {
-    "title": "Biology Mid-Term",
-    "subject": "Biology",
-    "totalMarks": 30
-  },
-  "questions": [
-    {
-      "id": 1,
-      "question": "What is photosynthesis?",
-      "expectedAnswer": "Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to produce glucose and oxygen.",
-      "marks": 10,
-      "threshold": 0.6
-    },
-    {
-      "id": 2,
-      "question": "Describe the cell membrane.",
-      "expectedAnswer": "The cell membrane is a phospholipid bilayer that controls what enters and exits the cell.",
-      "marks": 10,
-      "threshold": 0.55
-    },
-    {
-      "id": 3,
-      "question": "Explain mitosis.",
-      "expectedAnswer": "Mitosis is cell division producing two identical daughter cells with the same chromosome count as the parent.",
-      "marks": 10,
-      "threshold": 0.5
-    }
-  ]
-}`;
-
 export function InfoModal({ onClose }: { onClose: () => void }) {
   return (
     <div
@@ -50,49 +19,126 @@ export function InfoModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-5 text-sm text-gray-700 dark:text-gray-300">
-          {/* Checking mode explanation */}
+        <div className="px-6 py-5 space-y-6 text-sm text-gray-700 dark:text-gray-300">
+
+          {/* Step 1 — Setup */}
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Checking Mode</h3>
-            <p className="mb-3 text-gray-600 dark:text-gray-400">
-              Controls how closely a student's answer must match the expected answer to earn marks.
-              Select a mode in Step 1 of setup — it applies to all questions equally.
-            </p>
-            <div className="space-y-2">
-              <div className="flex items-start gap-3">
-                <span className="shrink-0 w-16 text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2 py-1 rounded-lg text-center">Easy</span>
-                <span className="text-gray-700 dark:text-gray-300 text-xs">Flexible — rewards partial understanding. Good for creative or descriptive answers.</span>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+              <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Set Up the Exam</h3>
+            </div>
+            <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400 pl-8">
+              <li>• Enter the exam term (e.g. UT1, Final Term) and select the class.</li>
+              <li>• Pick an existing subject from your saved bank, or create a new one by typing questions and expected answers.</li>
+              <li>• Set marks per question (max 20). The AI uses the expected answer as the full mark-scheme.</li>
+              <li>• Add <span className="font-medium text-gray-700 dark:text-gray-300">keywords</span> to any question — the AI will cap the score at 50% if any keyword is missing from the student's answer.</li>
+              <li>• Choose a <span className="font-medium text-gray-700 dark:text-gray-300">Checking Mode</span> (see below), then enter the student's name and proceed to Grade.</li>
+            </ul>
+          </div>
+
+          {/* Step 2 — Upload */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+              <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Upload the Answer Sheet</h3>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 pl-8 mb-2">Two ways to upload — pick whichever is faster:</p>
+            <div className="pl-8 space-y-2">
+              <div className="bg-slate-50 dark:bg-zinc-800 rounded-xl px-3 py-2.5">
+                <p className="text-xs font-semibold text-gray-800 dark:text-zinc-200 mb-1">📷 Images (recommended)</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Photograph each page and upload them in order. You can select all pages at once. Drag the ▲ ▼ arrows to reorder if needed.</p>
               </div>
-              <div className="flex items-start gap-3">
-                <span className="shrink-0 w-16 text-xs font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-lg text-center">Medium</span>
-                <span className="text-gray-700 dark:text-gray-300 text-xs">Balanced — standard grading. Recommended default for most subjects.</span>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="shrink-0 w-16 text-xs font-semibold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-1 rounded-lg text-center">Strict</span>
-                <span className="text-gray-700 dark:text-gray-300 text-xs">Precise — close match required. Best for factual or technical answers.</span>
+              <div className="bg-slate-50 dark:bg-zinc-800 rounded-xl px-3 py-2.5">
+                <p className="text-xs font-semibold text-gray-800 dark:text-zinc-200 mb-1">🎥 Video (hands-free)</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Record a slow, steady video flipping through the answer sheet — hold each page still for 1–2 seconds before turning. The app automatically detects each stable page and extracts it as an image.</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-xs text-gray-600 dark:text-gray-400 space-y-1">
-            <p><span className="font-semibold text-gray-700 dark:text-gray-300">Full marks</span> — answer meets or exceeds the similarity target</p>
-            <p><span className="font-semibold text-gray-700 dark:text-gray-300">Partial marks</span> — answer is in the right direction but not complete</p>
-            <p><span className="font-semibold text-gray-700 dark:text-gray-300">Zero marks</span> — answer is too far from the expected response</p>
+          {/* Step 3 — Question labels */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
+              <h3 className="font-semibold text-gray-900 dark:text-zinc-100">How the AI Finds Each Answer</h3>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 pl-8 mb-2">The AI scans every page and looks for question labels written by the student. Any of these formats work:</p>
+            <div className="pl-8 flex flex-wrap gap-1.5">
+              {['Q1', 'Q.1', '1.', '1)', '(1)', 'Ans 1', 'Answer 1', 'Question 1'].map(l => (
+                <span key={l} className="text-xs font-mono bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-md">{l}</span>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-500 pl-8 mt-2">Answers that span multiple pages are joined automatically. Sub-parts (a, b, c…) are included as part of the same question.</p>
           </div>
 
-          {/* JSON format */}
+          {/* Step 4 — Evaluate */}
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Answer Key JSON Format</h3>
-            <pre className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs overflow-x-auto text-gray-700 dark:text-gray-300 leading-relaxed">
-              {SAMPLE_JSON}
-            </pre>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 text-xs font-bold flex items-center justify-center flex-shrink-0">4</span>
+              <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Evaluate & Review</h3>
+            </div>
+            <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400 pl-8">
+              <li>• Tap <span className="font-medium text-gray-700 dark:text-gray-300">Evaluate</span> — a single AI call reads all pages, finds each answer, and grades everything at once.</li>
+              <li>• Each question card shows the extracted text and marks awarded. Review what the AI read.</li>
+              <li>• If the AI misread a word, <span className="font-medium text-gray-700 dark:text-gray-300">edit the text directly</span> in the card and tap <span className="font-medium text-gray-700 dark:text-gray-300">Re-evaluate</span> to get a fresh score.</li>
+              <li>• If a student left a question blank, use the <span className="font-medium text-gray-700 dark:text-gray-300">Mark unanswered</span> panel to skip it — it receives 0 without an AI call.</li>
+              <li>• Once all questions look correct, tap <span className="font-medium text-gray-700 dark:text-gray-300">Generate Report</span>.</li>
+            </ul>
           </div>
+
+          {/* Checking modes */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 text-xs font-bold flex items-center justify-center flex-shrink-0">★</span>
+              <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Checking Modes Explained</h3>
+            </div>
+            <div className="space-y-2 pl-8">
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-14 text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2 py-1 rounded-lg text-center">Easy</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Lenient — a 70% match awards ~80% of marks. Good for descriptive or creative answers where partial understanding deserves credit.</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-14 text-xs font-semibold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 px-2 py-1 rounded-lg text-center">Medium</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Linear — marks are directly proportional to how correct the answer is. 60% match → 60% of marks. The recommended default.</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-14 text-xs font-semibold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-1 rounded-lg text-center">Strict</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Demanding — gaps are penalised heavily. A 70% match awards only 40% of marks; below 50% match earns zero. Best for factual or technical subjects.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Report & History */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 text-xs font-bold flex items-center justify-center flex-shrink-0">★</span>
+              <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Report, History & Analytics</h3>
+            </div>
+            <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400 pl-8">
+              <li>• The <span className="font-medium text-gray-700 dark:text-gray-300">Report</span> tab shows the total score, grade, and a per-question breakdown. Use the <span className="font-medium text-gray-700 dark:text-gray-300">Print / Save PDF</span> button to export.</li>
+              <li>• Every completed exam is saved to <span className="font-medium text-gray-700 dark:text-gray-300">History</span>, organised by year → class → section → subject. Tap any record to view the full breakdown.</li>
+              <li>• <span className="font-medium text-gray-700 dark:text-gray-300">Analytics</span> tracks a student's performance across exams and subjects over time.</li>
+            </ul>
+          </div>
+
+          {/* Question Bank & Paper Builder */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 text-xs font-bold flex items-center justify-center flex-shrink-0">★</span>
+              <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Question Bank & Paper Builder</h3>
+            </div>
+            <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400 pl-8">
+              <li>• The <span className="font-medium text-gray-700 dark:text-gray-300">Question Bank</span> lets you save questions by subject and chapter so you can reuse them across exams without re-typing.</li>
+              <li>• Upload a photo of a textbook page and the AI extracts questions automatically.</li>
+              <li>• The <span className="font-medium text-gray-700 dark:text-gray-300">Paper Builder</span> assembles questions from your bank into a printable question paper with one tap.</li>
+            </ul>
+          </div>
+
         </div>
 
         <div className="px-6 pb-6">
           <button
             onClick={onClose}
-            className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"
+            className="w-full py-2.5 bg-purple-700 text-white rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors"
           >
             Got it
           </button>

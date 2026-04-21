@@ -3,6 +3,7 @@ import { loadChapters, type BankChapter, type BankQuestion } from '../services/q
 import { useExam } from '../context/ExamContext';
 import type { SubPart } from '../types';
 import { SubPartsEditor } from './SubPartsEditor';
+import { geminiUrl } from '../services/geminiModel';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -39,15 +40,20 @@ function resolveKey(contextKey: string): string {
 async function toBase64(file: File): Promise<string> {
   return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = () => res((r.result as string).split(',')[1]);
-    r.onerror = rej;
+    r.onload = () => {
+      if (typeof r.result !== 'string') { rej(new Error('FileReader result is not a string')); return; }
+      const idx = r.result.indexOf(',');
+      if (idx === -1) { rej(new Error('FileReader result missing base64 separator')); return; }
+      res(r.result.slice(idx + 1));
+    };
+    r.onerror = () => rej(r.error ?? new Error('FileReader error'));
     r.readAsDataURL(file);
   });
 }
 
 async function callGemini(key: string, body: object): Promise<string> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
+    geminiUrl(key),
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
   );
   if (!res.ok) {
@@ -60,7 +66,7 @@ async function callGemini(key: string, body: object): Promise<string> {
 }
 
 async function generateQuestionFromImage(file: File, marks: number, key: string): Promise<string> {
-  if (!key) throw new Error('No Gemini API key. Enter your key in Setup → Advanced Settings.');
+  if (!key) throw new Error('No AI API key. Enter your key in Setup → Advanced Settings.');
   const base64 = await toBase64(file);
   const marksHint =
     marks <= 2 ? 'a short recall or definition question (1–2 sentences answer)'
@@ -186,6 +192,13 @@ function PaperBuilder({
     loadChapters(userId, undefined, meta.subject).then(setChapters);
   }, [userId, meta.subject]);
 
+  // Revoke photoPreview object URL on unmount
+  const photoPreviewRef = useRef(photoPreview);
+  useEffect(() => { photoPreviewRef.current = photoPreview; }, [photoPreview]);
+  useEffect(() => {
+    return () => { if (photoPreviewRef.current) URL.revokeObjectURL(photoPreviewRef.current); };
+  }, []);
+
   // ── Paper question helpers ─────────────────────────────────────────────────
 
   function addToPaper(q: PaperQuestion) {
@@ -264,15 +277,15 @@ function PaperBuilder({
   function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (photoPreviewRef.current) URL.revokeObjectURL(photoPreviewRef.current);
     setPhotoFile(file);
     setGenError('');
-    const url = URL.createObjectURL(file);
-    setPhotoPreview(url);
+    setPhotoPreview(URL.createObjectURL(file));
   }
 
   async function handleGenerate() {
     if (!photoFile) return;
-    if (!apiKey) { setGenError('No Gemini API key. Enter it in Setup → Advanced Settings.'); return; }
+    if (!apiKey) { setGenError('No AI API key. Enter it in Setup → Advanced Settings.'); return; }
     setGenerating(true);
     setGenError('');
     try {

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Question, QuestionResult } from '../types';
 import { extractAndGrade, extractTextFromImage } from '../services/ocr';
 import { getSemanticSimilarity } from '../services/similarity';
@@ -42,6 +42,21 @@ export function QuestionGrader({
     fallbackReason?: string;
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const imageUrlRef = useRef(imageUrl);
+  useEffect(() => { imageUrlRef.current = imageUrl; }, [imageUrl]);
+
+  // Revoke the object URL when the component unmounts
+  useEffect(() => {
+    return () => { if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current); };
+  }, []);
+
+  // Close confirm modal on Escape
+  useEffect(() => {
+    if (!showConfirm) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowConfirm(false); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showConfirm]);
 
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -86,17 +101,16 @@ export function QuestionGrader({
     const ocr = await extractTextFromImage(file, setOcrProgress, geminiApiKey || undefined);
     setOcrLoading(false);
     setOcrEngine(ocr.usedGemini ? 'gemini' : 'tesseract');
-    if (ocr.error && !ocr.text) {
-      setOcrError(ocr.error);
+    if (!ocr.text) {
+      setOcrError('Could not extract text from this image.');
       return;
     }
-    if (ocr.error) setOcrError(ocr.error);
     setOcrText(ocr.text);
 
     // Auto-analyze after OCR
     if (ocr.text.trim()) {
       setAnalyzing(true);
-      const sim = await getSemanticSimilarity(ocr.text, question.expectedAnswer, hfApiKey || undefined, question.keywords ?? []);
+      const sim = await getSemanticSimilarity(ocr.text, question.expectedAnswer, hfApiKey || undefined, question.keywords ?? [], question.marks, geminiApiKey || undefined);
       const { marks, status } = calculateMarks(sim.score, threshold, question.marks);
       setResult({ similarity: sim.score, method: sim.method, marks, status, fallbackReason: sim.error });
       setAnalyzing(false);
@@ -108,7 +122,7 @@ export function QuestionGrader({
     if (!ocrText.trim()) return;
     setAnalyzing(true);
     setResult(null);
-    const sim = await getSemanticSimilarity(ocrText, question.expectedAnswer, hfApiKey || undefined, question.keywords ?? []);
+    const sim = await getSemanticSimilarity(ocrText, question.expectedAnswer, hfApiKey || undefined, question.keywords ?? [], question.marks, geminiApiKey || undefined);
     const { marks, status } = calculateMarks(sim.score, threshold, question.marks);
     setResult({ similarity: sim.score, method: sim.method, marks, status, fallbackReason: sim.error });
     setAnalyzing(false);
@@ -215,13 +229,13 @@ export function QuestionGrader({
 
           {ocrEngine && !ocrLoading && (
             <p className={`text-xs rounded-lg px-3 py-1.5 border ${ocrEngine === 'gemini' ? 'text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : 'text-slate-600 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700'}`}>
-              {ocrEngine === 'gemini' ? 'AI reading — OCR + graded in one pass ✓' : 'OCR fallback mode'}
+              {ocrEngine === 'gemini' ? 'AI reading — extracted and graded in one pass ✓' : 'AI fallback mode'}
             </p>
           )}
 
           {ocrError && (
             <p className="text-red-600 dark:text-red-400 text-xs bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
-              OCR error: {ocrError}
+              Error: {ocrError}
             </p>
           )}
         </div>

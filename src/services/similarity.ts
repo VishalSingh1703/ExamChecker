@@ -1,4 +1,5 @@
 import type { SimilarityResult } from '../types';
+import { geminiUrl } from './geminiModel';
 
 // ── Keyword fallback ──────────────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ function tokenize(text: string): Set<string> {
 export function keywordOverlapScore(extracted: string, expected: string): number {
   const a = tokenize(extracted);
   const b = tokenize(expected);
-  if (a.size === 0 && b.size === 0) return 1;
+  // Both empty means both strings had no meaningful content — not a match
   if (a.size === 0 || b.size === 0) return 0;
   const intersection = new Set([...a].filter((t) => b.has(t)));
   const union = new Set([...a, ...b]);
@@ -60,19 +61,16 @@ Critical rules:
 
 Respond with ONLY a single decimal number between 0.0 and 1.0. No explanation, no other text.`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 200 },
-      }),
-    }
-  );
+  const response = await fetch(geminiUrl(apiKey), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0, maxOutputTokens: 200 },
+    }),
+  });
 
-  if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+  if (!response.ok) throw new Error(`AI API error: ${response.status}`);
   const data = await response.json();
 
   // Concatenate all text parts (thinking models may produce multiple parts)
@@ -81,7 +79,7 @@ Respond with ONLY a single decimal number between 0.0 and 1.0. No explanation, n
 
   // Extract the first decimal/integer number from the response
   const match = text.match(/\d+(\.\d+)?/);
-  if (!match) throw new Error(`Gemini returned non-numeric: "${text.slice(0, 50)}"`);
+  if (!match) throw new Error(`AI returned non-numeric: "${text.slice(0, 50)}"`);
   const score = parseFloat(match[0]);
   return Math.max(0, Math.min(1, score));
 }
@@ -111,7 +109,9 @@ async function getHFScore(extracted: string, expected: string, apiKey: string): 
   if (data && typeof data === 'object' && !Array.isArray(data) && 'error' in data) {
     throw new Error(String((data as { error: unknown }).error));
   }
-  if (Array.isArray(data) && typeof (data as unknown[])[0] === 'number') return (data as number[])[0];
+  if (Array.isArray(data) && (data as unknown[]).length > 0 && typeof (data as unknown[])[0] === 'number') {
+    return (data as number[])[0];
+  }
   if (typeof data === 'number') return data;
   throw new Error('Unexpected HF response format');
 }
@@ -133,16 +133,18 @@ function keywordWeightedScore(extracted: string, expected: string, keywords: str
 export async function getSemanticSimilarity(
   extracted: string,
   expected: string,
-  apiKey?: string,
+  hfApiKey?: string,
   keywords: string[] = [],
   marks = 1,
+  geminiApiKey?: string,
 ): Promise<SimilarityResult> {
   if (!extracted.trim()) {
     return { score: 0, method: 'keyword' };
   }
 
-  const geminiKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
-  const hfKey = apiKey || (import.meta.env.VITE_HF_API_KEY as string | undefined) || '';
+  // Prefer the explicitly-passed key; fall back to build-time env var
+  const geminiKey = geminiApiKey?.trim() || (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) || '';
+  const hfKey = hfApiKey?.trim() || (import.meta.env.VITE_HF_API_KEY as string | undefined) || '';
 
   // 1. Try Gemini (understands meaning + enforces keyword rules)
   if (geminiKey) {

@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useExam, useExamDispatch } from '../context/ExamContext';
 import { segmentAndGradeAll, gradeExtractedText } from '../services/ocr';
 import type { SheetPage } from '../services/ocr';
+import { extractPagesFromVideo } from '../services/videoExtractor';
+import type { VideoExtractionProgress } from '../services/videoExtractor';
 import { calculateMarksByMode } from '../utils/scoring';
 import type { QuestionResult } from '../types';
 
-// MODE_THRESHOLDS no longer needed — calculateMarksByMode uses the mode directly.
 
 const statusColors = {
   full: 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
@@ -26,6 +27,7 @@ export function GradingView() {
   const { answerKey, geminiApiKey, checkingMode, examTerm, examClass, studentName, studentSection } = useExam();
   const dispatch = useExamDispatch();
 
+  const [uploadMode, setUploadMode] = useState<'images' | 'video'>('images');
   const [pages, setPages] = useState<SheetPage[]>([]);
   const [skippedQuestions, setSkippedQuestions] = useState<Set<number>>(new Set());
   const [batchResults, setBatchResults] = useState<Record<number, QResult> | null>(null);
@@ -33,14 +35,29 @@ export function GradingView() {
   const [evalError, setEvalError] = useState('');
   const [reEvalLoading, setReEvalLoading] = useState<number | null>(null);
   const [lightboxPage, setLightboxPage] = useState<number | null>(null);
+  const evalAbortRef = useRef<AbortController | null>(null);
   const [reorderWarning, setReorderWarning] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Video extraction state
+  const [videoFile, setVideoFile] = useState<{ file: File; url: string } | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [extractProgress, setExtractProgress] = useState<VideoExtractionProgress | null>(null);
+  const [extractError, setExtractError] = useState('');
 
-  // Revoke object URLs on unmount
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  // Keep a ref to the latest pages so the cleanup function always sees current URLs
+  const pagesRef = useRef(pages);
+  const videoFileRef = useRef(videoFile);
+  useEffect(() => { pagesRef.current = pages; }, [pages]);
+  useEffect(() => { videoFileRef.current = videoFile; }, [videoFile]);
+
+  // Revoke all object URLs on unmount
   useEffect(() => {
-    return () => { pages.forEach(p => URL.revokeObjectURL(p.url)); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      pagesRef.current.forEach(p => URL.revokeObjectURL(p.url));
+      if (videoFileRef.current) URL.revokeObjectURL(videoFileRef.current.url);
+    };
   }, []);
 
   if (!answerKey) {
@@ -84,6 +101,58 @@ export function GradingView() {
     if (batchResults) setReorderWarning(true);
   }
 
+  // Add pages from a plain File[] (used after video extraction)
+  function addPagesFromArray(files: File[]) {
+    if (files.length === 0) return;
+    const newPages: SheetPage[] = files.map(f => ({
+      id: crypto.randomUUID(),
+      file: f,
+      url: URL.createObjectURL(f),
+    }));
+    setPages(prev => [...prev, ...newPages]);
+    if (batchResults) { setBatchResults(null); setReorderWarning(false); }
+  }
+
+  // ── Video handlers ───────────────────────────────────────────────────────────
+
+  function handleVideoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (videoFile) URL.revokeObjectURL(videoFile.url);
+    setVideoFile({ file: f, url: URL.createObjectURL(f) });
+    setExtractError('');
+    setExtractProgress(null);
+  }
+
+  function clearVideo() {
+    if (videoFile) URL.revokeObjectURL(videoFile.url);
+    setVideoFile(null);
+    setExtractProgress(null);
+    setExtractError('');
+  }
+
+  async function handleExtractPages() {
+    if (!videoFile) return;
+    setExtracting(true);
+    setExtractError('');
+    setExtractProgress(null);
+    try {
+      const files = await extractPagesFromVideo(videoFile.file, (p) => setExtractProgress(p));
+      if (files.length === 0) {
+        setExtractError('No stable pages detected. Try flipping slower, or switch to image upload.');
+        setExtracting(false);
+        return;
+      }
+      addPagesFromArray(files);
+      clearVideo();
+      setUploadMode('images'); // switch to page list view so user can review
+    } catch (e) {
+      setExtractError(e instanceof Error ? e.message : 'Extraction failed.');
+    }
+    setExtracting(false);
+  }
+
   // ── Skip toggle ─────────────────────────────────────────────────────────────
 
   function toggleSkip(questionId: number) {
@@ -99,13 +168,18 @@ export function GradingView() {
 
   async function handleEvaluateAll() {
     if (!geminiApiKey?.trim()) {
-      setEvalError('Gemini API key is required. Add it in Setup.');
+      setEvalError('AI API key is required. Add it in Setup.');
       return;
     }
     if (pages.length === 0 && skippedQuestions.size === 0) {
       setEvalError('Upload at least one page to evaluate.');
       return;
     }
+    // Cancel any in-flight evaluation
+    evalAbortRef.current?.abort();
+    const abortCtrl = new AbortController();
+    evalAbortRef.current = abortCtrl;
+
     setEvaluating(true);
     setEvalError('');
     setReorderWarning(false);
@@ -121,7 +195,7 @@ export function GradingView() {
         }));
 
       const raw = inputs.length > 0 && pages.length > 0
-        ? await segmentAndGradeAll(pages, inputs, geminiApiKey.trim())
+        ? await segmentAndGradeAll(pages, inputs, geminiApiKey.trim(), abortCtrl.signal)
         : [];
 
       const map: Record<number, QResult> = {};
@@ -140,6 +214,7 @@ export function GradingView() {
       }
       setBatchResults(map);
     } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return; // user navigated away — silently discard
       setEvalError(e instanceof Error ? e.message : 'Evaluation failed. Please try again.');
     }
     setEvaluating(false);
@@ -152,6 +227,7 @@ export function GradingView() {
     const current = batchResults?.[questionId];
     if (!q || !geminiApiKey?.trim() || !current) return;
     setReEvalLoading(questionId);
+    const ac = new AbortController();
     try {
       const [r] = await gradeExtractedText(
         [{
@@ -163,6 +239,7 @@ export function GradingView() {
           extractedText: current.extractedText,
         }],
         geminiApiKey.trim(),
+        ac.signal,
       );
       const { marks, status } = calculateMarksByMode(r.score, checkingMode, q.marks);
       setBatchResults(prev => prev ? {
@@ -197,6 +274,16 @@ export function GradingView() {
     dispatch({ type: 'SET_ACTIVE_TAB', payload: 'report' });
   }
 
+  const closeLightbox = useCallback(() => setLightboxPage(null), []);
+
+  // Close lightbox on Escape key
+  useEffect(() => {
+    if (lightboxPage === null) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeLightbox(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxPage, closeLightbox]);
+
   const allEvaluated = batchResults !== null && questions.every(q => batchResults[q.id] !== undefined);
   const canEvaluate = pages.length > 0 || skippedQuestions.size > 0;
 
@@ -206,11 +293,11 @@ export function GradingView() {
       {lightboxPage !== null && (
         <div
           className="fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-center"
-          onClick={() => setLightboxPage(null)}
+          onClick={closeLightbox}
         >
           <div className="relative w-full max-w-3xl px-4" onClick={e => e.stopPropagation()}>
             <button
-              onClick={() => setLightboxPage(null)}
+              onClick={closeLightbox}
               className="absolute -top-10 right-4 text-white text-2xl font-bold hover:text-zinc-300"
             >✕</button>
             <img
@@ -265,99 +352,208 @@ export function GradingView() {
           </span>
         </div>
 
-        {/* ── Page upload panel ──────────────────────────────────────────────── */}
+        {/* ── Upload panel ────────────────────────────────────────────────────── */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-800 overflow-hidden">
-          <div className="px-5 pt-4 pb-3 border-b border-slate-100 dark:border-zinc-800">
-            <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Answer Sheet Pages</p>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-              Upload all pages in order — Gemini will OCR, segment answers by question label, and grade all at once.
-            </p>
+
+          {/* Header + mode toggle */}
+          <div className="px-5 pt-4 pb-3 border-b border-slate-100 dark:border-zinc-800 flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Answer Sheet</p>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                {uploadMode === 'images'
+                  ? 'Upload pages in order — AI will read, segment by question label, and grade.'
+                  : 'Record a video slowly flipping through all pages — AI extracts each page automatically.'}
+              </p>
+            </div>
+            {/* Mode toggle */}
+            <div className="flex rounded-lg overflow-hidden border border-slate-200 dark:border-zinc-700 flex-shrink-0 text-xs font-semibold">
+              <button
+                onClick={() => setUploadMode('images')}
+                className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${
+                  uploadMode === 'images'
+                    ? 'bg-purple-700 text-white'
+                    : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 9.75V18a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 18V9.75" />
+                </svg>
+                Images
+              </button>
+              <button
+                onClick={() => setUploadMode('video')}
+                className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors border-l border-slate-200 dark:border-zinc-700 ${
+                  uploadMode === 'video'
+                    ? 'bg-purple-700 text-white'
+                    : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+                Video
+              </button>
+            </div>
           </div>
 
-          {pages.length === 0 ? (
-            /* Empty state drop zone */
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full flex flex-col items-center justify-center gap-3 py-12 px-5 text-slate-400 dark:text-zinc-500 hover:text-purple-700 dark:hover:text-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-900/10 transition-colors"
-            >
-              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 9.75V18a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 18V9.75M8.25 9h.008v.008H8.25V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-              </svg>
-              <div className="text-center">
-                <p className="text-sm font-semibold">Tap to upload answer sheet pages</p>
-                <p className="text-xs mt-1">Select all pages at once · You can reorder them below</p>
-              </div>
-            </button>
-          ) : (
-            /* Page list — vertically scrollable */
-            <div className="divide-y divide-slate-100 dark:divide-zinc-800 max-h-[65vh] overflow-y-auto">
-              {pages.map((page, i) => (
-                <div key={page.id} className="flex items-start gap-3 px-4 py-3">
-                  {/* Thumbnail — click to open lightbox */}
-                  <img
-                    src={page.url}
-                    alt={`Page ${i + 1}`}
-                    onClick={() => setLightboxPage(i)}
-                    className="w-20 h-24 object-cover rounded-lg border border-slate-200 dark:border-zinc-700 cursor-pointer hover:opacity-80 flex-shrink-0"
-                  />
-
-                  {/* Page label */}
-                  <div className="flex-1 min-w-0 pt-1">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">Page {i + 1}</p>
-                    <p className="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">{page.file.name}</p>
-                    <button
-                      onClick={() => setLightboxPage(i)}
-                      className="text-xs text-purple-600 dark:text-purple-400 hover:underline mt-1"
-                    >
-                      View full size
-                    </button>
-                  </div>
-
-                  {/* Reorder + remove controls */}
-                  <div className="flex flex-col items-center gap-1 pt-1 flex-shrink-0">
-                    <button
-                      onClick={() => movePage(i, 'up')}
-                      disabled={i === 0}
-                      title="Move up"
-                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors text-sm font-bold"
-                    >▲</button>
-                    <button
-                      onClick={() => movePage(i, 'down')}
-                      disabled={i === pages.length - 1}
-                      title="Move down"
-                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors text-sm font-bold"
-                    >▼</button>
-                    <button
-                      onClick={() => removePage(i)}
-                      title="Remove page"
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm"
-                    >✕</button>
-                  </div>
+          {/* ── Image mode ── */}
+          {uploadMode === 'images' && (<>
+            {pages.length === 0 ? (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex flex-col items-center justify-center gap-3 py-12 px-5 text-slate-400 dark:text-zinc-500 hover:text-purple-700 dark:hover:text-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-900/10 transition-colors"
+              >
+                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 9.75V18a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 18V9.75M8.25 9h.008v.008H8.25V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
+                <div className="text-center">
+                  <p className="text-sm font-semibold">Tap to upload answer sheet pages</p>
+                  <p className="text-xs mt-1">Select all pages at once · Reorder below if needed</p>
                 </div>
-              ))}
+              </button>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-zinc-800 max-h-[65vh] overflow-y-auto">
+                {pages.map((page, i) => (
+                  <div key={page.id} className="flex items-start gap-3 px-4 py-3">
+                    <img
+                      src={page.url}
+                      alt={`Page ${i + 1}`}
+                      onClick={() => setLightboxPage(i)}
+                      className="w-20 h-24 object-cover rounded-lg border border-slate-200 dark:border-zinc-700 cursor-pointer hover:opacity-80 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0 pt-1">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">Page {i + 1}</p>
+                      <p className="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">{page.file.name}</p>
+                      <button onClick={() => setLightboxPage(i)} className="text-xs text-purple-600 dark:text-purple-400 hover:underline mt-1">
+                        View full size
+                      </button>
+                    </div>
+                    <div className="flex flex-col items-center gap-1 pt-1 flex-shrink-0">
+                      <button onClick={() => movePage(i, 'up')} disabled={i === 0} title="Move up"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors text-sm font-bold">▲</button>
+                      <button onClick={() => movePage(i, 'down')} disabled={i === pages.length - 1} title="Move down"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors text-sm font-bold">▼</button>
+                      <button onClick={() => removePage(i)} title="Remove"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm">✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-zinc-800">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-slate-300 dark:border-zinc-600 rounded-lg text-sm text-slate-500 dark:text-zinc-400 hover:border-purple-400 dark:hover:border-purple-500 hover:text-purple-700 dark:hover:text-purple-400 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                {pages.length === 0 ? 'Upload Pages' : 'Add More Pages'}
+              </button>
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
+              onChange={e => { addPages(e.target.files); e.target.value = ''; }} />
+          </>)}
+
+          {/* ── Video mode ── */}
+          {uploadMode === 'video' && (
+            <div className="p-5 space-y-4">
+              {/* Tip */}
+              <div className="flex items-start gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl px-4 py-3 text-xs text-indigo-700 dark:text-indigo-300">
+                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Record a slow, steady video flipping through each page of the answer sheet. Hold each page still for 1–2 seconds before turning. Pages are auto-detected and extracted.</span>
+              </div>
+
+              {!videoFile ? (
+                /* Video drop zone */
+                <button
+                  onClick={() => videoInputRef.current?.click()}
+                  className="w-full flex flex-col items-center justify-center gap-3 py-12 border-2 border-dashed border-slate-200 dark:border-zinc-700 rounded-xl text-slate-400 dark:text-zinc-500 hover:border-purple-400 dark:hover:border-purple-600 hover:text-purple-700 dark:hover:text-purple-400 transition-colors"
+                >
+                  <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold">Tap to select video</p>
+                    <p className="text-xs mt-1">MP4, MOV, or WebM</p>
+                  </div>
+                </button>
+              ) : !extracting ? (
+                /* Video selected — preview + extract button */
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 bg-slate-50 dark:bg-zinc-800 rounded-xl px-4 py-3">
+                    <svg className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100 truncate">{videoFile.file.name}</p>
+                      <p className="text-xs text-slate-400 dark:text-zinc-500">
+                        {(videoFile.file.size / (1024 * 1024)).toFixed(1)} MB
+                      </p>
+                    </div>
+                    <button onClick={clearVideo} className="text-slate-400 hover:text-red-500 transition-colors text-sm">✕</button>
+                  </div>
+                  <video
+                    src={videoFile.url}
+                    controls
+                    muted
+                    playsInline
+                    className="w-full max-h-48 rounded-xl object-contain bg-black"
+                  />
+                  <button
+                    onClick={handleExtractPages}
+                    className="w-full py-3 bg-purple-700 text-white rounded-xl text-sm font-semibold hover:bg-purple-800 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                    </svg>
+                    Extract Pages from Video
+                  </button>
+                </div>
+              ) : (
+                /* Extracting — progress UI */
+                <div className="space-y-4 py-4">
+                  <div className="text-center">
+                    <svg className="w-8 h-8 mx-auto mb-3 animate-spin text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">
+                      {extractProgress?.phase === 'capturing'
+                        ? `Extracting ${extractProgress.pagesFound} page${extractProgress.pagesFound !== 1 ? 's' : ''} at full resolution…`
+                        : `Scanning video for page turns${extractProgress?.pagesFound ? ` · ${extractProgress.pagesFound} found` : '…'}`}
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1">
+                      {extractProgress?.phase === 'scanning'
+                        ? 'Analysing motion to detect each stable page'
+                        : 'Capturing high-quality frames'}
+                    </p>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="bg-slate-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${extractProgress?.pct ?? 0}%` }}
+                    />
+                  </div>
+                  <p className="text-center text-xs text-slate-400 dark:text-zinc-500">
+                    {extractProgress?.pct ?? 0}%
+                  </p>
+                </div>
+              )}
+
+              {/* Error */}
+              {extractError && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-400">
+                  {extractError}
+                </div>
+              )}
+
+              <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoSelect} />
             </div>
           )}
-
-          {/* Add more pages button */}
-          <div className="px-5 py-3 border-t border-slate-100 dark:border-zinc-800">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-slate-300 dark:border-zinc-600 rounded-lg text-sm text-slate-500 dark:text-zinc-400 hover:border-purple-400 dark:hover:border-purple-500 hover:text-purple-700 dark:hover:text-purple-400 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              {pages.length === 0 ? 'Upload Pages' : 'Add More Pages'}
-            </button>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={e => { addPages(e.target.files); e.target.value = ''; }}
-          />
         </div>
 
         {/* ── Skip questions panel ───────────────────────────────────────────── */}
@@ -446,7 +642,7 @@ export function GradingView() {
                         <p className="text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1">
                           Extracted Answer
                           <span className="ml-1.5 font-normal text-slate-400 dark:text-zinc-500">
-                            (editable — correct OCR errors, then Re-evaluate)
+                            (editable — correct any errors, then Re-evaluate)
                           </span>
                         </p>
                         <textarea
@@ -504,10 +700,13 @@ export function GradingView() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  OCR-ing pages · segmenting answers · grading…
+                  Reading pages · segmenting answers · grading…
+
                 </>
+              ) : pages.length === 0 ? (
+                'Upload pages to evaluate'
               ) : (
-                `Evaluate  (${pages.length} page${pages.length !== 1 ? 's' : ''}${skippedQuestions.size > 0 ? ` · ${skippedQuestions.size} skipped` : ''})`
+                `Evaluate (${pages.length} page${pages.length !== 1 ? 's' : ''}${skippedQuestions.size > 0 ? ` · ${skippedQuestions.size} skipped` : ''})`
               )}
             </button>
           ) : (
