@@ -39,26 +39,6 @@ export function calculateMarksByMode(
   return { marks, status };
 }
 
-// ── Legacy threshold-based calculation (kept for QuestionGrader / HistoryView) -
-
-export function calculateMarks(
-  similarity: number,
-  threshold: number,
-  maxMarks: number
-): { marks: number; status: QuestionResult['status'] } {
-  if (similarity >= threshold) {
-    return { marks: maxMarks, status: 'full' };
-  }
-  const partialThreshold = threshold * 0.4;
-  if (similarity >= partialThreshold) {
-    const range = threshold - partialThreshold;
-    const progress = (similarity - partialThreshold) / range;
-    const marks = Math.max(1, Math.round(progress * maxMarks));
-    return { marks, status: 'partial' };
-  }
-  return { marks: 0, status: 'zero' };
-}
-
 export function calculateTotalScore(results: QuestionResult[]): {
   scored: number;
   total: number;

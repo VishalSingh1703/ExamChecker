@@ -1,25 +1,8 @@
-import { StrictMode, Component, type ReactNode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null }
-  static getDerivedStateFromError(error: Error) { return { error } }
-  render() {
-    if (this.state.error) {
-      return (
-        <div style={{ padding: 32, fontFamily: 'monospace' }}>
-          <h2>App crashed</h2>
-          <pre style={{ whiteSpace: 'pre-wrap', color: 'red' }}>
-            {(this.state.error as Error).message}
-          </pre>
-        </div>
-      )
-    }
-    return this.props.children
-  }
-}
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
+import App from './app/App';
+import { ErrorBoundary } from './app/ErrorBoundary';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -27,4 +10,4 @@ createRoot(document.getElementById('root')!).render(
       <App />
     </ErrorBoundary>
   </StrictMode>,
-)
+);

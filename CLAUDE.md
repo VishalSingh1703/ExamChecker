@@ -16,7 +16,9 @@ After every set of changes: run `npm run build` to confirm TypeScript and the Vi
 
 ## Git workflow
 
-Commit and push to GitHub after every meaningful unit of work — a bug fix, a feature, a refactor. Never leave work uncommitted at the end of a session. This project has no staging environment; GitHub is the source of truth and Vercel redeploys on every push to `main`.
+Commit and push to GitHub after every meaningful unit of work. Never leave work uncommitted at the end of a session. This project has no staging environment; GitHub is the source of truth and Vercel redeploys on every push to `main`.
+
+Always run locally and get approval from the user before pushing to GitHub.
 
 Commit message format:
 - `feat:` — new feature or behaviour
@@ -24,63 +26,148 @@ Commit message format:
 - `chore:` — config, deps, tooling
 - `docs:` — documentation only
 
-Keep messages concise and specific about *what changed and why*, not just *what files changed*. Always end commits with:
+Keep messages concise and specific about *what changed and why*. Always end commits with:
 ```
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```
 
 ## Deployment
 
-The project is hosted on Vercel and linked to GitHub. Every `git push` to `main` triggers an automatic redeploy. The live URL is **https://exam-checker-virid.vercel.app**.
+Hosted on Vercel, linked to GitHub. Every `git push` to `main` triggers an automatic redeploy. Live URL: **https://exam-checker-virid.vercel.app**
 
 To deploy manually: `vercel --prod`
 
-Environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) must be set in the Vercel dashboard under Settings → Environment Variables. They are not committed.
+Environment variables (set in Vercel dashboard, never committed):
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — Supabase auth
+- `VITE_GEMINI_API_KEY` — AI API key (build-time default; users can also enter their own key in Setup)
+- `VITE_HF_API_KEY` — HuggingFace API key (optional fallback for similarity)
+- `VITE_ADMIN_EMAIL` — email address that gets admin panel access
 
 ## Architecture
 
-**Pure frontend SPA** — no backend, no database. React 18 + Vite + TypeScript + Tailwind CSS (class-based dark mode).
+**Pure frontend SPA** — no backend of our own. React 18 + Vite + TypeScript + Tailwind CSS (class-based dark mode, zinc + purple design tokens). Supabase for auth and cloud sync; Gemini for all AI.
+
+### Folder structure
+
+```
+src/
+├── app/            App root, shell, error boundary, access screens, dark mode
+│   ├── App.tsx         Auth/session orchestration, lazy view routing
+│   ├── AppShell.tsx    Header, tab nav, mobile drawer, footer, Logo
+│   ├── ErrorBoundary.tsx
+│   ├── AccessScreens.tsx
+│   └── useDarkMode.ts
+├── components/ui/  Design-system primitives shared by every feature
+│   ├── index.tsx       Button, Card, Modal, Alert, Badge, inputs, Spinner,
+│   │                   EmptyState, ProgressBar, ConfirmDeleteModal
+│   └── Icon.tsx        Named SVG icon set (PATHS map) + Caret
+├── config/
+│   ├── env.ts          Single source for import.meta.env + resolveGeminiKey()
+│   └── constants.ts    CLASS_OPTIONS, CHECKING_MODES, grade/status colors
+├── context/        ExamContext (global exam session state)
+├── features/       One folder per screen/domain
+│   ├── auth/           AuthGate, PasswordResetScreen, ProfileView
+│   ├── landing/        LandingPage + videos
+│   ├── setup/          ExamSetup, QuestionEditorCard (shared with bank), SubPartsEditor
+│   ├── grading/        GradingView, InfoModal
+│   ├── report/         ReportView, printReport.ts (shared print/PDF builder)
+│   ├── history/        HistoryView, RecordDetail, UpdateModal
+│   ├── analytics/      AnalyticsView, StudentChart
+│   ├── bank/           QuestionBankView
+│   ├── paper/          QuestionPaperBuilder
+│   └── admin/          AdminPanel
+├── services/
+│   ├── ai/             All Gemini calls
+│   │   ├── client.ts       GEMINI_MODEL, geminiUrl, callGemini, filePart, extractJson
+│   │   ├── grading.ts      segmentAndGradeAll, gradeExtractedText
+│   │   ├── authoring.ts    generateModelAnswer, refineAnswer, extractQuestionsFromFile
+│   │   ├── ocr.ts          Gemini OCR + lazy Tesseract fallback
+│   │   └── similarity.ts   Gemini → HuggingFace → keyword Jaccard
+│   ├── data/           Supabase + persistence
+│   │   ├── supabase.ts     Client init (try/catch), getCurrentUserId
+│   │   ├── access.ts       User access checks (throws on network error)
+│   │   ├── reports.ts / stats.ts / questionBank.ts / demo.ts
+│   ├── media/videoExtractor.ts   Video → page JPEGs (luminance MAD stability)
+│   └── storage.ts      readJson/writeJson (safe localStorage) + storageKeys
+├── types/          Shared domain types
+└── utils/scoring.ts    calculateMarksByMode
+```
+
+Views are code-split: every feature view is loaded via `React.lazy` in `App.tsx`; `vite.config.ts` splits `react` and `supabase` vendor chunks. tesseract.js is dynamically imported only on the OCR fallback path.
+
+### Tabs / Pages
+
+| Tab | Component | Purpose |
+|---|---|---|
+| Setup | `ExamSetup` | Configure exam, select/create questions, set checking mode, enter student info |
+| Grade | `GradingView` | Upload answer sheet pages or video, AI grades all questions in one call |
+| Report | `ReportView` | Totals, grade, per-question breakdown, print/PDF export |
+| History | `HistoryView` | All past reports, organised by year → class → section → subject |
+| Analytics | `AnalyticsView` | Performance trends across exams and subjects |
+| Question Bank | `QuestionBankView` | Save/load questions by subject and chapter for reuse |
+| Paper Builder | `QuestionPaperBuilder` | Assemble a printable question paper from the bank |
+| Admin | `AdminPanel` | Manage user access (admin only) |
 
 ### Data flow
 
-1. **Setup tab** (`ExamSetup`): Teacher loads an answer key JSON → clicks "Save Answer Key" (validates, checks marks sum) → clicks "Start Grading" → dispatches `SET_ANSWER_KEY` to global context.
-2. **Grade tab** (`GradingView` → `QuestionGrader`): For each question, teacher uploads a handwritten image → Tesseract.js OCR runs in-browser → extracted text is editable → "Analyze Answer" calls the HF similarity API → marks are calculated → "Save & Next" dispatches `UPDATE_QUESTION_RESULT`. `QuestionGrader` receives `key={question.id}` so it fully remounts (clearing all local state) on each new question.
-3. **Report tab** (`ReportView`): Reads results from context, computes totals, shows per-question table with colour-coded rows, supports `window.print()` for PDF export.
+1. **Setup** (`ExamSetup`): Teacher enters exam term, class, student info, and selects questions from the bank or creates new ones. Sets checking mode. Dispatches `SET_ANSWER_KEY` + supporting actions to global context, then navigates to Grade.
+
+2. **Grade** (`GradingView`): Teacher uploads answer sheet as images OR a video. Two upload modes:
+   - **Images**: select one or more photos in page order; reorder with ▲▼.
+   - **Video**: record a slow flip-through video; `services/media/videoExtractor.ts` detects stable frames via luminance MAD and extracts one JPEG per page automatically.
+   - Tapping **Evaluate** calls `segmentAndGradeAll()` — a single Gemini API call that reads all page images, finds each answer by student-written labels (Q1, 1., Ans 1 …), and grades every question at once.
+   - Each result card shows extracted text (editable). Editing and tapping **Re-evaluate** calls `gradeExtractedText()` (text-only re-grade, no image).
+   - Unanswered questions can be skipped via the "Mark unanswered" panel (receives 0, no API call).
+   - Tapping **Generate Report** dispatches `UPDATE_QUESTION_RESULT` for each question then navigates to Report.
+
+3. **Report** (`ReportView`): Reads results from context, auto-saves to localStorage + Supabase once per `sessionId`, shows totals and per-question table; print/PDF via the shared `printReport()` helper (also used by HistoryView).
 
 ### Global state (`src/context/ExamContext.tsx`)
 
 `useReducer`-based context split into two contexts (state + dispatch) to avoid unnecessary re-renders. Access via `useExam()` and `useExamDispatch()`. All session data lives here and is reset by `RESET_SESSION`.
 
-### Services
+Key state fields: `answerKey`, `results`, `activeTab`, `geminiApiKey`, `hfApiKey`, `checkingMode`, `examTerm`, `examClass`, `studentName`, `studentSection`, `studentId`, `sessionId`.
 
-- **`src/services/ocr.ts`** — Singleton Tesseract.js v5 worker (created once, reused). Progress is reported via a module-level callback variable because the worker is created once but progress needs to be per-call.
-- **`src/services/similarity.ts`** — Calls `sentence-transformers/all-MiniLM-L6-v2` on the HF Inference API (no auth key required, but rate-limited). On 503 it retries once after 10 s. On any other error it silently falls back to `keywordOverlapScore()` (Jaccard similarity over stopword-filtered tokens).
+**Important**: `geminiApiKey` is never persisted to `localStorage` — it lives in memory only for the session (security). It is initialised from `VITE_GEMINI_API_KEY` at build time; the user can override it in Setup → Advanced Settings for that session only. Always resolve the key with `resolveGeminiKey(contextKey)` from `config/env.ts`.
+
+### AI services (`src/services/ai/`)
+
+- **`client.ts`** — Single source of truth for the model ID (`GEMINI_MODEL = 'gemini-3.1-flash-lite-preview'` — do NOT change it; this model is confirmed working), `geminiUrl(apiKey)`, `callGemini(apiKey, parts, config, signal)` (one fetch wrapper used by every AI call), `fileToBase64`/`filePart`, and `extractJson(raw, 'object' | 'array')` (depth-based JSON extraction from model output).
+- **`grading.ts`** — `segmentAndGradeAll(pages, questions, apiKey, signal)` (primary batch path) and `gradeExtractedText(inputs, apiKey, signal)` (text-only re-grade).
+- **`authoring.ts`** — model-answer generation, answer refinement (shorten/define), question extraction from image/PDF/txt files.
+- **`ocr.ts`** — `extractTextFromImage` (Gemini primary, Tesseract lazy-imported fallback), `terminateOCRWorker()` (called on `beforeunload`).
+- **`similarity.ts`** — `getSemanticSimilarity`: Gemini → HuggingFace → keyword-weighted Jaccard.
+
+All fetch calls accept an `AbortSignal` so in-flight requests are cancelled on navigation.
 
 ### Scoring logic (`src/utils/scoring.ts`)
 
+`calculateMarksByMode(similarity, mode, maxMarks)`
+
 ```
-similarity ≥ threshold          → full marks
-similarity ≥ threshold × 0.7   → partial marks (linear interpolation)
-below                           → 0 marks
-```
-
-### Auth (`src/lib/supabase.ts`, `src/components/AuthGate.tsx`)
-
-Supabase client is initialized at module load inside a try/catch. If `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` are missing or placeholder values, `supabase` is exported as `null` and the app skips auth entirely (shows a yellow banner). `AuthGate` has five views: `login`, `signup`, `forgot`, `verify-sent`, `reset-sent`.
-
-### Dark mode (`src/App.tsx`)
-
-`useDarkMode` hook lives at the top-level `App` component (not inside `AppInner`) so it survives session-driven remounts. It applies the `dark` class to `document.documentElement` synchronously in the `useState` initializer to avoid flash, and persists the preference in `localStorage`.
-
-### Answer key JSON format
-
-```json
-{
-  "exam": { "title": "...", "subject": "...", "totalMarks": 30 },
-  "questions": [
-    { "id": 1, "question": "...", "expectedAnswer": "...", "marks": 10, "threshold": 0.6 }
-  ]
-}
+Easy:    ratio = max(0, 1 − (2/3)(1−s))     — dampened penalty
+Medium:  ratio = s                            — exact linear
+Strict:  ratio = max(0, 2s − 1)              — doubled penalty
 ```
 
-`threshold` is per-question (0.0–1.0). A good default is `0.6`. The Setup screen warns if `sum(question.marks) ≠ exam.totalMarks`.
+All modes round to the nearest 0.5-mark increment: `Math.round(ratio × maxMarks × 2) / 2`
+
+### Auth (`src/services/data/supabase.ts`, `src/features/auth/AuthGate.tsx`, `src/app/App.tsx`)
+
+Supabase client is initialized at module load inside a try/catch. If env vars are missing or placeholder values, `supabase` is exported as `null` and the app skips auth (shows a yellow banner). `AuthGate` has five views: `login`, `signup`, `forgot`, `verify-sent`, `reset-sent`.
+
+**Network resilience**: `App.tsx` wraps `getSession()` in a `.catch` plus an 8-second timeout (`AUTH_TIMEOUT_MS`) so an unreachable Supabase project can never hang the app on "Loading…". When auth is unreachable the app degrades to authless mode with a warning banner, and the access check fails open. Keep this behaviour when touching startup code.
+
+### Dark mode (`src/app/useDarkMode.ts`)
+
+`useDarkMode` hook lives at the top-level `App` component (not inside the session-scoped tree) so it survives session-driven remounts. Applies `dark` class to `document.documentElement` synchronously in the `useState` initializer to avoid flash. Preference persisted in `localStorage`.
+
+### Key patterns to preserve
+
+- **Never persist API keys to `localStorage`** — store in context (memory) only.
+- **All localStorage access goes through `src/services/storage.ts`** (`readJson`/`writeJson`/`readString`/`writeString` + `storageKeys`) — these already handle try/catch, corrupted JSON, and `QuotaExceededError`. Never call `localStorage` directly in features.
+- **Object URLs must be revoked**: use a `ref` pattern in cleanup `useEffect`s so the cleanup always sees the latest URL even with an empty dependency array.
+- **Long-running fetch calls must accept `AbortSignal`** — pass it from an `AbortController` stored in a ref.
+- **Model ID lives only in `services/ai/client.ts`** — never hardcode the model string elsewhere, and never change it.
+- **UI primitives live in `components/ui`** — use `Button`, `Card`, `Modal`, `Alert`, `Badge`, `TextInput`, etc. instead of hand-rolling Tailwind for common patterns; icons come from `components/ui/Icon.tsx`.
+- **New Gemini calls go through `callGemini` in `services/ai/client.ts`** — never write a raw fetch to the Gemini endpoint.

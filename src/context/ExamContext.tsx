@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, type ReactNode } from 'react';
 import type { AnswerKey, CheckingMode, ExamSession, QuestionResult } from '../types';
+import { env } from '../config/env';
 
 type Action =
   | { type: 'SET_ANSWER_KEY'; payload: AnswerKey }
@@ -16,9 +17,9 @@ const initialState: ExamSession = {
   answerKey: null,
   results: [],
   activeTab: 'setup',
-  hfApiKey: (import.meta.env.VITE_HF_API_KEY as string | undefined) ?? '',
+  hfApiKey: env.hfApiKey,
   // API key comes from the build-time env var only — never persisted to localStorage
-  geminiApiKey: (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '',
+  geminiApiKey: env.geminiApiKey,
   checkingMode: 'medium',
   examTerm: '',
   examClass: '',
