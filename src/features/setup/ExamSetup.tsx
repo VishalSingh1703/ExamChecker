@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { AnswerKey, CheckingMode, SavedSubject, SubPart } from '../../types';
 import { useExam, useExamDispatch } from '../../context/ExamContext';
 import { loadChapters, type BankChapter } from '../../services/data/questionBank';
+import * as subjectStore from '../../services/data/subjects';
 import { readJson, writeJson, storageKeys } from '../../services/storage';
 import { resolveGeminiKey } from '../../config/env';
 import { CLASS_OPTIONS, CHECKING_MODES, MAX_QUESTION_MARKS } from '../../config/constants';
@@ -12,10 +13,6 @@ import { QuestionEditorCard, GenerateAllButton, type EditableQuestion, type AiBu
 // ── Local storage helpers ─────────────────────────────────────────────────────
 
 interface Suggestions { terms: string[]; sections: string[] }
-
-function loadSubjects(userId: string): SavedSubject[] {
-  return readJson<SavedSubject[]>(storageKeys.subjects(userId), []);
-}
 
 function loadSuggestions(userId: string): Suggestions {
   return readJson<Suggestions>(storageKeys.suggestions(userId), { terms: [], sections: [] });
@@ -129,8 +126,8 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
   const [examTerm, setExamTerm] = useState('');
   const [examClass, setExamClass] = useState('');
 
-  // Step 2 — subject selection
-  const [subjects, setSubjects] = useState<SavedSubject[]>(() => loadSubjects(userId));
+  // Step 2 — subject selection (local list renders instantly; cloud sync below)
+  const [subjects, setSubjects] = useState<SavedSubject[]>(() => subjectStore.loadLocalSubjects(userId));
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   const classSubjects = subjects.filter(s => s.examClass === examClass);
   const [subjectMode, setSubjectMode] = useState<'select' | 'create'>('select');
@@ -167,6 +164,15 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
     loadChapters(userId, examClass, newName.trim() || undefined).then(setBankChapters);
   }, [subjectMode, examClass, newName, userId]);
 
+  // Pull the account's subjects from Supabase so they follow the user across devices
+  useEffect(() => {
+    let cancelled = false;
+    subjectStore.syncSubjects(userId).then(merged => {
+      if (!cancelled) setSubjects(merged);
+    });
+    return () => { cancelled = true; };
+  }, [userId]);
+
   const selectedSubject = subjects.find(s => s.id === selectedSubjectId) ?? null;
   const answerKey: AnswerKey | null = selectedSubject
     ? {
@@ -180,11 +186,6 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
     : null;
 
   // ── Subject CRUD ────────────────────────────────────────────────────────────
-
-  function persistSubjects(updated: SavedSubject[]) {
-    setSubjects(updated);
-    writeJson(storageKeys.subjects(userId), updated);
-  }
 
   function bankToEditable(q: { question: string; expectedAnswer: string; marks: number; keywords?: string[]; subparts?: SubPart[]; diagram?: string }): EditableQuestion {
     return {
@@ -220,20 +221,18 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
       subparts: q.subparts?.length ? q.subparts : undefined,
       diagram: q.diagram,
     }));
-    let updated: SavedSubject[];
-    let selectId: string;
+    let saved: SavedSubject;
     if (editingSubjectId) {
-      updated = subjects.map(s =>
-        s.id === editingSubjectId ? { ...s, name: newName.trim(), questions } : s
-      );
-      selectId = editingSubjectId;
+      const current = subjects.find(s => s.id === editingSubjectId);
+      saved = { id: editingSubjectId, examClass: current?.examClass ?? examClass, name: newName.trim(), questions };
+      setSubjects(prev => prev.map(s => (s.id === editingSubjectId ? saved : s)));
     } else {
-      const subject: SavedSubject = { id: crypto.randomUUID(), name: newName.trim(), examClass, questions };
-      updated = [...subjects, subject];
-      selectId = subject.id;
+      saved = { id: crypto.randomUUID(), name: newName.trim(), examClass, questions };
+      setSubjects(prev => [...prev, saved]);
     }
-    persistSubjects(updated);
-    setSelectedSubjectId(selectId);
+    // Persists to localStorage immediately and syncs to the account in the cloud
+    subjectStore.upsertSubject(saved, userId);
+    setSelectedSubjectId(saved.id);
     cancelCreate();
   }
 
@@ -253,7 +252,8 @@ export function ExamSetup({ userId = '' }: { userId?: string }) {
   }
 
   function deleteSubject(id: string) {
-    persistSubjects(subjects.filter(s => s.id !== id));
+    setSubjects(prev => prev.filter(s => s.id !== id));
+    subjectStore.deleteSubject(id, userId);
     if (selectedSubjectId === id) setSelectedSubjectId(null);
   }
 
