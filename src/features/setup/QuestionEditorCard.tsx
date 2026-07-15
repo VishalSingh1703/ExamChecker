@@ -48,10 +48,10 @@ export function QuestionEditorCard({
     `flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${tone}`;
 
   return (
-    <div className="border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 space-y-3 bg-zinc-50/70 dark:bg-zinc-800/50">
+    <div className="border border-ink-200 dark:border-ink-700 rounded-xl p-4 space-y-3 bg-ink-50/70 dark:bg-ink-800/50">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Question {index + 1}</span>
+        <span className="text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide">Question {index + 1}</span>
         <div className="flex items-center gap-2">
           {headerExtra}
           <button onClick={onRemove} className="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
@@ -62,7 +62,7 @@ export function QuestionEditorCard({
 
       {/* Question text + subparts */}
       <div>
-        <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Question</label>
+        <label className="block text-xs font-medium text-ink-600 dark:text-ink-400 mb-1">Question</label>
         <TextArea
           value={value.question}
           onChange={e => onChange({ question: e.target.value })}
@@ -80,7 +80,7 @@ export function QuestionEditorCard({
       {/* Expected answer + AI actions */}
       <div>
         <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
-          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Expected Answer</label>
+          <label className="block text-xs font-medium text-ink-600 dark:text-ink-400">Expected Answer</label>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -95,7 +95,7 @@ export function QuestionEditorCard({
               type="button"
               onClick={onGenerate}
               disabled={anyBusy || !value.question.trim()}
-              className={aiBtn('bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/50')}
+              className={aiBtn('bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400 border-accent-200 dark:border-accent-700 hover:bg-accent-100 dark:hover:bg-accent-900/50')}
             >
               {busy === 'generate' ? <Spinner className="w-3 h-3" /> : <Icon name="wand" className="w-3 h-3" />}
               {busy === 'generate' ? 'Generating…' : 'Generate'}
@@ -123,9 +123,9 @@ export function QuestionEditorCard({
       {/* Keywords (optional field) */}
       {showKeywords && (
         <div>
-          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+          <label className="block text-xs font-medium text-ink-600 dark:text-ink-400 mb-1">
             Keywords
-            <span className="ml-1.5 font-normal text-zinc-400">(optional · comma-separated · must appear in the answer above)</span>
+            <span className="ml-1.5 font-normal text-ink-400">(optional · comma-separated · must appear in the answer above)</span>
           </label>
           <TextArea
             value={value.keywords ?? ''}
@@ -144,7 +144,7 @@ export function QuestionEditorCard({
 
       {/* Marks */}
       <div>
-        <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Marks</label>
+        <label className="block text-xs font-medium text-ink-600 dark:text-ink-400 mb-1">Marks</label>
         <input
           type="text"
           inputMode="numeric"
@@ -155,8 +155,8 @@ export function QuestionEditorCard({
             onChange({ marks: raw === '' ? 0 : parseInt(raw, 10) });
           }}
           placeholder={`1–${MAX_QUESTION_MARKS}`}
-          className={`w-24 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 ${
-            marksInvalid ? 'border-red-400 dark:border-red-600' : 'border-zinc-200 dark:border-zinc-700'
+          className={`w-24 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-600 focus:border-transparent bg-white dark:bg-ink-800 text-ink-800 dark:text-ink-200 ${
+            marksInvalid ? 'border-red-400 dark:border-red-600' : 'border-ink-200 dark:border-ink-700'
           }`}
         />
         {value.marks === 0 && <p className="mt-1 text-xs text-red-600 dark:text-red-400">Marks are required.</p>}
@@ -177,7 +177,7 @@ export function GenerateAllButton({ missing, busy, disabled, onClick }: {
     <button
       onClick={onClick}
       disabled={disabled || missing === 0}
-      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-accent-300 dark:border-accent-700 text-accent-600 dark:text-accent-400 text-xs font-semibold hover:bg-accent-50 dark:hover:bg-accent-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
     >
       {busy
         ? <><Spinner className="w-3.5 h-3.5" />Generating all answers…</>

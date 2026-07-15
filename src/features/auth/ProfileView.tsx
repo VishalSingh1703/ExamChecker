@@ -55,7 +55,7 @@ export function ProfileView({ user, onBack }: Props) {
     <div className="max-w-lg mx-auto space-y-5 py-4 animate-fade-in">
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+        className="flex items-center gap-2 text-sm text-ink-500 dark:text-ink-400 hover:text-ink-800 dark:hover:text-ink-200"
       >
         <Icon name="chevronLeft" className="w-4 h-4" />
         Back
@@ -63,42 +63,42 @@ export function ProfileView({ user, onBack }: Props) {
 
       <Card className="p-6">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0">
-            <Icon name="user" className="w-6 h-6 text-purple-700 dark:text-purple-400" />
+          <div className="w-12 h-12 rounded-full bg-accent-100 dark:bg-accent-900/40 flex items-center justify-center shrink-0">
+            <Icon name="user" className="w-6 h-6 text-accent-700 dark:text-accent-400" />
           </div>
           <div>
-            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-0.5">Signed in as</p>
-            <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100 break-all">{user.email}</p>
+            <p className="text-xs font-medium text-ink-400 dark:text-ink-500 uppercase tracking-wide mb-0.5">Signed in as</p>
+            <p className="text-base font-semibold text-ink-900 dark:text-ink-100 break-all">{user.email}</p>
           </div>
         </div>
       </Card>
 
       <Card className="p-6">
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Your Usage</h2>
+        <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100 mb-4">Your Usage</h2>
         <div className="grid grid-cols-3 gap-3">
           {[
             { label: 'Reports Generated', value: stats?.reports_generated ?? 0 },
             { label: 'Pages Scanned', value: stats?.pages_scanned ?? 0 },
             { label: 'Words Extracted', value: (stats?.words_extracted ?? 0).toLocaleString() },
           ].map(({ label, value }) => (
-            <div key={label} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 text-center border border-zinc-100 dark:border-zinc-700">
-              <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">{value}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-tight">{label}</p>
+            <div key={label} className="bg-ink-50 dark:bg-ink-800 rounded-xl p-4 text-center border border-ink-100 dark:border-ink-700">
+              <p className="text-2xl font-bold text-accent-700 dark:text-accent-400">{value}</p>
+              <p className="text-xs text-ink-500 dark:text-ink-400 mt-1 leading-tight">{label}</p>
             </div>
           ))}
         </div>
-        <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-3">Counts are cumulative and never decrease.</p>
+        <p className="text-xs text-ink-400 dark:text-ink-600 mt-3">Counts are cumulative and never decrease.</p>
       </Card>
 
       <Card className="p-6">
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Change Password</h2>
+        <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100 mb-4">Change Password</h2>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">New Password</label>
+            <label className="block text-sm font-medium text-ink-700 dark:text-ink-300 mb-1">New Password</label>
             <TextInput type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min. 6 characters" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Confirm Password</label>
+            <label className="block text-sm font-medium text-ink-700 dark:text-ink-300 mb-1">Confirm Password</label>
             <TextInput type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleChangePassword()} placeholder="Re-enter new password" />
           </div>
 
@@ -112,8 +112,8 @@ export function ProfileView({ user, onBack }: Props) {
       </Card>
 
       <Card className="p-6">
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Sign Out</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">You will be returned to the login screen.</p>
+        <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100 mb-1">Sign Out</h2>
+        <p className="text-sm text-ink-500 dark:text-ink-400 mb-4">You will be returned to the login screen.</p>
         <button
           onClick={() => supabase?.auth.signOut()}
           className="w-full py-2.5 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"

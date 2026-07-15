@@ -42,7 +42,7 @@ const BASE_TABS: NavTab[] = [
 function CenteredLoader({ label }: { label?: string }) {
   return (
     <div className="min-h-[40vh] flex items-center justify-center">
-      <div className="flex items-center gap-2 text-zinc-400 text-sm">
+      <div className="flex items-center gap-2 text-ink-400 text-sm">
         <Spinner className="w-4 h-4" />
         {label ?? 'Loading…'}
       </div>
@@ -52,8 +52,8 @@ function CenteredLoader({ label }: { label?: string }) {
 
 function FullScreenLoader({ label }: { label?: string }) {
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
-      <div className="flex items-center gap-2 text-zinc-400 text-sm">
+    <div className="min-h-screen bg-ink-50 dark:bg-ink-950 bg-desk flex items-center justify-center">
+      <div className="flex items-center gap-2 text-ink-400 text-sm">
         <Spinner className="w-4 h-4" />
         {label ?? 'Loading…'}
       </div>

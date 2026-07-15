@@ -65,7 +65,7 @@ export function GradingView() {
   if (!answerKey) {
     return (
       <Card>
-        <div className="py-16 text-center text-zinc-500 dark:text-zinc-400 text-sm">
+        <div className="py-16 text-center text-ink-500 dark:text-ink-400 text-sm">
           No answer key loaded. Go to <span className="font-semibold">Setup</span> first.
         </div>
       </Card>
@@ -280,8 +280,8 @@ export function GradingView() {
       onClick={() => setUploadMode(mode)}
       className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${extraCls} ${
         uploadMode === mode
-          ? 'bg-purple-700 text-white'
-          : 'bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+          ? 'bg-accent-700 text-white'
+          : 'bg-white dark:bg-ink-900 text-ink-500 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800'
       }`}
     >
       <Icon name={icon} className="w-3.5 h-3.5" />
@@ -300,7 +300,7 @@ export function GradingView() {
           <div className="relative w-full max-w-3xl px-4" onClick={e => e.stopPropagation()}>
             <button
               onClick={closeLightbox}
-              className="absolute -top-10 right-4 text-white text-2xl font-bold hover:text-zinc-300"
+              className="absolute -top-10 right-4 text-white text-2xl font-bold hover:text-ink-300"
               aria-label="Close preview"
             >✕</button>
             <img
@@ -328,28 +328,28 @@ export function GradingView() {
       <div className="max-w-4xl mx-auto space-y-4 animate-fade-in">
         {/* Student info bar */}
         {(studentName || examClass || studentSection || examTerm) && (
-          <Card className="px-5 py-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-            {examTerm && <span><span className="font-medium text-zinc-800 dark:text-zinc-200">Term:</span> {examTerm}</span>}
-            {examClass && <span><span className="font-medium text-zinc-800 dark:text-zinc-200">Class:</span> {examClass}</span>}
-            {studentSection && <span><span className="font-medium text-zinc-800 dark:text-zinc-200">Section:</span> {studentSection}</span>}
-            {studentName && <span><span className="font-medium text-zinc-800 dark:text-zinc-200">Student:</span> {studentName}</span>}
+          <Card className="px-5 py-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-600 dark:text-ink-400">
+            {examTerm && <span><span className="font-medium text-ink-800 dark:text-ink-200">Term:</span> {examTerm}</span>}
+            {examClass && <span><span className="font-medium text-ink-800 dark:text-ink-200">Class:</span> {examClass}</span>}
+            {studentSection && <span><span className="font-medium text-ink-800 dark:text-ink-200">Section:</span> {studentSection}</span>}
+            {studentName && <span><span className="font-medium text-ink-800 dark:text-ink-200">Student:</span> {studentName}</span>}
           </Card>
         )}
 
         {/* Phase indicator */}
         <Card className="px-5 py-3 flex items-center gap-3 text-sm">
-          <span className={`font-medium ${!batchResults ? 'text-purple-700 dark:text-purple-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
+          <span className={`font-medium ${!batchResults ? 'text-accent-700 dark:text-accent-400' : 'text-ink-400 dark:text-ink-500'}`}>
             1 · Upload
           </span>
-          <span className="text-zinc-300 dark:text-zinc-600">→</span>
-          <span className={`font-medium ${evaluating ? 'text-purple-700 dark:text-purple-400' : 'text-zinc-400 dark:text-zinc-600'}`}>
+          <span className="text-ink-300 dark:text-ink-600">→</span>
+          <span className={`font-medium ${evaluating ? 'text-accent-700 dark:text-accent-400' : 'text-ink-400 dark:text-ink-600'}`}>
             2 · Evaluate
           </span>
-          <span className="text-zinc-300 dark:text-zinc-600">→</span>
-          <span className={`font-medium ${allEvaluated ? 'text-purple-700 dark:text-purple-400' : 'text-zinc-400 dark:text-zinc-600'}`}>
+          <span className="text-ink-300 dark:text-ink-600">→</span>
+          <span className={`font-medium ${allEvaluated ? 'text-accent-700 dark:text-accent-400' : 'text-ink-400 dark:text-ink-600'}`}>
             3 · Report
           </span>
-          <span className="ml-auto text-xs text-zinc-400 dark:text-zinc-500">
+          <span className="ml-auto text-xs text-ink-400 dark:text-ink-500">
             {pages.length} page{pages.length !== 1 ? 's' : ''}
             {skippedQuestions.size > 0 && ` · ${skippedQuestions.size} skipped`}
           </span>
@@ -357,18 +357,18 @@ export function GradingView() {
 
         {/* ── Upload panel ─────────────────────────────────────────────────── */}
         <Card className="overflow-hidden">
-          <div className="px-5 pt-4 pb-3 border-b border-zinc-100 dark:border-zinc-800 flex items-start justify-between gap-3 flex-wrap">
+          <div className="px-5 pt-4 pb-3 border-b border-ink-100 dark:border-ink-800 flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Answer Sheet</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              <p className="text-sm font-semibold text-ink-900 dark:text-ink-100">Answer Sheet</p>
+              <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">
                 {uploadMode === 'images'
                   ? 'Upload pages in order — AI will read, segment by question label, and grade.'
                   : 'Record a slow flip-through video — AI extracts each page automatically.'}
               </p>
             </div>
-            <div className="flex rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 flex-shrink-0 text-xs font-semibold">
+            <div className="flex rounded-lg overflow-hidden border border-ink-200 dark:border-ink-700 flex-shrink-0 text-xs font-semibold">
               {modeToggle('images', 'image', 'Images')}
-              {modeToggle('video', 'video', 'Video', 'border-l border-zinc-200 dark:border-zinc-700')}
+              {modeToggle('video', 'video', 'Video', 'border-l border-ink-200 dark:border-ink-700')}
             </div>
           </div>
 
@@ -377,7 +377,7 @@ export function GradingView() {
             {pages.length === 0 ? (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full flex flex-col items-center justify-center gap-3 py-12 px-5 text-zinc-400 dark:text-zinc-500 hover:text-purple-700 dark:hover:text-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-900/10 transition-colors"
+                className="w-full flex flex-col items-center justify-center gap-3 py-12 px-5 text-ink-400 dark:text-ink-500 hover:text-accent-700 dark:hover:text-accent-400 hover:bg-accent-50/50 dark:hover:bg-accent-900/10 transition-colors"
               >
                 <Icon name="image" className="w-10 h-10" strokeWidth={1.5} />
                 <div className="text-center">
@@ -386,7 +386,7 @@ export function GradingView() {
                 </div>
               </button>
             ) : (
-              <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[65vh] overflow-y-auto">
+              <div className="divide-y divide-ink-100 dark:divide-ink-800 max-h-[65vh] overflow-y-auto">
                 {pages.map((page, i) => (
                   <div key={page.id} className="flex items-start gap-3 px-4 py-3">
                     <img
@@ -394,22 +394,22 @@ export function GradingView() {
                       alt={`Page ${i + 1}`}
                       onClick={() => setLightboxPage(i)}
                       loading="lazy"
-                      className="w-20 h-24 object-cover rounded-lg border border-zinc-200 dark:border-zinc-700 cursor-pointer hover:opacity-80 flex-shrink-0"
+                      className="w-20 h-24 object-cover rounded-lg border border-ink-200 dark:border-ink-700 cursor-pointer hover:opacity-80 flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0 pt-1">
-                      <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Page {i + 1}</p>
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate mt-0.5">{page.file.name}</p>
-                      <button onClick={() => setLightboxPage(i)} className="text-xs text-purple-600 dark:text-purple-400 hover:underline mt-1">
+                      <p className="text-sm font-semibold text-ink-800 dark:text-ink-100">Page {i + 1}</p>
+                      <p className="text-xs text-ink-400 dark:text-ink-500 truncate mt-0.5">{page.file.name}</p>
+                      <button onClick={() => setLightboxPage(i)} className="text-xs text-accent-600 dark:text-accent-400 hover:underline mt-1">
                         View full size
                       </button>
                     </div>
                     <div className="flex flex-col items-center gap-1 pt-1 flex-shrink-0">
                       <button onClick={() => movePage(i, 'up')} disabled={i === 0} title="Move up" aria-label={`Move page ${i + 1} up`}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 disabled:opacity-30 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-300 disabled:opacity-30 hover:bg-ink-200 dark:hover:bg-ink-700 transition-colors">
                         <Icon name="chevronUp" className="w-4 h-4" />
                       </button>
                       <button onClick={() => movePage(i, 'down')} disabled={i === pages.length - 1} title="Move down" aria-label={`Move page ${i + 1} down`}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 disabled:opacity-30 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-300 disabled:opacity-30 hover:bg-ink-200 dark:hover:bg-ink-700 transition-colors">
                         <Icon name="chevronDown" className="w-4 h-4" />
                       </button>
                       <button onClick={() => removePage(i)} title="Remove" aria-label={`Remove page ${i + 1}`}
@@ -421,10 +421,10 @@ export function GradingView() {
                 ))}
               </div>
             )}
-            <div className="px-5 py-3 border-t border-zinc-100 dark:border-zinc-800">
+            <div className="px-5 py-3 border-t border-ink-100 dark:border-ink-800">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg text-sm text-zinc-500 dark:text-zinc-400 hover:border-purple-400 dark:hover:border-purple-500 hover:text-purple-700 dark:hover:text-purple-400 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-ink-300 dark:border-ink-600 rounded-lg text-sm text-ink-500 dark:text-ink-400 hover:border-accent-400 dark:hover:border-accent-500 hover:text-accent-700 dark:hover:text-accent-400 transition-colors"
               >
                 <Icon name="plus" className="w-4 h-4" />
                 {pages.length === 0 ? 'Upload Pages' : 'Add More Pages'}
@@ -444,7 +444,7 @@ export function GradingView() {
               {!videoFile ? (
                 <button
                   onClick={() => videoInputRef.current?.click()}
-                  className="w-full flex flex-col items-center justify-center gap-3 py-12 border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl text-zinc-400 dark:text-zinc-500 hover:border-purple-400 dark:hover:border-purple-600 hover:text-purple-700 dark:hover:text-purple-400 transition-colors"
+                  className="w-full flex flex-col items-center justify-center gap-3 py-12 border-2 border-dashed border-ink-200 dark:border-ink-700 rounded-xl text-ink-400 dark:text-ink-500 hover:border-accent-400 dark:hover:border-accent-600 hover:text-accent-700 dark:hover:text-accent-400 transition-colors"
                 >
                   <Icon name="video" className="w-12 h-12" strokeWidth={1.5} />
                   <div className="text-center">
@@ -454,15 +454,15 @@ export function GradingView() {
                 </button>
               ) : !extracting ? (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 py-3">
-                    <Icon name="video" className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0" strokeWidth={1.5} />
+                  <div className="flex items-center gap-3 bg-ink-50 dark:bg-ink-800 rounded-xl px-4 py-3">
+                    <Icon name="video" className="w-8 h-8 text-accent-600 dark:text-accent-400 flex-shrink-0" strokeWidth={1.5} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 truncate">{videoFile.file.name}</p>
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                      <p className="text-sm font-semibold text-ink-800 dark:text-ink-100 truncate">{videoFile.file.name}</p>
+                      <p className="text-xs text-ink-400 dark:text-ink-500">
                         {(videoFile.file.size / (1024 * 1024)).toFixed(1)} MB
                       </p>
                     </div>
-                    <button onClick={clearVideo} className="text-zinc-400 hover:text-red-500 transition-colors text-sm" aria-label="Remove video">✕</button>
+                    <button onClick={clearVideo} className="text-ink-400 hover:text-red-500 transition-colors text-sm" aria-label="Remove video">✕</button>
                   </div>
                   <video
                     src={videoFile.url}
@@ -478,20 +478,20 @@ export function GradingView() {
               ) : (
                 <div className="space-y-4 py-4">
                   <div className="text-center">
-                    <Spinner className="w-8 h-8 mx-auto mb-3 text-purple-600 dark:text-purple-400" />
-                    <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+                    <Spinner className="w-8 h-8 mx-auto mb-3 text-accent-600 dark:text-accent-400" />
+                    <p className="text-sm font-semibold text-ink-800 dark:text-ink-100">
                       {extractProgress?.phase === 'capturing'
                         ? `Extracting ${extractProgress.pagesFound} page${extractProgress.pagesFound !== 1 ? 's' : ''} at full resolution…`
                         : `Scanning video for page turns${extractProgress?.pagesFound ? ` · ${extractProgress.pagesFound} found` : '…'}`}
                     </p>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                    <p className="text-xs text-ink-400 dark:text-ink-500 mt-1">
                       {extractProgress?.phase === 'scanning'
                         ? 'Analysing motion to detect each stable page'
                         : 'Capturing high-quality frames'}
                     </p>
                   </div>
                   <ProgressBar pct={extractProgress?.pct ?? 0} />
-                  <p className="text-center text-xs text-zinc-400 dark:text-zinc-500">
+                  <p className="text-center text-xs text-ink-400 dark:text-ink-500">
                     {extractProgress?.pct ?? 0}%
                   </p>
                 </div>
@@ -506,11 +506,11 @@ export function GradingView() {
 
         {/* ── Skip questions panel ─────────────────────────────────────────── */}
         <Card className="overflow-hidden">
-          <div className="px-5 pt-3 pb-2 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+          <div className="px-5 pt-3 pb-2 border-b border-ink-100 dark:border-ink-800 flex items-center justify-between">
+            <p className="text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide">
               Mark unanswered questions
             </p>
-            <span className="text-xs text-zinc-400 dark:text-zinc-500">
+            <span className="text-xs text-ink-400 dark:text-ink-500">
               {skippedQuestions.size > 0 ? `${skippedQuestions.size} skipped` : 'All questions active'}
             </span>
           </div>
@@ -525,7 +525,7 @@ export function GradingView() {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
                     isSkipped
                       ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-700'
-                      : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:border-amber-300 dark:hover:border-amber-700 hover:text-amber-700 dark:hover:text-amber-400'
+                      : 'bg-ink-50 dark:bg-ink-800 text-ink-600 dark:text-ink-300 border-ink-200 dark:border-ink-700 hover:border-amber-300 dark:hover:border-amber-700 hover:text-amber-700 dark:hover:text-amber-400'
                   }`}
                 >
                   {isSkipped ? <span className="line-through opacity-60">Q{idx + 1} skipped</span> : `Q${idx + 1} · ${q.marks}m`}
@@ -545,7 +545,7 @@ export function GradingView() {
         {/* ── Result cards ─────────────────────────────────────────────────── */}
         {batchResults && (
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide px-1">
+            <p className="text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide px-1">
               Evaluation Results
             </p>
             {reEvalError && <Alert tone="error">{reEvalError}</Alert>}
@@ -557,12 +557,12 @@ export function GradingView() {
 
               return (
                 <Card key={q.id} className="overflow-hidden">
-                  <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                  <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3 border-b border-ink-100 dark:border-ink-800">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium uppercase tracking-wide mb-1">
+                      <p className="text-xs text-ink-400 dark:text-ink-500 font-medium uppercase tracking-wide mb-1">
                         Q{idx + 1} · {q.marks} marks
                       </p>
-                      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{q.question}</p>
+                      <p className="text-sm font-semibold text-ink-900 dark:text-ink-100">{q.question}</p>
                     </div>
                     <Badge className={`shrink-0 ${STATUS_BADGES[result.status]}`}>
                       {isSkipped ? 'Skipped' : result.notFound ? 'Not found' : `${result.marks}/${q.marks} · ${Math.round(result.score * 100)}%`}
@@ -578,9 +578,9 @@ export function GradingView() {
 
                     {!isSkipped && (
                       <div>
-                        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                        <p className="text-xs font-medium text-ink-500 dark:text-ink-400 mb-1">
                           Extracted Answer
-                          <span className="ml-1.5 font-normal text-zinc-400 dark:text-zinc-500">
+                          <span className="ml-1.5 font-normal text-ink-400 dark:text-ink-500">
                             (editable — correct any errors, then Re-evaluate)
                           </span>
                         </p>
@@ -592,13 +592,13 @@ export function GradingView() {
                           } : prev)}
                           rows={3}
                           placeholder="No text extracted — type the answer manually and click Re-evaluate."
-                          className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-y bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-600"
+                          className="w-full border border-ink-200 dark:border-ink-700 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-accent-600 focus:border-transparent resize-y bg-ink-50 dark:bg-ink-800 text-ink-800 dark:text-ink-200 placeholder-ink-400 dark:placeholder-ink-600"
                         />
                         <div className="flex justify-end mt-1.5">
                           <button
                             onClick={() => handleReEvaluate(q.id)}
                             disabled={isReEval || !result.extractedText.trim()}
-                            className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                            className="text-xs text-accent-600 dark:text-accent-400 hover:underline disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
                           >
                             {isReEval && <Spinner className="w-3 h-3" />}
                             {isReEval ? 'Re-evaluating…' : 'Re-evaluate'}

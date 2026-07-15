@@ -144,14 +144,14 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
 
   const sortedYears = [...tree.keys()].sort((a, b) => b - a);
 
-  const treeRowBtn = 'w-full flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800';
+  const treeRowBtn = 'w-full flex items-center gap-2 hover:bg-ink-50 dark:hover:bg-ink-800';
 
   return (
     <>
       {permDeleteTarget && (
         <ConfirmDeleteModal
           title="Delete Permanently"
-          description={<><span className="font-medium text-zinc-700 dark:text-zinc-300">{permDeleteTarget.record.studentName}</span> — {permDeleteTarget.record.examTitle}</>}
+          description={<><span className="font-medium text-ink-700 dark:text-ink-300">{permDeleteTarget.record.studentName}</span> — {permDeleteTarget.record.examTitle}</>}
           note="This cannot be undone."
           confirmLabel="Delete Forever"
           input={permDeleteInput}
@@ -164,7 +164,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
       {deleteTarget && (
         <ConfirmDeleteModal
           title="Move to Trash"
-          description={<><span className="font-medium text-zinc-700 dark:text-zinc-300">{deleteTarget.studentName}</span> — {deleteTarget.examTitle}</>}
+          description={<><span className="font-medium text-ink-700 dark:text-ink-300">{deleteTarget.studentName}</span> — {deleteTarget.examTitle}</>}
           note="Report will be permanently deleted after 7 days."
           confirmLabel="Move to Trash"
           input={deleteInput}
@@ -189,14 +189,14 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setView('history')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'history' ? 'bg-purple-700 text-white' : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'history' ? 'bg-accent-700 text-white' : 'bg-white dark:bg-ink-900 text-ink-600 dark:text-ink-400 border border-ink-200 dark:border-ink-700 hover:bg-ink-50 dark:hover:bg-ink-800'}`}
           >
             Archive
             {records.length > 0 && <span className="ml-1.5 text-xs opacity-75">({records.length})</span>}
           </button>
           <button
             onClick={() => setView('trash')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'trash' ? 'bg-red-600 text-white' : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'trash' ? 'bg-red-600 text-white' : 'bg-white dark:bg-ink-900 text-ink-600 dark:text-ink-400 border border-ink-200 dark:border-ink-700 hover:bg-ink-50 dark:hover:bg-ink-800'}`}
           >
             Trash
             {trashRecords.length > 0 && <span className="ml-1.5 text-xs opacity-75">({trashRecords.length})</span>}
@@ -206,29 +206,29 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
         {/* ── Trash panel ─────────────────────────────────────────────────── */}
         {view === 'trash' && (
           <Card className="overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
-              <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Trash</h3>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">Reports are permanently deleted 7 days after being trashed.</p>
+            <div className="px-5 py-4 border-b border-ink-100 dark:border-ink-800">
+              <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-200">Trash</h3>
+              <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">Reports are permanently deleted 7 days after being trashed.</p>
             </div>
             {trashRecords.length === 0 ? (
               <div className="py-16 text-center">
-                <p className="text-sm text-zinc-400 dark:text-zinc-500">Trash is empty.</p>
+                <p className="text-sm text-ink-400 dark:text-ink-500">Trash is empty.</p>
               </div>
             ) : (
-              <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <div className="divide-y divide-ink-100 dark:divide-ink-800">
                 {trashRecords.map(entry => {
                   const days = daysLeft(entry.deletedAt);
                   return (
                     <div key={entry.record.id} className="flex items-center gap-4 px-5 py-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                        <p className="text-sm font-medium text-ink-800 dark:text-ink-200 truncate">
                           {entry.record.studentName || 'Unknown'} — {entry.record.examTitle}
                         </p>
-                        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                        <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">
                           Deleted {formatDate(entry.deletedAt)} · {entry.record.examClass} {entry.record.studentSection}
                         </p>
                       </div>
-                      <Badge className={days <= 1 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'}>
+                      <Badge className={days <= 1 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'text-ink-500 dark:text-ink-400 bg-ink-50 dark:bg-ink-800 border-ink-200 dark:border-ink-700'}>
                         {days}d left
                       </Badge>
                       <button
@@ -239,7 +239,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                       </button>
                       <button
                         onClick={() => { setPermDeleteTarget(entry); setPermDeleteInput(''); }}
-                        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-ink-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                         title="Delete permanently"
                       >
                         <Icon name="trash" className="w-4 h-4" />
@@ -257,9 +257,9 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
           <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 items-start">
             {/* Tree */}
             <Card className="overflow-hidden">
-              <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
-                <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Archive</h3>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">{records.length} record{records.length !== 1 ? 's' : ''}</p>
+              <div className="px-4 py-3 border-b border-ink-100 dark:border-ink-800">
+                <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-200">Archive</h3>
+                <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">{records.length} record{records.length !== 1 ? 's' : ''}</p>
               </div>
 
               <div className="py-1">
@@ -269,7 +269,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                   return (
                     <div key={year}>
                       <button onClick={() => setOpenYears(toggleSet(openYears, year))}
-                        className={`${treeRowBtn} px-4 py-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300`}>
+                        className={`${treeRowBtn} px-4 py-2 text-sm font-semibold text-ink-700 dark:text-ink-300`}>
                         <Caret open={yearOpen} />
                         {year}
                       </button>
@@ -281,7 +281,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                         return (
                           <div key={cls}>
                             <button onClick={() => setOpenClasses(toggleSet(openClasses, clsKey))}
-                              className={`${treeRowBtn} pl-8 pr-4 py-1.5 text-sm text-zinc-600 dark:text-zinc-400`}>
+                              className={`${treeRowBtn} pl-8 pr-4 py-1.5 text-sm text-ink-600 dark:text-ink-400`}>
                               <Caret open={clsOpen} />
                               {cls}
                             </button>
@@ -294,10 +294,10 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                               return (
                                 <div key={sec}>
                                   <button onClick={() => setOpenSections(toggleSet(openSections, secKey))}
-                                    className={`${treeRowBtn} pl-12 pr-4 py-1.5 text-xs text-zinc-500 dark:text-zinc-400`}>
+                                    className={`${treeRowBtn} pl-12 pr-4 py-1.5 text-xs text-ink-500 dark:text-ink-400`}>
                                     <Caret open={secOpen} />
                                     Section {sec}
-                                    <span className="ml-auto text-zinc-400">{secTotal}</span>
+                                    <span className="ml-auto text-ink-400">{secTotal}</span>
                                   </button>
 
                                   {secOpen && [...subjectMap.keys()].map(sub => {
@@ -307,10 +307,10 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                     return (
                                       <div key={sub}>
                                         <button onClick={() => setOpenSubjects(toggleSet(openSubjects, subKey))}
-                                          className={`${treeRowBtn} pl-16 pr-4 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 italic`}>
+                                          className={`${treeRowBtn} pl-16 pr-4 py-1.5 text-xs text-ink-500 dark:text-ink-400 italic`}>
                                           <Caret open={subOpen} />
                                           <span className="truncate">{sub}</span>
-                                          <span className="ml-auto text-zinc-400 shrink-0">{subRecords.length}</span>
+                                          <span className="ml-auto text-ink-400 shrink-0">{subRecords.length}</span>
                                         </button>
 
                                         {subOpen && subRecords.map(r => (
@@ -319,33 +319,33 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                                               onClick={() => setSelectedId(r.id)}
                                               className={`w-full text-left pl-20 pr-20 py-2 transition-colors ${
                                                 selectedId === r.id
-                                                  ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
-                                                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                                                  ? 'bg-accent-50 dark:bg-accent-900/20 text-accent-700 dark:text-accent-400'
+                                                  : 'text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800'
                                               }`}
                                             >
                                               <p className="text-xs font-medium truncate">{r.studentName || 'Unknown'}</p>
-                                              <p className="text-xs text-zinc-400 dark:text-zinc-500">{r.percentage}% · {r.grade}</p>
+                                              <p className="text-xs text-ink-400 dark:text-ink-500">{r.percentage}% · {r.grade}</p>
                                             </button>
 
                                             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
                                               <button
                                                 onClick={e => { e.stopPropagation(); printReport(r); }}
                                                 title="Print report"
-                                                className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                                                className="w-6 h-6 flex items-center justify-center rounded-md text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-200 dark:hover:bg-ink-700"
                                               >
                                                 <Icon name="print" className="w-3.5 h-3.5" />
                                               </button>
                                               <button
                                                 onClick={e => { e.stopPropagation(); setUpdateRecord(r); }}
                                                 title="Update answers"
-                                                className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                                                className="w-6 h-6 flex items-center justify-center rounded-md text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-200 dark:hover:bg-ink-700"
                                               >
                                                 <Icon name="edit" className="w-3.5 h-3.5" />
                                               </button>
                                               <button
                                                 onClick={e => { e.stopPropagation(); setDeleteTarget(r); setDeleteInput(''); }}
                                                 title="Delete report"
-                                                className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                className="w-6 h-6 flex items-center justify-center rounded-md text-ink-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                                               >
                                                 <Icon name="trash" className="w-3.5 h-3.5" />
                                               </button>
@@ -373,7 +373,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
                 ? <RecordDetail record={selected} />
                 : (
                   <Card className="py-20 text-center">
-                    <p className="text-sm text-zinc-400 dark:text-zinc-500">Select a record from the archive to view details.</p>
+                    <p className="text-sm text-ink-400 dark:text-ink-500">Select a record from the archive to view details.</p>
                   </Card>
                 )}
             </div>

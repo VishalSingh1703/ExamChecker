@@ -115,7 +115,7 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
         <button
           onClick={handleLoadDemo}
           disabled={demoLoading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 rounded-lg text-xs font-medium disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink-100 dark:bg-ink-800 hover:bg-ink-200 dark:hover:bg-ink-700 text-ink-600 dark:text-ink-400 rounded-lg text-xs font-medium disabled:opacity-60"
         >
           {demoLoading ? <Spinner className="w-3.5 h-3.5" /> : <Icon name="plus" className="w-3.5 h-3.5" />}
           Load Demo Data
@@ -125,9 +125,9 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 items-start">
         {/* Student tree */}
         <Card className="overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
-            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Students</h3>
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">{records.length} report{records.length !== 1 ? 's' : ''}</p>
+          <div className="px-4 py-3 border-b border-ink-100 dark:border-ink-800">
+            <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-200">Students</h3>
+            <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">{records.length} report{records.length !== 1 ? 's' : ''}</p>
           </div>
 
           <div className="py-1">
@@ -138,7 +138,7 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
                 <div key={cls}>
                   <button
                     onClick={() => setOpenClasses(toggleSet(openClasses, cls))}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm font-semibold text-ink-700 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800"
                   >
                     <Caret open={clsOpen} />
                     {cls}
@@ -152,11 +152,11 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
                       <div key={sec}>
                         <button
                           onClick={() => setOpenSections(toggleSet(openSections, secToggleKey))}
-                          className="w-full flex items-center gap-2 pl-8 pr-4 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                          className="w-full flex items-center gap-2 pl-8 pr-4 py-1.5 text-sm text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800"
                         >
                           <Caret open={secOpen} />
                           Section {sec}
-                          <span className="ml-auto text-xs text-zinc-400">{studentMap.size}</span>
+                          <span className="ml-auto text-xs text-ink-400">{studentMap.size}</span>
                         </button>
 
                         {secOpen && [...studentMap.entries()]
@@ -167,12 +167,12 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
                               onClick={() => setSelectedKey(key)}
                               className={`w-full text-left pl-12 pr-4 py-2 transition-colors ${
                                 selectedKey === key
-                                  ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
-                                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                                  ? 'bg-accent-50 dark:bg-accent-900/20 text-accent-700 dark:text-accent-400'
+                                  : 'text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800'
                               }`}
                             >
                               <p className="text-xs font-medium truncate">{student.name}</p>
-                              <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate">
+                              <p className="text-xs text-ink-400 dark:text-ink-500 truncate">
                                 {student.studentId || 'No ID'} · {student.records.length} report{student.records.length !== 1 ? 's' : ''}
                               </p>
                             </button>
@@ -191,8 +191,8 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
           {selectedStudent ? (
             <Card className="p-5 space-y-4">
               <div>
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{selectedStudent.name}</h3>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                <h3 className="text-base font-semibold text-ink-900 dark:text-ink-100">{selectedStudent.name}</h3>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-ink-400 dark:text-ink-500">
                   {selectedStudent.studentId && <span>ID: {selectedStudent.studentId}</span>}
                   <span>{selectedStudent.records.length} exam report{selectedStudent.records.length !== 1 ? 's' : ''}</span>
                 </div>

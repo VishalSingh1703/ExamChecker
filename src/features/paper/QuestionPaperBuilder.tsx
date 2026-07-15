@@ -37,12 +37,12 @@ function MetaForm({ onSubmit }: { onSubmit: (m: Meta) => void }) {
 
   return (
     <div className="max-w-md mx-auto py-12 px-4 animate-fade-in">
-      <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-1 tracking-tight">New Question Paper</h2>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">Fill in the exam details to get started.</p>
+      <h2 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100 mb-1 tracking-tight">New Question Paper</h2>
+      <p className="text-sm text-ink-500 dark:text-ink-400 mb-8">Fill in the exam details to get started.</p>
 
       <div className="space-y-5">
         <div>
-          <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">Exam Term</label>
+          <label className="block text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide mb-1.5">Exam Term</label>
           <TextInput
             value={term}
             onChange={e => setTerm(e.target.value)}
@@ -51,7 +51,7 @@ function MetaForm({ onSubmit }: { onSubmit: (m: Meta) => void }) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">Class / Level</label>
+          <label className="block text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide mb-1.5">Class / Level</label>
           <Select value={examClass} onChange={e => setExamClass(e.target.value)}>
             <option value="">Select class or semester…</option>
             {CLASS_OPTIONS.map(g => (
@@ -63,7 +63,7 @@ function MetaForm({ onSubmit }: { onSubmit: (m: Meta) => void }) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">Subject</label>
+          <label className="block text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide mb-1.5">Subject</label>
           <TextInput
             value={subject}
             onChange={e => setSubject(e.target.value)}
@@ -280,20 +280,20 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+            className="flex items-center gap-1.5 text-sm text-ink-500 dark:text-ink-400 hover:text-ink-800 dark:hover:text-ink-200"
           >
             <Icon name="chevronLeft" className="w-4 h-4" />
             Back
           </button>
           <div>
-            <span className="text-base font-bold text-zinc-900 dark:text-zinc-100">{meta.subject}</span>
-            <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-2">{meta.examClass} · {meta.term}</span>
+            <span className="text-base font-bold text-ink-900 dark:text-ink-100">{meta.subject}</span>
+            <span className="text-xs text-ink-400 dark:text-ink-500 ml-2">{meta.examClass} · {meta.term}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-            {paperQuestions.length} question{paperQuestions.length !== 1 ? 's' : ''} · <span className="text-purple-700 dark:text-purple-400">{totalMarks} marks</span>
+          <span className="text-sm font-semibold text-ink-700 dark:text-ink-300">
+            {paperQuestions.length} question{paperQuestions.length !== 1 ? 's' : ''} · <span className="text-accent-700 dark:text-accent-400">{totalMarks} marks</span>
           </span>
           <Button icon="print" onClick={handlePrint} disabled={paperQuestions.length === 0}>
             Print / Export
@@ -314,27 +314,27 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
         {/* ── LEFT: Paper + Add panel ───────────────────────────────────────── */}
         <div className="space-y-4">
           <Card className="overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Question Paper</h3>
+            <div className="px-4 py-3 border-b border-ink-100 dark:border-ink-800 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-200">Question Paper</h3>
               {paperQuestions.length > 0 && (
-                <span className="text-xs text-zinc-400 dark:text-zinc-500">{totalMarks} total marks</span>
+                <span className="text-xs text-ink-400 dark:text-ink-500">{totalMarks} total marks</span>
               )}
             </div>
 
             {paperQuestions.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-sm text-zinc-400 dark:text-zinc-500">No questions added yet.</p>
-                <p className="text-xs text-zinc-300 dark:text-zinc-600 mt-1">Select from the bank, generate from a photo, or type manually.</p>
+                <p className="text-sm text-ink-400 dark:text-ink-500">No questions added yet.</p>
+                <p className="text-xs text-ink-300 dark:text-ink-600 mt-1">Select from the bank, generate from a photo, or type manually.</p>
               </div>
             ) : (
-              <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <div className="divide-y divide-ink-100 dark:divide-ink-800">
                 {paperQuestions.map((pq, idx) => (
                   <div key={pq.id} className={`px-4 py-3 transition-colors ${swapTargetId === pq.id ? 'bg-amber-50 dark:bg-amber-900/20' : ''}`}>
                     <div className="flex gap-3 items-start">
-                      <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 w-6 shrink-0 pt-0.5">Q{idx + 1}</span>
+                      <span className="text-xs font-bold text-ink-400 dark:text-ink-500 w-6 shrink-0 pt-0.5">Q{idx + 1}</span>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-zinc-800 dark:text-zinc-200 leading-snug">{pq.question}</p>
+                        <p className="text-sm text-ink-800 dark:text-ink-200 leading-snug">{pq.question}</p>
                         <SubPartsEditor
                           subparts={pq.subparts ?? []}
                           diagram={pq.diagram}
@@ -351,16 +351,16 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
                             max={100}
                             value={pq.marks}
                             onChange={e => updatePaper(pq.id, { marks: Math.max(1, parseInt(e.target.value) || 1) })}
-                            className="w-12 text-center px-1 py-0.5 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-bold border border-purple-200 dark:border-purple-800 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            className="w-12 text-center px-1 py-0.5 rounded-lg bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400 text-xs font-bold border border-accent-200 dark:border-accent-800 focus:outline-none focus:ring-1 focus:ring-accent-500"
                           />
-                          <span className="text-xs text-purple-600 dark:text-purple-400 font-bold">m</span>
+                          <span className="text-xs text-accent-600 dark:text-accent-400 font-bold">m</span>
                         </div>
                         <div className="flex items-center gap-1 mt-1">
                           <button
                             onClick={() => movePaperQuestion(pq.id, -1)}
                             disabled={idx === 0}
                             title="Move up"
-                            className="w-5 h-5 flex items-center justify-center rounded text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 disabled:opacity-30"
+                            className="w-5 h-5 flex items-center justify-center rounded text-ink-400 dark:text-ink-500 hover:text-ink-700 dark:hover:text-ink-300 disabled:opacity-30"
                           >
                             <Icon name="chevronUp" className="w-3 h-3" strokeWidth={2.5} />
                           </button>
@@ -368,21 +368,21 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
                             onClick={() => movePaperQuestion(pq.id, 1)}
                             disabled={idx === paperQuestions.length - 1}
                             title="Move down"
-                            className="w-5 h-5 flex items-center justify-center rounded text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 disabled:opacity-30"
+                            className="w-5 h-5 flex items-center justify-center rounded text-ink-400 dark:text-ink-500 hover:text-ink-700 dark:hover:text-ink-300 disabled:opacity-30"
                           >
                             <Icon name="chevronDown" className="w-3 h-3" strokeWidth={2.5} />
                           </button>
                           <button
                             onClick={() => setSwapTargetId(swapTargetId === pq.id ? null : pq.id)}
                             title="Swap this question"
-                            className={`w-5 h-5 flex items-center justify-center rounded transition-colors ${swapTargetId === pq.id ? 'text-amber-500' : 'text-zinc-400 dark:text-zinc-500 hover:text-amber-500'}`}
+                            className={`w-5 h-5 flex items-center justify-center rounded transition-colors ${swapTargetId === pq.id ? 'text-amber-500' : 'text-ink-400 dark:text-ink-500 hover:text-amber-500'}`}
                           >
                             <Icon name="swap" className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => removeFromPaper(pq.id)}
                             title="Remove"
-                            className="w-5 h-5 flex items-center justify-center rounded text-zinc-400 dark:text-zinc-500 hover:text-red-500"
+                            className="w-5 h-5 flex items-center justify-center rounded text-ink-400 dark:text-ink-500 hover:text-red-500"
                           >
                             <Icon name="x" className="w-3.5 h-3.5" />
                           </button>
@@ -397,12 +397,12 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
 
           {/* Add question panel */}
           <Card className="overflow-hidden">
-            <div className="flex border-b border-zinc-100 dark:border-zinc-800">
+            <div className="flex border-b border-ink-100 dark:border-ink-800">
               {([['bank', 'From Bank'], ['photo', 'From Photo'], ['manual', 'Type Manually']] as [AddTab, string][]).map(([id, label]) => (
                 <button
                   key={id}
                   onClick={() => setAddTab(id)}
-                  className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${addTab === id ? 'text-purple-700 dark:text-purple-400 border-b-2 border-purple-700 dark:border-purple-400' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'}`}
+                  className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${addTab === id ? 'text-accent-700 dark:text-accent-400 border-b-2 border-accent-700 dark:border-accent-400' : 'text-ink-500 dark:text-ink-400 hover:text-ink-800 dark:hover:text-ink-200'}`}
                 >
                   {label}
                 </button>
@@ -412,9 +412,9 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
             <div className="p-4">
               {addTab === 'bank' && (
                 <div className="text-center py-6">
-                  <Icon name="bank" className="w-8 h-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" strokeWidth={1.5} />
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Browse the question bank on the right.</p>
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">Click <strong>Add</strong> on any question, or use <strong>Add N random</strong> per chapter.</p>
+                  <Icon name="bank" className="w-8 h-8 text-ink-300 dark:text-ink-600 mx-auto mb-2" strokeWidth={1.5} />
+                  <p className="text-sm text-ink-500 dark:text-ink-400">Browse the question bank on the right.</p>
+                  <p className="text-xs text-ink-400 dark:text-ink-500 mt-1">Click <strong>Add</strong> on any question, or use <strong>Add N random</strong> per chapter.</p>
                   {swapTargetId && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 font-medium">Swap mode active — click a bank question to replace the highlighted paper question.</p>
                   )}
@@ -423,22 +423,22 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
 
               {addTab === 'photo' && (
                 <div className="space-y-3">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Upload a photo of a textbook paragraph. AI will extract the text and generate a question proportional to the marks you set.</p>
+                  <p className="text-xs text-ink-500 dark:text-ink-400">Upload a photo of a textbook paragraph. AI will extract the text and generate a question proportional to the marks you set.</p>
 
                   <div className="flex items-center gap-3">
-                    <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide shrink-0">Marks</label>
+                    <label className="text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide shrink-0">Marks</label>
                     <input
                       type="number"
                       min={1} max={20}
                       value={photoMarks}
                       onChange={e => setPhotoMarks(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-20 px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-zinc-900 dark:text-zinc-100"
+                      className="w-20 px-3 py-2 bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-xl text-sm focus:ring-2 focus:ring-accent-600 focus:border-transparent outline-none text-ink-900 dark:text-ink-100"
                     />
                   </div>
 
                   {photoPreview ? (
                     <div className="relative">
-                      <img src={photoPreview} alt="Paragraph preview" className="w-full max-h-40 object-contain rounded-xl border border-zinc-200 dark:border-zinc-700" />
+                      <img src={photoPreview} alt="Paragraph preview" className="w-full max-h-40 object-contain rounded-xl border border-ink-200 dark:border-ink-700" />
                       <button
                         onClick={() => { if (photoPreview) URL.revokeObjectURL(photoPreview); setPhotoFile(null); setPhotoPreview(null); if (photoRef.current) photoRef.current.value = ''; }}
                         className="absolute top-2 right-2 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white"
@@ -450,7 +450,7 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
                   ) : (
                     <button
                       onClick={() => photoRef.current?.click()}
-                      className="w-full py-6 border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl flex flex-col items-center gap-2 text-zinc-400 dark:text-zinc-500 hover:border-purple-400 hover:text-purple-600 transition-colors"
+                      className="w-full py-6 border-2 border-dashed border-ink-200 dark:border-ink-700 rounded-xl flex flex-col items-center gap-2 text-ink-400 dark:text-ink-500 hover:border-accent-400 hover:text-accent-600 transition-colors"
                     >
                       <Icon name="image" className="w-7 h-7" strokeWidth={1.5} />
                       <span className="text-xs font-medium">Click to upload textbook paragraph photo</span>
@@ -476,13 +476,13 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
                     className="resize-none"
                   />
                   <div className="flex items-center gap-3">
-                    <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide shrink-0">Marks</label>
+                    <label className="text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide shrink-0">Marks</label>
                     <input
                       type="number"
                       min={1} max={20}
                       value={manualMarks}
                       onChange={e => setManualMarks(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-20 px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none text-zinc-900 dark:text-zinc-100"
+                      className="w-20 px-3 py-2 bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-xl text-sm focus:ring-2 focus:ring-accent-600 focus:border-transparent outline-none text-ink-900 dark:text-ink-100"
                     />
                   </div>
                   <Button className="w-full" onClick={handleAddManual} disabled={!manualQ.trim()}>
@@ -496,23 +496,23 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
 
         {/* ── RIGHT: Bank browser ───────────────────────────────────────────── */}
         <Card className="overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
-            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+          <div className="px-4 py-3 border-b border-ink-100 dark:border-ink-800">
+            <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-200">
               {meta.subject} — Question Bank
             </h3>
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+            <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">
               {chapters.length === 0 ? 'No chapters uploaded for this subject yet.' : `${chapters.length} chapter${chapters.length !== 1 ? 's' : ''}`}
             </p>
           </div>
 
           {chapters.length === 0 ? (
             <div className="py-16 text-center px-6">
-              <Icon name="bank" className="w-8 h-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" strokeWidth={1.5} />
-              <p className="text-sm text-zinc-400 dark:text-zinc-500">No questions uploaded for <strong>{meta.subject}</strong> yet.</p>
-              <p className="text-xs text-zinc-300 dark:text-zinc-600 mt-1">Use "Upload Questions" to add chapters first.</p>
+              <Icon name="bank" className="w-8 h-8 text-ink-300 dark:text-ink-600 mx-auto mb-3" strokeWidth={1.5} />
+              <p className="text-sm text-ink-400 dark:text-ink-500">No questions uploaded for <strong>{meta.subject}</strong> yet.</p>
+              <p className="text-xs text-ink-300 dark:text-ink-600 mt-1">Use "Upload Questions" to add chapters first.</p>
             </div>
           ) : (
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[70vh] overflow-y-auto">
+            <div className="divide-y divide-ink-100 dark:divide-ink-800 max-h-[70vh] overflow-y-auto">
               {chapters.map(ch => {
                 const isOpen = openChapters.has(ch.id);
                 const addedIds = new Set(
@@ -531,9 +531,9 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
                         })}
                         className="flex items-center gap-2 flex-1 text-left"
                       >
-                        <Caret open={isOpen} className="w-3.5 h-3.5 text-zinc-400" />
-                        <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{ch.chapter}</span>
-                        <span className="text-xs text-zinc-400 dark:text-zinc-500">{ch.questions.length}q</span>
+                        <Caret open={isOpen} className="w-3.5 h-3.5 text-ink-400" />
+                        <span className="text-sm font-semibold text-ink-700 dark:text-ink-300">{ch.chapter}</span>
+                        <span className="text-xs text-ink-400 dark:text-ink-500">{ch.questions.length}q</span>
                       </button>
 
                       {available > 0 && (
@@ -544,11 +544,11 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
                             max={available}
                             value={randomN[ch.id] ?? 1}
                             onChange={e => setRandomN(prev => ({ ...prev, [ch.id]: Math.max(1, Math.min(available, parseInt(e.target.value) || 1)) }))}
-                            className="w-10 text-center px-1 py-1 text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-purple-600 outline-none"
+                            className="w-10 text-center px-1 py-1 text-xs border border-ink-200 dark:border-ink-700 rounded-lg bg-white dark:bg-ink-800 text-ink-900 dark:text-ink-100 focus:ring-1 focus:ring-accent-600 outline-none"
                           />
                           <button
                             onClick={() => addRandomFromChapter(ch)}
-                            className="px-2 py-1 text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                            className="px-2 py-1 text-xs font-semibold bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400 rounded-lg hover:bg-accent-200 dark:hover:bg-accent-900/50 transition-colors"
                           >
                             Add random
                           </button>
@@ -566,24 +566,24 @@ function PaperBuilder({ meta, userId, onBack }: { meta: Meta; userId: string; on
                               key={bq.id}
                               className={`flex items-start gap-3 px-4 py-2.5 mx-2 mb-1 rounded-xl transition-colors ${
                                 isAdded && !isSwapMode
-                                  ? 'bg-zinc-50 dark:bg-zinc-800/40 opacity-50'
+                                  ? 'bg-ink-50 dark:bg-ink-800/40 opacity-50'
                                   : isSwapMode
-                                  ? 'hover:bg-purple-50 dark:hover:bg-purple-900/20 cursor-pointer'
-                                  : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer'
+                                  ? 'hover:bg-accent-50 dark:hover:bg-accent-900/20 cursor-pointer'
+                                  : 'hover:bg-ink-50 dark:hover:bg-ink-800/40 cursor-pointer'
                               }`}
                               onClick={() => !isAdded || isSwapMode ? addBankQuestion(ch, bq) : undefined}
                             >
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-snug">{bq.question}</p>
+                                <p className="text-sm text-ink-700 dark:text-ink-300 leading-snug">{bq.question}</p>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500">{bq.marks}m</span>
+                                <span className="text-xs font-bold text-ink-400 dark:text-ink-500">{bq.marks}m</span>
                                 {isAdded && !isSwapMode ? (
                                   <Icon name="check" className="w-4 h-4 text-emerald-500" strokeWidth={2.5} />
                                 ) : (
                                   <button
                                     onClick={e => { e.stopPropagation(); addBankQuestion(ch, bq); }}
-                                    className={`w-6 h-6 rounded-lg flex items-center justify-center text-white text-xs font-bold transition-colors ${isSwapMode ? 'bg-amber-500 hover:bg-amber-600' : 'bg-purple-700 hover:bg-purple-800'}`}
+                                    className={`w-6 h-6 rounded-lg flex items-center justify-center text-white text-xs font-bold transition-colors ${isSwapMode ? 'bg-amber-500 hover:bg-amber-600' : 'bg-accent-700 hover:bg-accent-800'}`}
                                     aria-label="Add to paper"
                                   >
                                     {isSwapMode ? '⇄' : '+'}

@@ -2,16 +2,16 @@ import { useState, useMemo } from 'react';
 import type { HistoryRecord } from '../../types';
 
 const COLORS = [
-  '#8b5cf6', // violet
-  '#ef4444', // red
-  '#10b981', // emerald
-  '#f59e0b', // amber
-  '#3b82f6', // blue
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#ec4899', // pink
-  '#14b8a6', // teal
-  '#84cc16', // lime
+  '#38674b', // pine (accent)
+  '#c2402a', // red pen
+  '#b45309', // amber ink
+  '#1d4ed8', // ballpoint blue
+  '#0f766e', // teal
+  '#9333ea', // violet
+  '#e11d48', // rose
+  '#4d7c0f', // olive
+  '#0369a1', // sky ink
+  '#a16207', // ochre
 ];
 
 interface SubjectSeries {
@@ -118,14 +118,14 @@ export function StudentChart({ records }: { records: HistoryRecord[] }) {
   }
 
   if (records.length === 0) {
-    return <div className="flex items-center justify-center h-48 text-zinc-400 dark:text-zinc-500 text-sm">No records found.</div>;
+    return <div className="flex items-center justify-center h-48 text-ink-400 dark:text-ink-500 text-sm">No records found.</div>;
   }
 
   return (
     <div className="flex gap-5 items-start flex-col lg:flex-row">
       {/* SVG chart */}
       <div className="flex-1 min-w-0 w-full">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto rounded-xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900" style={{ cursor: focused ? 'pointer' : 'default' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto rounded-xl border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900" style={{ cursor: focused ? 'pointer' : 'default' }}>
           <rect x={0} y={0} width={W} height={H} fill="transparent" onClick={() => setFocused(null)} />
 
           {[0, 20, 40, 60, 80, 100].map(pct => (
@@ -224,7 +224,7 @@ export function StudentChart({ records }: { records: HistoryRecord[] }) {
 
       {/* Rankings sidebar */}
       <div className="w-full lg:w-44 shrink-0">
-        <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">
+        <p className="text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide mb-3">
           Subjects by Marks
         </p>
         <div className="space-y-1">
@@ -237,22 +237,22 @@ export function StudentChart({ records }: { records: HistoryRecord[] }) {
                 onClick={() => handleFocus(sub.subject)}
                 className={`w-full text-left flex items-start gap-2 px-2 py-2 rounded-lg transition-all ${
                   isFocused
-                    ? 'bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-zinc-700'
-                    : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                    ? 'bg-ink-100 dark:bg-ink-800 ring-1 ring-ink-200 dark:ring-ink-700'
+                    : 'hover:bg-ink-50 dark:hover:bg-ink-800/50'
                 }`}
                 style={{ opacity: isFaded ? 0.3 : 1, transition: 'opacity 0.2s' }}
               >
                 <div className="w-3 h-3 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: sub.color }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{sub.subject}</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-sm font-medium text-ink-800 dark:text-ink-200 truncate">{sub.subject}</p>
+                  <p className="text-xs text-ink-500 dark:text-ink-400">
                     {sub.totalScored} / {sub.totalPossible} marks
                   </p>
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                  <p className="text-xs text-ink-400 dark:text-ink-500">
                     {sub.totalPossible > 0 ? Math.round((sub.totalScored / sub.totalPossible) * 100) : 0}% avg
                   </p>
                 </div>
-                <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 shrink-0">#{i + 1}</span>
+                <span className="text-xs font-bold text-ink-400 dark:text-ink-500 shrink-0">#{i + 1}</span>
               </button>
             );
           })}

@@ -4,18 +4,62 @@
 
 @layer base {
   body {
-    @apply antialiased bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100;
+    @apply antialiased bg-ink-50 dark:bg-ink-950 text-ink-900 dark:text-ink-100;
     font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   }
 
   ::selection {
-    @apply bg-purple-100 text-purple-900;
+    @apply bg-accent-200 text-accent-950;
+  }
+
+  .dark ::selection {
+    @apply bg-accent-800 text-accent-50;
   }
 }
 
 html.dark {
   color-scheme: dark;
-  background-color: #09090b;
+  background-color: #14110d;
+}
+
+@layer utilities {
+  /* Subtle paper-grain texture (inline SVG turbulence noise) */
+  .bg-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  }
+
+  /* The full desk surface: paper grain + ruled lines + red margin rule.
+     Applied to every page background for a consistent notebook feel. */
+  .bg-desk {
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E"),
+      linear-gradient(to bottom, transparent 31px, rgba(78, 118, 96, 0.13) 31px, rgba(78, 118, 96, 0.13) 32px, transparent 32px),
+      linear-gradient(to right, transparent 47px, rgba(196, 72, 54, 0.22) 47px, rgba(196, 72, 54, 0.22) 48px, transparent 48px);
+    background-size: 160px 160px, 100% 32px, 100% 100%;
+  }
+
+  .dark .bg-desk {
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"),
+      linear-gradient(to bottom, transparent 31px, rgba(154, 189, 166, 0.09) 31px, rgba(154, 189, 166, 0.09) 32px, transparent 32px),
+      linear-gradient(to right, transparent 47px, rgba(220, 106, 88, 0.25) 47px, rgba(220, 106, 88, 0.25) 48px, transparent 48px);
+    background-size: 160px 160px, 100% 32px, 100% 100%;
+  }
+
+  /* Ruled notebook lines with a red margin rule — for hero/decorative panels */
+  .bg-ruled {
+    background-image:
+      linear-gradient(to bottom, transparent 31px, rgba(78, 118, 96, 0.14) 31px, rgba(78, 118, 96, 0.14) 32px, transparent 32px),
+      linear-gradient(to right, transparent 47px, rgba(196, 72, 54, 0.28) 47px, rgba(196, 72, 54, 0.28) 48px, transparent 48px);
+    background-size: 100% 32px, 100% 100%;
+  }
+
+  .dark .bg-ruled {
+    background-image:
+      linear-gradient(to bottom, transparent 31px, rgba(154, 189, 166, 0.10) 31px, rgba(154, 189, 166, 0.10) 32px, transparent 32px),
+      linear-gradient(to right, transparent 47px, rgba(220, 106, 88, 0.30) 47px, rgba(220, 106, 88, 0.30) 48px, transparent 48px);
+    background-size: 100% 32px, 100% 100%;
+  }
 }
 
 @media print {

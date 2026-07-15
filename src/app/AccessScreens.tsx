@@ -8,11 +8,11 @@ import { Icon, type IconName } from '../components/ui';
 
 function AccessScreen({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4 gap-4">
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-8 w-full max-w-sm border border-zinc-200 dark:border-zinc-800 text-center">
+    <div className="min-h-screen bg-ink-50 dark:bg-ink-950 bg-desk flex flex-col items-center justify-center p-4 gap-4">
+      <div className="bg-white dark:bg-ink-900 rounded-xl shadow-lift p-8 w-full max-w-sm border border-ink-200 dark:border-ink-700 text-center">
         {children}
       </div>
-      <p className="text-xs text-zinc-400 dark:text-zinc-600">© {new Date().getFullYear()} Vishal Singh. All rights reserved.</p>
+      <p className="text-xs text-ink-400 dark:text-ink-600">© {new Date().getFullYear()} Vishal Singh. All rights reserved.</p>
     </div>
   );
 }
@@ -22,9 +22,9 @@ function AdminContactLink({ userEmail }: { userEmail?: string }) {
   const body = encodeURIComponent(`Hello, I have requested access to ExamChecker with email: ${userEmail ?? ''}`);
   const href = `mailto:${env.adminEmail}?subject=Access%20Request%20-%20ExamChecker&body=${body}`;
   return (
-    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-3">
+    <p className="text-sm text-ink-500 dark:text-ink-400 mt-3">
       Need help? Email the admin:{' '}
-      <a href={href} className="text-purple-700 dark:text-purple-400 hover:underline break-all">
+      <a href={href} className="text-accent-700 dark:text-accent-400 hover:underline break-all">
         {env.adminEmail}
       </a>
     </p>
@@ -35,7 +35,7 @@ function SignOutButton() {
   return (
     <button
       onClick={() => supabase?.auth.signOut()}
-      className="mt-5 w-full py-2.5 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+      className="mt-5 w-full py-2.5 border border-ink-300 dark:border-ink-700 rounded-xl text-sm font-medium text-ink-700 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
     >
       Sign Out
     </button>
@@ -58,8 +58,8 @@ function GateScreen({ userEmail, icon, iconClass, title, message }: GateScreenPr
           <Icon name={icon} className="w-7 h-7" />
         </div>
       </div>
-      <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">{title}</h2>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">{message}</p>
+      <h2 className="font-display text-xl font-semibold text-ink-900 dark:text-ink-100 mb-2">{title}</h2>
+      <p className="text-sm text-ink-500 dark:text-ink-400">{message}</p>
       <AdminContactLink userEmail={userEmail} />
       <SignOutButton />
     </AccessScreen>

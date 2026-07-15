@@ -45,16 +45,16 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
 
   const pendingCount = users.filter(u => u.status === 'pending').length;
 
-  const th = 'text-left px-5 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider';
-  const thRight = 'text-right px-3 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider whitespace-nowrap';
+  const th = 'text-left px-5 py-3 text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wider';
+  const thRight = 'text-right px-3 py-3 text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wider whitespace-nowrap';
 
   return (
     <div className="max-w-6xl mx-auto space-y-4 animate-fade-in">
       <Card className="p-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">Access Control</h2>
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+            <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100 tracking-tight">Access Control</h2>
+            <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">
               Manage user access requests for ExamChecker.
               Logged in as <span className="font-medium">{adminEmail}</span>.
             </p>
@@ -69,7 +69,7 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
 
       <Card className="overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-zinc-400 dark:text-zinc-500 text-sm gap-2">
+          <div className="flex items-center justify-center py-16 text-ink-400 dark:text-ink-500 text-sm gap-2">
             <Spinner className="w-5 h-5" />
             Loading users…
           </div>
@@ -79,7 +79,7 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+                <tr className="border-b border-ink-200 dark:border-ink-800 bg-ink-50 dark:bg-ink-800/50">
                   <th className={th}>Email</th>
                   <th className={th}>Status</th>
                   <th className={th}>Trial Ends</th>
@@ -87,13 +87,13 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
                   <th className={thRight}>Reports</th>
                   <th className={thRight}>Pages</th>
                   <th className={thRight}>Words</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Actions</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
                 {users.map(u => (
-                  <tr key={u.user_id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                    <td className="px-5 py-4 text-zinc-800 dark:text-zinc-200 font-medium truncate max-w-[200px]">
+                  <tr key={u.user_id} className="hover:bg-ink-50 dark:hover:bg-ink-800/30 transition-colors">
+                    <td className="px-5 py-4 text-ink-800 dark:text-ink-200 font-medium truncate max-w-[200px]">
                       {u.email}
                     </td>
                     <td className="px-5 py-4">
@@ -101,15 +101,15 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
                         {u.status.charAt(0).toUpperCase() + u.status.slice(1)}
                       </Badge>
                     </td>
-                    <td className="px-5 py-4 text-zinc-500 dark:text-zinc-400">{formatDate(u.trial_ends_at)}</td>
-                    <td className="px-5 py-4 text-zinc-500 dark:text-zinc-400">{formatDate(u.requested_at)}</td>
-                    <td className="px-3 py-4 text-right font-semibold text-zinc-800 dark:text-zinc-200">
+                    <td className="px-5 py-4 text-ink-500 dark:text-ink-400">{formatDate(u.trial_ends_at)}</td>
+                    <td className="px-5 py-4 text-ink-500 dark:text-ink-400">{formatDate(u.requested_at)}</td>
+                    <td className="px-3 py-4 text-right font-semibold text-ink-800 dark:text-ink-200">
                       {stats.get(u.user_id)?.reports_generated ?? 0}
                     </td>
-                    <td className="px-3 py-4 text-right text-zinc-500 dark:text-zinc-400">
+                    <td className="px-3 py-4 text-right text-ink-500 dark:text-ink-400">
                       {stats.get(u.user_id)?.pages_scanned ?? 0}
                     </td>
-                    <td className="px-3 py-4 text-right text-zinc-500 dark:text-zinc-400">
+                    <td className="px-3 py-4 text-right text-ink-500 dark:text-ink-400">
                       {(stats.get(u.user_id)?.words_extracted ?? 0).toLocaleString()}
                     </td>
                     <td className="px-4 py-4">
@@ -118,7 +118,7 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
                           <button
                             onClick={() => runAction(u.user_id + '-approve', () => approveUser(u.user_id, 30))}
                             disabled={actionLoading === u.user_id + '-approve'}
-                            className="px-3 py-1.5 rounded-lg bg-purple-700 text-white text-xs font-medium hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-3 py-1.5 rounded-lg bg-accent-700 text-white text-xs font-medium hover:bg-accent-800 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {actionLoading === u.user_id + '-approve' ? 'Approving…' : u.status === 'pending' ? 'Approve (30 days)' : 'Re-approve (30 days)'}
                           </button>
@@ -128,7 +128,7 @@ export function AdminPanel({ adminEmail }: AdminPanelProps) {
                             <button
                               onClick={() => runAction(u.user_id + '-extend', () => extendTrial(u.user_id, 30))}
                               disabled={actionLoading === u.user_id + '-extend'}
-                              className="px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="px-3 py-1.5 rounded-lg bg-ink-100 dark:bg-ink-700 text-ink-700 dark:text-ink-300 text-xs font-medium hover:bg-ink-200 dark:hover:bg-ink-600 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {actionLoading === u.user_id + '-extend' ? 'Extending…' : 'Extend +30d'}
                             </button>

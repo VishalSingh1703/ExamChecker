@@ -1,6 +1,7 @@
 /**
  * Shared UI primitives — the app's design system.
- * Tokens: zinc neutrals, purple accent, rounded-xl controls, rounded-2xl cards.
+ * Theme: "study desk" — warm paper (ink neutrals), pine-green accent,
+ * red-pen for marks, Fraunces serif display type, hard offset shadows.
  */
 import { useEffect, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, type TextareaHTMLAttributes, type SelectHTMLAttributes } from 'react';
 import { Icon, type IconName } from './Icon';
@@ -23,12 +24,18 @@ export function Spinner({ className = 'w-4 h-4' }: { className?: string }) {
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'dashed';
 
 const BUTTON_STYLES: Record<ButtonVariant, string> = {
-  primary: 'bg-purple-700 text-white hover:bg-purple-800 shadow-sm shadow-purple-700/20',
-  secondary: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700',
-  ghost: 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800',
-  danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm shadow-red-600/20',
-  success: 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20',
-  dashed: 'border-2 border-dashed border-zinc-300 dark:border-zinc-600 text-zinc-500 dark:text-zinc-400 hover:border-purple-400 dark:hover:border-purple-600 hover:text-purple-700 dark:hover:text-purple-400',
+  primary:
+    'bg-accent-700 text-accent-50 border border-accent-900/60 shadow-lift-sm hover:bg-accent-800 hover:shadow-lift hover:-translate-x-px hover:-translate-y-px active:shadow-none active:translate-x-[2px] active:translate-y-[2px]',
+  secondary:
+    'bg-white dark:bg-ink-800 text-ink-800 dark:text-ink-200 border border-ink-300 dark:border-ink-600 shadow-lift-sm hover:bg-ink-100 dark:hover:bg-ink-700 hover:shadow-lift hover:-translate-x-px hover:-translate-y-px active:shadow-none active:translate-x-[2px] active:translate-y-[2px]',
+  ghost:
+    'text-ink-500 dark:text-ink-400 border border-transparent hover:text-ink-800 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800',
+  danger:
+    'bg-red-700 text-red-50 border border-red-900/60 shadow-lift-sm hover:bg-red-800 hover:shadow-lift hover:-translate-x-px hover:-translate-y-px active:shadow-none active:translate-x-[2px] active:translate-y-[2px]',
+  success:
+    'bg-emerald-700 text-emerald-50 border border-emerald-900/60 shadow-lift-sm hover:bg-emerald-800 hover:shadow-lift hover:-translate-x-px hover:-translate-y-px active:shadow-none active:translate-x-[2px] active:translate-y-[2px]',
+  dashed:
+    'border-2 border-dashed border-ink-300 dark:border-ink-600 text-ink-500 dark:text-ink-400 hover:border-accent-500 dark:hover:border-accent-500 hover:text-accent-700 dark:hover:text-accent-300 hover:bg-accent-50 dark:hover:bg-accent-950/40',
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -41,7 +48,7 @@ export function Button({ variant = 'primary', loading, icon, disabled, className
   return (
     <button
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold px-4 py-2.5 transition-all duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-zinc-950 ${BUTTON_STYLES[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold px-4 py-2.5 transition-all duration-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 dark:focus-visible:ring-offset-ink-950 ${BUTTON_STYLES[variant]} ${className}`}
       {...rest}
     >
       {loading ? <Spinner className="w-4 h-4" /> : icon ? <Icon name={icon} /> : null}
@@ -54,7 +61,7 @@ export function Button({ variant = 'primary', loading, icon, disabled, className
 
 export function Card({ className = '', children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={`bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm ${className}`}>
+    <div className={`bg-white dark:bg-ink-900 rounded-xl border border-ink-200 dark:border-ink-700 shadow-lift ${className}`}>
       {children}
     </div>
   );
@@ -62,10 +69,10 @@ export function Card({ className = '', children }: { className?: string; childre
 
 export function CardHeader({ title, subtitle, action }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-start justify-between gap-3 flex-wrap">
+    <div className="px-5 py-4 border-b border-ink-100 dark:border-ink-800 flex items-start justify-between gap-3 flex-wrap">
       <div>
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
-        {subtitle && <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">{subtitle}</p>}
+        <h2 className="font-display text-base font-semibold text-ink-900 dark:text-ink-100">{title}</h2>
+        {subtitle && <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -74,14 +81,16 @@ export function CardHeader({ title, subtitle, action }: { title: ReactNode; subt
 
 // ── Form fields ───────────────────────────────────────────────────────────────
 
+// Stationery-style fields: warm paper fill, heavier baseline rule that turns
+// pine on focus — like writing on a printed form.
 export const inputClass =
-  'w-full border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm bg-white dark:bg-zinc-800/60 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 transition-shadow focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent';
+  'w-full border border-ink-300 dark:border-ink-700 border-b-2 border-b-ink-400/70 dark:border-b-ink-500/70 rounded-lg px-3.5 py-2.5 text-sm bg-ink-50/60 dark:bg-ink-800/60 text-ink-900 dark:text-ink-100 placeholder-ink-400 dark:placeholder-ink-600 transition-colors focus:outline-none focus:bg-white dark:focus:bg-ink-800 focus:border-accent-500 focus:border-b-accent-700 dark:focus:border-accent-500 dark:focus:border-b-accent-400';
 
 export function FieldLabel({ children, hint }: { children: ReactNode; hint?: ReactNode }) {
   return (
-    <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+    <label className="block text-xs font-semibold text-ink-600 dark:text-ink-400 uppercase tracking-wide mb-1.5">
       {children}
-      {hint && <span className="ml-1.5 font-normal normal-case tracking-normal text-zinc-400 dark:text-zinc-500">{hint}</span>}
+      {hint && <span className="ml-1.5 font-normal normal-case tracking-normal text-ink-400 dark:text-ink-500">{hint}</span>}
     </label>
   );
 }
@@ -120,13 +129,13 @@ export function Modal({ onClose, children, size = 'max-w-lg' }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 backdrop-blur-sm p-4 animate-fade-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className={`bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 w-full ${size} max-h-[90vh] flex flex-col overflow-hidden`}
+        className={`bg-white dark:bg-ink-900 rounded-xl shadow-2xl border border-ink-200 dark:border-ink-700 w-full ${size} max-h-[90vh] flex flex-col overflow-hidden`}
         onClick={e => e.stopPropagation()}
       >
         {children}
@@ -147,11 +156,11 @@ interface EmptyStateProps {
 export function EmptyState({ icon, title, message, action }: EmptyStateProps) {
   return (
     <div className="py-16 text-center px-6">
-      <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
-        <Icon name={icon} className="w-7 h-7 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
+      <div className="w-14 h-14 rounded-full border-2 border-dashed border-ink-300 dark:border-ink-600 flex items-center justify-center mx-auto mb-4">
+        <Icon name={icon} className="w-7 h-7 text-ink-400 dark:text-ink-500" strokeWidth={1.5} />
       </div>
-      <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-1">{title}</h3>
-      {message && <p className="text-sm text-zinc-400 dark:text-zinc-500 max-w-sm mx-auto">{message}</p>}
+      <h3 className="font-display text-base font-semibold text-ink-700 dark:text-ink-300 mb-1">{title}</h3>
+      {message && <p className="text-sm text-ink-400 dark:text-ink-500 max-w-sm mx-auto">{message}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   );
@@ -164,13 +173,13 @@ type AlertTone = 'error' | 'warning' | 'info' | 'success';
 const ALERT_STYLES: Record<AlertTone, string> = {
   error: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400',
   warning: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400',
-  info: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300',
+  info: 'bg-accent-50 dark:bg-accent-900/20 border-accent-200 dark:border-accent-800 text-accent-700 dark:text-accent-300',
   success: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400',
 };
 
 export function Alert({ tone = 'info', children, className = '' }: { tone?: AlertTone; children: ReactNode; className?: string }) {
   return (
-    <div className={`border rounded-xl px-4 py-3 text-sm flex items-start gap-2 ${ALERT_STYLES[tone]} ${className}`}>
+    <div className={`border rounded-lg px-4 py-3 text-sm flex items-start gap-2 ${ALERT_STYLES[tone]} ${className}`}>
       <Icon name={tone === 'success' ? 'circleCheck' : tone === 'info' ? 'info' : 'warning'} className="w-4 h-4 shrink-0 mt-0.5" />
       <div className="min-w-0">{children}</div>
     </div>
@@ -191,9 +200,9 @@ export function Badge({ className = '', children }: { className?: string; childr
 
 export function ProgressBar({ pct }: { pct: number }) {
   return (
-    <div className="bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+    <div className="bg-ink-100 dark:bg-ink-800 rounded-full h-2 overflow-hidden border border-ink-200 dark:border-ink-700">
       <div
-        className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+        className="bg-accent-600 h-full rounded-full transition-all duration-300"
         style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
       />
     </div>
@@ -222,11 +231,11 @@ export function ConfirmDeleteModal({ title, description, note, confirmLabel, inp
             <Icon name="trash" className="w-6 h-6 text-red-500 dark:text-red-400" />
           </div>
         </div>
-        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 text-center mb-1">{title}</h3>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center mb-1">{description}</p>
-        {note && <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center mb-4">{note}</p>}
-        <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
-          Type <span className="font-bold text-red-500">DELETE</span> to confirm
+        <h3 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100 text-center mb-1">{title}</h3>
+        <p className="text-sm text-ink-500 dark:text-ink-400 text-center mb-1">{description}</p>
+        {note && <p className="text-xs text-ink-400 dark:text-ink-500 text-center mb-4">{note}</p>}
+        <p className="text-xs font-medium text-ink-600 dark:text-ink-400 mb-1.5">
+          Type <span className="font-bold text-red-600 dark:text-red-400">DELETE</span> to confirm
         </p>
         <input
           type="text"

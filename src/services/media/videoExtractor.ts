@@ -4,23 +4,29 @@
 // Detects each stable "settled" page using frame difference analysis,
 // then extracts one high-quality JPEG per page.
 //
-// Algorithm (single-pass):
+// Algorithm:
 //  1. Sample frames at SAMPLE_INTERVAL_S using HTMLVideoElement seeking
 //  2. Compare each frame to the previous using luminance MAD on a tiny canvas
-//  3. State machine: STABLE ↔ TURNING
-//     - When stable long enough AND past the minimum gap → record timestamp
-//  4. Seek back to each recorded timestamp and capture at full resolution
+//  3. State machine: STABLE ↔ TURNING — one capture per stable run.
+//     A run only ends when a page turn is CONFIRMED (sustained motion across
+//     TURN_CONFIRM_SAMPLES consecutive samples), so hand jitter can't split
+//     one page into two, and a page held still for long yields exactly one capture.
+//  4. Seek back to each recorded timestamp and capture at full resolution,
+//     dropping any capture whose content matches the previously kept page
+//     (near-identical luminance = the same page seen twice).
 
 // ── Tunable constants ─────────────────────────────────────────────────────────
 
-const COMPARE_W = 160;          // comparison canvas width (fast, still accurate)
-const COMPARE_H = 120;          // comparison canvas height
-const SAMPLE_INTERVAL_S = 0.2;  // seek step in seconds
-const STABLE_THRESHOLD  = 5.5;  // MAD below this = page is still
-const TURNING_THRESHOLD = 16.0; // MAD above this = page is turning
-const STABLE_HOLD_S     = 0.45; // seconds of stability before committing a page
-const MIN_PAGE_GAP_S    = 0.9;  // minimum seconds between two consecutive page captures
-const JPEG_QUALITY      = 0.92; // capture quality (0–1)
+const COMPARE_W = 160;            // comparison canvas width (fast, still accurate)
+const COMPARE_H = 120;            // comparison canvas height
+const SAMPLE_INTERVAL_S = 0.2;    // seek step in seconds
+const STABLE_THRESHOLD  = 5.5;    // MAD below this = page is still
+const TURNING_THRESHOLD = 16.0;   // MAD above this = page is turning
+const TURN_CONFIRM_SAMPLES = 2;   // consecutive turning samples needed to confirm a page turn
+const STABLE_HOLD_S     = 0.45;   // seconds of stability before committing a page
+const MIN_PAGE_GAP_S    = 0.9;    // minimum seconds between two consecutive page captures
+const DUPLICATE_MAD     = 3.0;    // captures closer than this (luminance MAD) are the same page
+const JPEG_QUALITY      = 0.92;   // capture quality (0–1)
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -127,10 +133,16 @@ export async function extractPagesFromVideo(
     const capCtx = capCanvas.getContext('2d')!;
 
     // ── Pass 1: scan for stable page timestamps ───────────────────────────────
+    // One capture per stable run. A run ends only when a page turn is confirmed
+    // (TURN_CONFIRM_SAMPLES consecutive high-motion samples), so a page held
+    // still for many seconds produces exactly one capture, and a single jittery
+    // frame cannot split one page into two.
     const captureTimestamps: number[] = [];
-    let prevPixels:       Uint8ClampedArray | null = null;
-    let stableFromTime:   number | null            = null; // when current stable run started
-    let lastCaptureTime   = -MIN_PAGE_GAP_S;
+    let prevPixels:      Uint8ClampedArray | null = null;
+    let stableFromTime:  number | null            = null; // when current stable run started
+    let capturedThisRun  = false;                          // already captured the current run?
+    let turningStreak    = 0;                              // consecutive samples above TURNING_THRESHOLD
+    let lastCaptureTime  = -MIN_PAGE_GAP_S;
 
     const totalSamples = Math.ceil(duration / SAMPLE_INTERVAL_S) + 1;
 
@@ -157,32 +169,39 @@ export async function extractPagesFromVideo(
       prevPixels = cmpCtx.getImageData(0, 0, COMPARE_W, COMPARE_H).data.slice() as Uint8ClampedArray;
 
       if (mad > TURNING_THRESHOLD) {
-        // Page is turning — break any stable run
-        stableFromTime = null;
-      } else if (mad < STABLE_THRESHOLD) {
-        // Frame is stable
-        if (stableFromTime === null) {
-          stableFromTime = t; // just became stable
-        } else {
-          const stableDuration = t - stableFromTime;
-          const gapSinceLast   = t - lastCaptureTime;
+        turningStreak++;
+        if (turningStreak >= TURN_CONFIRM_SAMPLES) {
+          // Confirmed page turn — end the current run; next stable frame starts a new page
+          stableFromTime  = null;
+          capturedThisRun = false;
+        }
+      } else {
+        turningStreak = 0;
 
-          if (stableDuration >= STABLE_HOLD_S && gapSinceLast >= MIN_PAGE_GAP_S) {
-            // Page has been stable long enough — record best frame in this run
-            // Use the midpoint of the stable run (avoids leading-edge blur)
-            const captureAt = stableFromTime + stableDuration / 2;
-            captureTimestamps.push(captureAt);
-            lastCaptureTime = t;
-            // Advance stableFromTime past the hold window to prevent re-triggering
-            stableFromTime = t + STABLE_HOLD_S;
+        if (mad < STABLE_THRESHOLD) {
+          // Frame is stable
+          if (stableFromTime === null) {
+            stableFromTime = t; // just became stable
+          } else if (!capturedThisRun) {
+            const stableDuration = t - stableFromTime;
+            const gapSinceLast   = t - lastCaptureTime;
+
+            if (stableDuration >= STABLE_HOLD_S && gapSinceLast >= MIN_PAGE_GAP_S) {
+              // Page has settled — capture the midpoint of the run (avoids
+              // leading-edge blur), then stay quiet until the next page turn.
+              captureTimestamps.push(stableFromTime + stableDuration / 2);
+              lastCaptureTime = t;
+              capturedThisRun = true;
+            }
           }
         }
+        // AMBIGUOUS (between thresholds): preserve current state
       }
-      // AMBIGUOUS (between thresholds): do nothing — preserve current state
     }
 
-    // Post-loop: capture the last stable segment if not yet captured
+    // Post-loop: capture the final stable segment if its run was never captured
     if (
+      !capturedThisRun &&
       stableFromTime !== null &&
       (duration - stableFromTime) >= STABLE_HOLD_S &&
       (duration - lastCaptureTime) >= MIN_PAGE_GAP_S
@@ -197,8 +216,11 @@ export async function extractPagesFromVideo(
       }
     }
 
-    // ── Pass 2: capture pages at full resolution ──────────────────────────────
+    // ── Pass 2: capture pages at full resolution, dropping duplicates ────────
+    // Safety net: if two capture timestamps show near-identical content
+    // (the same page detected twice), keep only the first.
     const pageFiles: File[] = [];
+    let lastKeptPixels: Uint8ClampedArray | null = null;
 
     for (let i = 0; i < captureTimestamps.length; i++) {
       await seekTo(video, captureTimestamps[i]);
@@ -207,11 +229,18 @@ export async function extractPagesFromVideo(
       onProgress?.({
         phase: 'capturing',
         pct: Math.round(80 + ((i + 1) / captureTimestamps.length) * 20),
-        pagesFound: captureTimestamps.length,
+        pagesFound: pageFiles.length,
       });
 
+      // Downscale this capture and compare against the last kept page
+      cmpCtx.drawImage(capCanvas, 0, 0, COMPARE_W, COMPARE_H);
+      if (lastKeptPixels && computeMAD(cmpCtx, lastKeptPixels) < DUPLICATE_MAD) {
+        continue; // same page seen again — skip
+      }
+      lastKeptPixels = cmpCtx.getImageData(0, 0, COMPARE_W, COMPARE_H).data.slice() as Uint8ClampedArray;
+
       const blob = await toBlob(capCanvas, JPEG_QUALITY);
-      pageFiles.push(new File([blob], `page-${i + 1}.jpg`, { type: 'image/jpeg' }));
+      pageFiles.push(new File([blob], `page-${pageFiles.length + 1}.jpg`, { type: 'image/jpeg' }));
     }
 
     onProgress?.({ phase: 'capturing', pct: 100, pagesFound: pageFiles.length });

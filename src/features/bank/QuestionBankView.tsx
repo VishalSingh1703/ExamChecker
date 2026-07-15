@@ -15,9 +15,9 @@ interface EditableQ extends EditableQuestion {
 function StepDot({ n, active, done }: { n: number; active: boolean; done: boolean }) {
   return (
     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-colors ${
-      done ? 'bg-purple-700 border-purple-700 text-white'
-        : active ? 'border-purple-700 text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
-        : 'border-zinc-300 dark:border-zinc-600 text-zinc-400'
+      done ? 'bg-accent-700 border-accent-700 text-white'
+        : active ? 'border-accent-700 text-accent-700 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20'
+        : 'border-ink-300 dark:border-ink-600 text-ink-400'
     }`}>
       {done ? <Icon name="check" className="w-3.5 h-3.5" strokeWidth={3} /> : n}
     </div>
@@ -165,19 +165,19 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
     <div className="max-w-3xl mx-auto animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={onBack} aria-label="Back" className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-colors">
+        <button onClick={onBack} aria-label="Back" className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-500 dark:text-ink-400 transition-colors">
           <Icon name="chevronLeft" className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">Question Bank</h1>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">Upload questions from textbooks or enter them manually.</p>
+          <h1 className="font-display text-xl font-semibold text-ink-900 dark:text-ink-100 tracking-tight">Question Bank</h1>
+          <p className="text-xs text-ink-400 dark:text-ink-500">Upload questions from textbooks or enter them manually.</p>
         </div>
       </div>
 
       {/* Step indicator */}
       <div className="flex items-center gap-2 mb-8">
         <StepDot n={1} active={step === 1} done={step > 1} />
-        <div className={`flex-1 h-0.5 rounded-full ${step > 1 ? 'bg-purple-700' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
+        <div className={`flex-1 h-0.5 rounded-full ${step > 1 ? 'bg-accent-700' : 'bg-ink-200 dark:bg-ink-700'}`} />
         <StepDot n={2} active={step === 2} done={false} />
       </div>
 
@@ -185,12 +185,12 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
       {step === 1 && (
         <Card className="p-6 space-y-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Upload Questions</h2>
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">Select the class and subject. You can name the chapter on the next step.</p>
+            <h2 className="text-base font-semibold text-ink-900 dark:text-ink-100">Upload Questions</h2>
+            <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">Select the class and subject. You can name the chapter on the next step.</p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">Class</label>
+            <label className="block text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide mb-1.5">Class</label>
             <Select value={cls} onChange={e => setCls(e.target.value)}>
               <option value="">Select a class…</option>
               {CLASS_OPTIONS.map(group => (
@@ -202,7 +202,7 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">Subject</label>
+            <label className="block text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide mb-1.5">Subject</label>
             <TextInput
               type="text" value={subject} onChange={e => setSubject(e.target.value)}
               placeholder="e.g. Biology, Mathematics, History"
@@ -220,14 +220,14 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
         <div className="space-y-4">
           {/* Context badges */}
           <div className="flex items-center gap-2 text-sm flex-wrap">
-            <span className="px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-xs font-medium">{cls}</span>
-            <span className="px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-medium">{subject}</span>
-            {chapter && <span className="px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-medium">{chapter}</span>}
+            <span className="px-3 py-1 rounded-full bg-accent-50 dark:bg-accent-900/20 text-accent-700 dark:text-accent-300 text-xs font-medium">{cls}</span>
+            <span className="px-3 py-1 rounded-full bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-400 text-xs font-medium">{subject}</span>
+            {chapter && <span className="px-3 py-1 rounded-full bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-400 text-xs font-medium">{chapter}</span>}
           </div>
 
           {/* Chapter name */}
           <Card className="p-4">
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">Chapter Name</label>
+            <label className="block text-xs font-semibold text-ink-500 dark:text-ink-400 uppercase tracking-wide mb-1.5">Chapter Name</label>
             <TextInput
               type="text" value={chapter} onChange={e => setChapter(e.target.value)}
               placeholder="e.g. Chapter 3 — Photosynthesis"
@@ -242,9 +242,9 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
               <Button icon={extracting ? undefined : 'upload'} loading={extracting} onClick={() => photoRef.current?.click()}>
                 {extracting ? 'Extracting…' : 'Upload Questions'}
               </Button>
-              <div className="text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">
+              <div className="text-xs text-ink-400 dark:text-ink-500 leading-relaxed">
                 AI will extract all questions automatically
-                <span className="block text-zinc-300 dark:text-zinc-600">Photo · PDF · .txt file</span>
+                <span className="block text-ink-300 dark:text-ink-600">Photo · PDF · .txt file</span>
               </div>
             </div>
             {extractError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{extractError}</p>}
@@ -279,7 +279,7 @@ export function QuestionBankView({ userId = '', onBack }: { userId?: string; onB
           )}
 
           <button onClick={addManual}
-            className="w-full py-3 border-2 border-dashed border-zinc-300 dark:border-zinc-600 text-zinc-500 dark:text-zinc-400 rounded-2xl text-sm font-medium hover:border-purple-400 hover:text-purple-700 dark:hover:border-purple-600 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2">
+            className="w-full py-3 border-2 border-dashed border-ink-300 dark:border-ink-600 text-ink-500 dark:text-ink-400 rounded-2xl text-sm font-medium hover:border-accent-400 hover:text-accent-700 dark:hover:border-accent-600 dark:hover:text-accent-400 transition-colors flex items-center justify-center gap-2">
             <Icon name="plus" className="w-4 h-4" />
             Add Question Manually
           </button>

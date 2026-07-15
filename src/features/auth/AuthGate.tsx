@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { supabase } from '../../services/data/supabase';
-import { Logo } from '../../app/AppShell';
+import { Logo, Wordmark } from '../../app/AppShell';
 import { Button, Icon, TextInput, inputClass } from '../../components/ui';
 
 type View = 'login' | 'signup' | 'forgot' | 'verify-sent' | 'reset-sent' | 'phone-otp';
@@ -121,7 +121,7 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
       type="button"
       tabIndex={-1}
       onClick={() => setShowPassword(p => !p)}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 dark:hover:text-ink-300"
       aria-label={showPassword ? 'Hide password' : 'Show password'}
     >
       <Icon name={showPassword ? 'eyeOff' : 'eye'} className="w-4 h-4" />
@@ -133,12 +133,12 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
     return (
       <Screen banner={banner}>
         <StatusIcon icon="phone" />
-        <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 text-center mb-2">Enter the code</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center mb-1">We sent a 6-digit code to</p>
-        <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 text-center mb-6">{phone}</p>
+        <h2 className="font-display text-xl font-semibold text-ink-900 dark:text-ink-100 text-center mb-2">Enter the code</h2>
+        <p className="text-sm text-ink-500 dark:text-ink-400 text-center mb-1">We sent a 6-digit code to</p>
+        <p className="text-sm font-medium text-ink-800 dark:text-ink-200 text-center mb-6">{phone}</p>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Verification Code</label>
+            <label className="block text-sm font-medium text-ink-700 dark:text-ink-300 mb-1">Verification Code</label>
             <input
               type="text"
               inputMode="numeric"
@@ -155,10 +155,10 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
           <Button className="w-full" onClick={handleVerifyOtp} disabled={otp.length < 6} loading={loading}>
             {loading ? 'Verifying…' : 'Verify Code'}
           </Button>
-          <button onClick={handleSendOtp} disabled={loading} className="w-full text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 py-1">
+          <button onClick={handleSendOtp} disabled={loading} className="w-full text-sm text-ink-500 dark:text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 py-1">
             Resend code
           </button>
-          <button onClick={() => { setView('login'); setOtp(''); setError(''); }} className="w-full text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 py-1">
+          <button onClick={() => { setView('login'); setOtp(''); setError(''); }} className="w-full text-sm text-ink-500 dark:text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 py-1">
             ← Back
           </button>
         </div>
@@ -171,10 +171,10 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
     return (
       <Screen banner={banner}>
         <StatusIcon icon="mail" tone="success" />
-        <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 text-center mb-2">Check your email</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center mb-1">We sent a verification link to</p>
-        <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 text-center mb-4 break-all">{email}</p>
-        <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center mb-6">
+        <h2 className="font-display text-xl font-semibold text-ink-900 dark:text-ink-100 text-center mb-2">Check your email</h2>
+        <p className="text-sm text-ink-500 dark:text-ink-400 text-center mb-1">We sent a verification link to</p>
+        <p className="text-sm font-medium text-ink-800 dark:text-ink-200 text-center mb-4 break-all">{email}</p>
+        <p className="text-xs text-ink-400 dark:text-ink-500 text-center mb-6">
           Click the link in the email to activate your account, then come back here to sign in.
         </p>
         <Button className="w-full" onClick={() => resetForm('login')}>Back to Sign In</Button>
@@ -187,10 +187,10 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
     return (
       <Screen banner={banner}>
         <StatusIcon icon="lock" />
-        <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 text-center mb-2">Reset email sent</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center mb-1">We sent a password reset link to</p>
-        <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 text-center mb-4 break-all">{email}</p>
-        <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center mb-6">Check your inbox and click the link to reset your password.</p>
+        <h2 className="font-display text-xl font-semibold text-ink-900 dark:text-ink-100 text-center mb-2">Reset email sent</h2>
+        <p className="text-sm text-ink-500 dark:text-ink-400 text-center mb-1">We sent a password reset link to</p>
+        <p className="text-sm font-medium text-ink-800 dark:text-ink-200 text-center mb-4 break-all">{email}</p>
+        <p className="text-xs text-ink-400 dark:text-ink-500 text-center mb-6">Check your inbox and click the link to reset your password.</p>
         <Button className="w-full" onClick={() => resetForm('login')}>Back to Sign In</Button>
       </Screen>
     );
@@ -200,18 +200,18 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
   if (view === 'forgot') {
     return (
       <Screen banner={banner}>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-1 tracking-tight">Forgot password?</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-6">Enter your email and we'll send you a reset link.</p>
+        <h1 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100 mb-1 tracking-tight">Forgot password?</h1>
+        <p className="text-ink-500 dark:text-ink-400 text-sm mb-6">Enter your email and we'll send you a reset link.</p>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
+            <label className="block text-sm font-medium text-ink-700 dark:text-ink-300 mb-1">Email</label>
             <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleForgotPassword()} autoFocus placeholder="teacher@school.com" />
           </div>
           {error && <ErrorBox message={error} />}
           <Button className="w-full" onClick={handleForgotPassword} disabled={!email} loading={loading}>
             {loading ? 'Sending…' : 'Send Reset Email'}
           </Button>
-          <button onClick={() => resetForm('login')} className="w-full text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 py-1">
+          <button onClick={() => resetForm('login')} className="w-full text-sm text-ink-500 dark:text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 py-1">
             ← Back to Sign In
           </button>
         </div>
@@ -223,15 +223,15 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
   if (view === 'signup') {
     return (
       <Screen banner={banner}>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-1 tracking-tight">Create account</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-6">Submit a request — once approved, you'll receive access to ExamChecker.</p>
+        <h1 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100 mb-1 tracking-tight">Create account</h1>
+        <p className="text-ink-500 dark:text-ink-400 text-sm mb-6">Submit a request — once approved, you'll receive access to ExamChecker.</p>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
+            <label className="block text-sm font-medium text-ink-700 dark:text-ink-300 mb-1">Email</label>
             <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus placeholder="teacher@school.com" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Password</label>
+            <label className="block text-sm font-medium text-ink-700 dark:text-ink-300 mb-1">Password</label>
             <div className="relative">
               <TextInput type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSignUp()} className="pr-10" placeholder="Min. 6 characters" />
               {passwordToggle}
@@ -241,9 +241,9 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
           <Button className="w-full" onClick={handleSignUp} disabled={!email || !password} loading={loading}>
             {loading ? 'Submitting request…' : 'Request Access'}
           </Button>
-          <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-center text-sm text-ink-500 dark:text-ink-400">
             Already have an account?{' '}
-            <button onClick={() => resetForm('login')} className="text-purple-700 dark:text-purple-400 font-medium hover:underline">Sign In</button>
+            <button onClick={() => resetForm('login')} className="text-accent-700 dark:text-accent-400 font-medium hover:underline">Sign In</button>
           </p>
         </div>
       </Screen>
@@ -255,20 +255,20 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
     <Screen banner={banner}>
       <div className="flex items-center gap-3 mb-1">
         <Logo className="w-9 h-9" />
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">ExamChecker</h1>
+        <Wordmark />
       </div>
-      <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-5">Sign in to continue</p>
+      <p className="text-ink-500 dark:text-ink-400 text-sm mb-5">Sign in to continue</p>
 
-      <div className="flex rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden mb-5">
+      <div className="flex rounded-xl border border-ink-200 dark:border-ink-700 overflow-hidden mb-5">
         {(['email', 'phone'] as Method[]).map(m => (
           <button
             key={m}
             onClick={() => switchMethod(m)}
             className={`flex-1 py-2 text-sm font-medium transition-colors capitalize ${
               method === m
-                ? 'bg-purple-700 text-white'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-            } ${m === 'phone' ? 'border-l border-zinc-200 dark:border-zinc-700' : ''}`}
+                ? 'bg-accent-700 text-white'
+                : 'text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800'
+            } ${m === 'phone' ? 'border-l border-ink-200 dark:border-ink-700' : ''}`}
           >
             {m}
           </button>
@@ -278,11 +278,11 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
       {method === 'email' ? (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
+            <label className="block text-sm font-medium text-ink-700 dark:text-ink-300 mb-1">Email</label>
             <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus placeholder="teacher@school.com" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Password</label>
+            <label className="block text-sm font-medium text-ink-700 dark:text-ink-300 mb-1">Password</label>
             <div className="relative">
               <TextInput type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleEmailLogin()} className="pr-10" placeholder="••••••••" />
               {passwordToggle}
@@ -292,18 +292,18 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
           <Button className="w-full" onClick={handleEmailLogin} disabled={!email || !password} loading={loading}>
             {loading ? 'Signing in…' : 'Sign In'}
           </Button>
-          <button onClick={() => resetForm('forgot')} className="w-full py-2.5 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+          <button onClick={() => resetForm('forgot')} className="w-full py-2.5 border border-ink-300 dark:border-ink-700 rounded-xl text-sm font-medium text-ink-700 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800">
             Forgot Password?
           </button>
-          <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-center text-sm text-ink-500 dark:text-ink-400">
             Don't have an account?{' '}
-            <button onClick={() => resetForm('signup')} className="text-purple-700 dark:text-purple-400 font-medium hover:underline">Create one</button>
+            <button onClick={() => resetForm('signup')} className="text-accent-700 dark:text-accent-400 font-medium hover:underline">Create one</button>
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Phone Number</label>
+            <label className="block text-sm font-medium text-ink-700 dark:text-ink-300 mb-1">Phone Number</label>
             <TextInput
               type="tel"
               value={phone}
@@ -312,13 +312,13 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
               autoFocus
               placeholder="+91 98765 43210"
             />
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">Include country code (e.g. +91 for India, +1 for US)</p>
+            <p className="text-xs text-ink-400 dark:text-ink-500 mt-1">Include country code (e.g. +91 for India, +1 for US)</p>
           </div>
           {error && <ErrorBox message={error} />}
           <Button className="w-full" onClick={handleSendOtp} disabled={!phone} loading={loading}>
             {loading ? 'Sending code…' : 'Send OTP'}
           </Button>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center">
+          <p className="text-xs text-ink-400 dark:text-ink-500 text-center">
             A 6-digit verification code will be sent via SMS. Works for both sign-in and sign-up.
           </p>
         </div>
@@ -331,10 +331,10 @@ export function AuthGate({ banner }: { banner?: ReactNode }) {
 
 function Screen({ children, banner }: { children: ReactNode; banner?: ReactNode }) {
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col">
+    <div className="min-h-screen bg-ink-50 dark:bg-ink-950 bg-desk flex flex-col">
       {banner}
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-8 w-full max-w-sm border border-zinc-200 dark:border-zinc-800 animate-fade-in">
+        <div className="bg-white dark:bg-ink-900 rounded-xl shadow-lift p-8 w-full max-w-sm border border-ink-200 dark:border-ink-700 animate-fade-in">
           {children}
         </div>
       </div>
@@ -345,7 +345,7 @@ function Screen({ children, banner }: { children: ReactNode; banner?: ReactNode 
 function StatusIcon({ icon, tone = 'accent' }: { icon: 'phone' | 'mail' | 'lock'; tone?: 'accent' | 'success' }) {
   const cls = tone === 'success'
     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-    : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
+    : 'bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400';
   return (
     <div className="flex justify-center mb-4">
       <div className={`w-12 h-12 rounded-full flex items-center justify-center ${cls}`}>
