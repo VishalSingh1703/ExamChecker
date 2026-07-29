@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Practice Test — Implementation Plan</title>
+
+<style>
+  :root {
+    --ground:      #FBFAFC;
+    --surface:     #FFFFFF;
+    --surface-2:   #F4F2F7;
+    --ink:         #17141F;
+    --ink-2:       #3F3A4D;
+    --muted:       #6B6577;
+    --hairline:    #E3DFEA;
+    --hairline-2:  #CFC8DA;
+    --accent:      #6D28D9;
+    --accent-soft: #F1EBFD;
+    --accent-ink:  #4C1D95;
+    --red:         #DC2626;
+    --red-soft:    #FDECEC;
+    --amber:       #B45309;
+    --amber-soft:  #FDF3E3;
+    --green:       #047857;
+    --green-soft:  #E6F4EF;
+
+    --plate:       #FAF9FB;
+    --plate-ink:   #17141F;
+
+    --f-display: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+    --f-body:    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono:    ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+    --col: 68ch;
+    --rail: 8.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:      #121017;
+      --surface:     #1A1723;
+      --surface-2:   #241F30;
+      --ink:         #EEEBF3;
+      --ink-2:       #C6C0D2;
+      --muted:       #948DA3;
+      --hairline:    #2E2839;
+      --hairline-2:  #443C55;
+      --accent:      #A78BFA;
+      --accent-soft: #251E38;
+      --accent-ink:  #C4B5FD;
+      --red:         #F87171;
+      --red-soft:    #2E1A1D;
+      --amber:       #FBBF24;
+      --amber-soft:  #2C2314;
+      --green:       #34D399;
+      --green-soft:  #12291F;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #121017;
+    --surface:     #1A1723;
+    --surface-2:   #241F30;
+    --ink:         #EEEBF3;
+    --ink-2:       #C6C0D2;
+    --muted:       #948DA3;
+    --hairline:    #2E2839;
+    --hairline-2:  #443C55;
+    --accent:      #A78BFA;
+    --accent-soft: #251E38;
+    --accent-ink:  #C4B5FD;
+    --red:         #F87171;
+    --red-soft:    #2E1A1D;
+    --amber:       #FBBF24;
+    --amber-soft:  #2C2314;
+    --green:       #34D399;
+    --green-soft:  #12291F;
+  }
+
+  :root[data-theme="light"] {
+    --ground:      #FBFAFC;
+    --surface:     #FFFFFF;
+    --surface-2:   #F4F2F7;
+    --ink:         #17141F;
+    --ink-2:       #3F3A4D;
+    --muted:       #6B6577;
+    --hairline:    #E3DFEA;
+    --hairline-2:  #CFC8DA;
+    --accent:      #6D28D9;
+    --accent-soft: #F1EBFD;
+    --accent-ink:  #4C1D95;
+    --red:         #DC2626;
+    --red-soft:    #FDECEC;
+    --amber:       #B45309;
+    --amber-soft:  #FDF3E3;
+    --green:       #047857;
+    --green-soft:  #E6F4EF;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: calc(var(--col) + var(--rail) + 6rem);
+    margin: 0 auto;
+    padding: 0 1.25rem 6rem;
+  }
+
+  /* ── Masthead ─────────────────────────────────────────── */
+  .masthead {
+    padding: 4.5rem 0 2.5rem;
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .kicker {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  .kicker .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--hairline-2); }
+  h1 {
+    font-family: var(--f-display);
+    font-size: clamp(2.1rem, 5.5vw, 3.4rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    text-wrap: balance;
+    max-width: 20ch;
+    margin: 0;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .standfirst {
+    font-size: 1.075rem;
+    color: var(--ink-2);
+    max-width: 62ch;
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  /* ── Flow strip ───────────────────────────────────────── */
+  .flow {
+    margin-top: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  .flow-inner {
+    display: grid;
+    grid-auto-flow: column;
+    gap: 0;
+    min-width: max-content;
+  }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding-right: 0.7rem;
+  }
+  .flow-step:last-child { padding-right: 0; }
+  .flow-node {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--hairline-2);
+    border-radius: 2px;
+    background: var(--surface);
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .flow-node.new { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .flow-arrow { color: var(--hairline-2); font-family: var(--f-mono); font-size: 0.8rem; }
+  .flow-key {
+    display: flex; gap: 1.25rem; flex-wrap: wrap;
+    font-family: var(--f-mono); font-size: 0.68rem;
+    color: var(--muted); letter-spacing: 0.04em;
+  }
+  .flow-key span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .swatch { width: 9px; height: 9px; border-radius: 1px; border: 1px solid var(--hairline-2); background: var(--surface); }
+  .swatch.new { border-color: var(--accent); background: var(--accent-soft); }
+
+  /* ── Sections w/ margin rail ──────────────────────────── */
+  section { padding-top: 3.5rem; }
+  .sec-head {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 2rem;
+    align-items: baseline;
+    margin-bottom: 1.5rem;
+  }
+  .sec-label {
+    font-family: var(--f-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 0.55rem;
+    border-top: 2px solid var(--accent);
+  }
+  h2 {
+    font-family: var(--f-display);
+    font-size: clamp(1.5rem, 3.2vw, 2rem);
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .body {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 2rem;
+  }
+  .body > * { grid-column: 2; min-width: 0; }
+  .stack { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  @media (max-width: 720px) {
+    :root { --rail: 0rem; }
+    .sec-head, .body { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+    .body > * { grid-column: 1; }
+    .sec-label { border-top: none; padding-top: 0; }
+  }
+
+  p { max-width: var(--col); margin: 0; }
+  h3 {
+    font-family: var(--f-body);
+    font-size: 1.02rem;
+    font-weight: 650;
+    letter-spacing: -0.005em;
+    margin: 0.4rem 0 0;
+  }
+  strong { font-weight: 650; color: var(--ink); }
+  a { color: var(--accent); }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.855em;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    padding: 0.08em 0.34em;
+    color: var(--accent-ink);
+    overflow-wrap: anywhere;
+  }
+  pre {
+    font-family: var(--f-mono);
+    font-size: 0.79rem;
+    line-height: 1.6;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 2px solid var(--accent);
+    border-radius: 2px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    color: var(--ink-2);
+    margin: 0;
+  }
+  pre code { background: none; border: none; padding: 0; color: inherit; font-size: inherit; }
+
+  ul, ol { padding-left: 1.15rem; max-width: var(--col); display: flex; flex-direction: column; gap: 0.5rem; margin: 0; }
+  li::marker { color: var(--accent); }
+  ol li::marker { font-family: var(--f-mono); font-size: 0.85em; }
+
+  /* ── Findings ─────────────────────────────────────────── */
+  .finding {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--red);
+    border-radius: 2px;
+    padding: 1.15rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .finding.warn { border-left-color: var(--amber); }
+  .finding.info { border-left-color: var(--accent); }
+  .finding-head {
+    display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: baseline;
+  }
+  .chip {
+    font-family: var(--f-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.45rem;
+    border-radius: 2px;
+    white-space: nowrap;
+    background: var(--red-soft); color: var(--red);
+  }
+  .chip.warn  { background: var(--amber-soft); color: var(--amber); }
+  .chip.info  { background: var(--accent-soft); color: var(--accent); }
+  .chip.good  { background: var(--green-soft); color: var(--green); }
+  .finding-head h3 { margin: 0; }
+  .finding p { margin: 0; max-width: none; font-size: 0.95rem; color: var(--ink-2); }
+  .finding blockquote {
+    font-family: var(--f-mono);
+    font-size: 0.79rem;
+    line-height: 1.55;
+    color: var(--ink-2);
+    background: var(--surface-2);
+    border-radius: 2px;
+    padding: 0.7rem 0.9rem;
+    margin: 0;
+  }
+
+  /* ── Tables ───────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--hairline); border-radius: 2px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.7rem 0.95rem; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  thead th {
+    font-family: var(--f-mono);
+    font-size: 0.63rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.path { font-family: var(--f-mono); font-size: 0.78rem; color: var(--accent-ink); white-space: nowrap; }
+  td.role { color: var(--ink-2); }
+
+  /* ── Phases ───────────────────────────────────────────── */
+  .phases { display: flex; flex-direction: column; gap: 0; }
+  .phase {
+    display: grid;
+    grid-template-columns: 3.25rem minmax(0, 1fr);
+    gap: 0 1.1rem;
+    padding: 1.1rem 0;
+    border-top: 1px solid var(--hairline);
+  }
+  .phase:last-child { border-bottom: 1px solid var(--hairline); }
+  .phase-n {
+    font-family: var(--f-mono);
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--accent);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+  .phase-b { display: flex; flex-direction: column; gap: 0.4rem; }
+  .phase-b h3 { margin: 0; }
+  .phase-b p { margin: 0; font-size: 0.93rem; color: var(--ink-2); max-width: none; }
+  .verify {
+    font-size: 0.87rem;
+    color: var(--muted);
+    border-left: 2px solid var(--hairline-2);
+    padding-left: 0.75rem;
+  }
+  .verify b { font-family: var(--f-mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green); font-weight: 500; }
+
+  /* ── Risks ────────────────────────────────────────────── */
+  .risks { display: flex; flex-direction: column; gap: 0.6rem; }
+  .risk {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.45rem;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--hairline-2);
+    border-radius: 2px;
+    padding: 0.9rem 1.1rem;
+  }
+  .risk.sev-high { border-left-color: var(--red); }
+  .risk.sev-med  { border-left-color: var(--amber); }
+  .risk.sev-low  { border-left-color: var(--accent); }
+  .risk-t { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: baseline; font-weight: 620; font-size: 0.95rem; }
+  .risk-m { font-size: 0.9rem; color: var(--ink-2); }
+
+  /* ── Diagram plate ────────────────────────────────────── */
+  .plate {
+    background: var(--plate);
+    border: 1px solid var(--hairline);
+    border-radius: 2px;
+    padding: 1.25rem;
+    overflow-x: auto;
+  }
+  .plate .mermaid { background: none; }
+  .plate-cap {
+    font-family: var(--f-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 0.75rem;
+  }
+
+  /* ── Decisions ────────────────────────────────────────── */
+  .decisions { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; margin: 0; }
+  .decision {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 2px;
+    padding: 0.95rem 1.05rem;
+    display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .decision dt {
+    font-family: var(--f-mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .decision dd { font-size: 0.93rem; color: var(--ink-2); margin: 0; }
+  .decision dd b { color: var(--ink); }
+
+  /* ── Checklist ────────────────────────────────────────── */
+  ol.check { counter-reset: c; list-style: none; padding-left: 0; gap: 0.55rem; }
+  ol.check li {
+    counter-increment: c;
+    display: grid;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0.75rem;
+    font-size: 0.94rem;
+    color: var(--ink-2);
+  }
+  ol.check li::before {
+    content: counter(c, decimal-leading-zero);
+    font-family: var(--f-mono);
+    font-size: 0.72rem;
+    color: var(--accent);
+    padding-top: 0.22rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .colophon {
+    margin-top: 4rem; padding-top: 1.5rem;
+    border-top: 1px solid var(--hairline);
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem;
+  }
+
+  :where(img, svg, video, canvas, iframe) { max-width: 100%; height: auto; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .masthead > *, section { animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) backwards; }
+    .masthead > *:nth-child(2) { animation-delay: 0.06s; }
+    .masthead > *:nth-child(3) { animation-delay: 0.12s; }
+    .masthead > *:nth-child(4) { animation-delay: 0.18s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker">
+      <span>ExamChecker</span><span class="dot"></span>
+      <span>Feature Plan</span><span class="dot"></span>
+      <span>29 Jul 2026</span>
+    </div>
+    <h1>Practice Test: chapter PDF to <em>graded report</em></h1>
+    <p class="standfirst">
+      A self-practice loop bolted onto a teacher-grading tool. Upload a chapter, get a
+      generated paper with model answers, sit a timed test, and receive a report — where
+      the entire back half is the existing grading engine, untouched.
+    </p>
+    <div class="flow">
+      <div class="flow-inner">
+        <div class="flow-step"><span class="flow-node new">Chapter PDF</span><span class="flow-arrow">→</span></div>
+        <div class="flow-step"><span class="flow-node new">Blueprint</span><span class="flow-arrow">→</span></div>
+        <div class="flow-step"><span class="flow-node new">Generate Q + A</span><span class="flow-arrow">→</span></div>
+        <div class="flow-step"><span class="flow-node new">Timed test</span><span class="flow-arrow">→</span></div>
+        <div class="flow-step"><span class="flow-node">Grade</span><span class="flow-arrow">→</span></div>
+        <div class="flow-step"><span class="flow-node">Report</span></div>
+      </div>
+    </div>
+    <div class="flow-key">
+      <span><i class="swatch new"></i> new work</span>
+      <span><i class="swatch"></i> existing engine, reused as-is</span>
+    </div>
+  </header>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Context</div>
+      <h2>Why this exists</h2>
+    </div>
+    <div class="body stack">
+      <p>
+        ExamChecker today is a <strong>teacher-grades-a-student</strong> tool. The teacher authors an
+        answer key in Setup, uploads a student's answer sheet in Grade, and gets a report. There is
+        no path for someone to practise against their own study material.
+      </p>
+      <p>
+        This feature adds a self-practice loop. The intended outcome is that grading, scoring, the
+        report, printing, and cloud sync are <strong>the existing engine, unchanged</strong> — only the
+        front half (PDF → questions with answers, the blueprint editor, and the timer) is genuinely new.
+      </p>
+
+      <h3>Four decisions confirmed up front</h3>
+      <dl class="decisions">
+        <div class="decision">
+          <dt>Marks config</dt>
+          <dd><b>Blueprint rows.</b> Repeatable <code>[N] questions × [M] marks</code> with live totals.</dd>
+        </div>
+        <div class="decision">
+          <dt>Reports</dt>
+          <dd><b>Stored separately.</b> Practice attempts get their own localStorage key and their own section in History — never mixed with graded exams.</dd>
+        </div>
+        <div class="decision">
+          <dt>Grading strictness</dt>
+          <dd><b>New "Firm" mode</b>, exactly halfway between Medium and Strict. The practice default.</dd>
+        </div>
+        <div class="decision">
+          <dt>Saving a paper</dt>
+          <dd><b>Question Bank chapter</b> via the existing <code>saveChapter()</code>. No new table, no migration.</dd>
+        </div>
+        <div class="decision">
+          <dt>PDF pipeline</dt>
+          <dd><b>Two-stage, cached text.</b> Transcribe once; generate from the cache. Regenerating costs one cheap call.</dd>
+        </div>
+        <div class="decision">
+          <dt>Tab placement</dt>
+          <dd><b>Header tool row</b>, immediately left of <em>Upload Questions</em> — not in the main Setup/Grade/Report row.</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Findings</div>
+      <h2>Three things in the source that shape the design</h2>
+    </div>
+    <div class="body stack">
+      <p>Each was verified directly against the code, and each one changes what gets built.</p>
+
+      <div class="finding">
+        <div class="finding-head">
+          <span class="chip">Critical</span>
+          <h3>Hallucinated keywords would silently halve every score</h3>
+        </div>
+        <blockquote>src/services/ai/grading.ts:31 — "If required keywords are listed and ANY are absent, cap the final score at 0.5."</blockquote>
+        <p>
+          If the generator emits a keyword that isn't even in <em>its own</em> <code>expectedAnswer</code>, every
+          student answer for that question is capped at 50%. Generated keywords <strong>must be post-filtered
+          to verbatim substrings of the model answer</strong>. This is the single highest-risk detail in the feature.
+        </p>
+      </div>
+
+      <div class="finding warn">
+        <div class="finding-head">
+          <span class="chip warn">Budget</span>
+          <h3>The 25-question cap is arithmetic, not an arbitrary limit</h3>
+        </div>
+        <p>
+          <code>gradeExtractedText</code> runs at <code>maxOutputTokens: 1024</code> (<code>grading.ts:148</code>), and that
+          budget is <em>shared with the Grade tab's re-evaluate button</em>. At roughly 20 output tokens per
+          score entry, it covers about 40 questions safely. Hence
+          <code>PRACTICE_MAX_QUESTIONS = 25</code> — and it isn't raisable without touching a budget grading depends on.
+        </p>
+      </div>
+
+      <div class="finding info">
+        <div class="finding-head">
+          <span class="chip info">Recommendation</span>
+          <h3>Stay prompt-only for JSON — do not widen <code>GeminiConfig</code></h3>
+        </div>
+        <p>
+          <code>GeminiConfig</code> (<code>client.ts:16-19</code>) exposes only <code>temperature</code> and
+          <code>maxOutputTokens</code> — no <code>responseMimeType</code>. JSON is coaxed by prompt and rescued by
+          <code>extractJson</code>. <code>client.ts</code> is shared by grading, authoring and OCR, so a silent 400
+          from the pinned model would break all three at once. The two-stage design already removes most of the
+          risk, because <strong>stage 1 returns prose, not JSON</strong>.
+        </p>
+      </div>
+
+      <div class="finding info">
+        <div class="finding-head">
+          <span class="chip info">Structural</span>
+          <h3>An in-progress test cannot live in the view's state</h3>
+        </div>
+        <p>
+          <code>PracticeView</code> mounts behind a tab conditional in <code>App.tsx:123-130</code>, so
+          component-local state dies on every tab switch. The attempt needs a
+          provider <em>above</em> that conditional.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Services</div>
+      <h2>The two AI calls</h2>
+    </div>
+    <div class="body stack">
+      <p>Both live in a new <code>src/services/ai/practice.ts</code>, routed through the existing <code>callGemini</code>.</p>
+
+<pre><code>export interface BlueprintRow { id: string; count: number; marks: number }
+export interface GeneratedQuestion {
+  question: string; expectedAnswer: string; marks: number; keywords: string[]
+}
+
+export function blueprintTotals(rows: BlueprintRow[]): { questions: number; marks: number };
+
+export async function extractChapterText(
+  file: File, apiKey: string, signal?: AbortSignal,
+): Promise&lt;string&gt;;
+
+export async function generatePracticePaper(
+  input: { chapterText: string; blueprint: BlueprintRow[];
+           examClass: string; subject: string; chapter: string },
+  apiKey: string, signal?: AbortSignal,
+): Promise&lt;GeneratedQuestion[]&gt;;</code></pre>
+
+      <h3>Stage 1 — <code>extractChapterText</code></h3>
+      <p>
+        For PDFs, use the <em>hardcoded</em> mime exactly as <code>authoring.ts:134</code> —
+        <code>{ inlineData: { mimeType: 'application/pdf', data: await fileToBase64(file) } }</code> — and
+        <strong>not</strong> <code>filePart</code>, because mobile pickers routinely hand back
+        <code>file.type === ''</code>. Text files go through <code>file.text()</code>; images through <code>filePart</code>.
+      </p>
+      <p>
+        The prompt asks for the complete chapter as continuous plain text: preserve headings, definitions,
+        formulas, lists and worked examples; omit page numbers and running headers; do not summarise. Config
+        <code>{ temperature: 0, maxOutputTokens: 8192 }</code>, signal as the fourth argument, result capped at
+        60k chars. <strong>No JSON parsing at all</strong> — this stage cannot fail on malformed output.
+      </p>
+
+      <h3>Stage 2 — <code>generatePracticePaper</code></h3>
+      <p>
+        The reliability trick is <strong>slot expansion</strong>. Small models drift on multiplicative counts
+        ("5 questions of 2 marks") but are reliable against an enumerated table:
+      </p>
+<pre><code>SLOTS — produce exactly one object per slot, in this exact order:
+ 1. 2 marks
+ 2. 2 marks
+ 3. 2 marks
+ 4. 5 marks
+ ...
+ 9. 10 marks
+Total: 9 questions, 45 marks.</code></pre>
+      <p>
+        The body reuses the depth-scaling bands verbatim from <code>generateModelAnswer</code>
+        (<code>authoring.ts:23-26</code>) so practice answers match bank answers in style; requires every question
+        be answerable solely from the chapter text; and forbids repeated or rephrased questions. The keyword rule
+        is stated explicitly: <em>2–4 short technical terms that must appear verbatim, character-for-character,
+        inside your own <code>expectedAnswer</code>; return an empty array if you cannot find such terms.</em>
+      </p>
+      <p>
+        Config <code>temperature: 0.4</code> — variety matters here, since Regenerate must produce a
+        <em>different</em> paper — and <code>maxOutputTokens: Math.min(8192, 700 + totalMarks * 60)</code>.
+      </p>
+
+      <h3>Parsing and hardening, in order</h3>
+      <ol>
+        <li><code>JSON.parse(raw)</code>, falling through to <code>JSON.parse(extractJson(raw, 'array'))</code> — the two proven tiers from <code>parseStructuredQuestions</code>. The line-based third tier is meaningless here, so it's omitted.</li>
+        <li>Per-item string coercion; drop anything with an empty question or answer.</li>
+        <li><strong>Overwrite <code>marks</code> positionally from the slot list.</strong> Never trust the model's own <code>marks</code> — this makes blueprint totals arithmetically guaranteed.</li>
+        <li><strong>Filter keywords</strong> to <code>expectedAnswer.toLowerCase().includes(k.toLowerCase())</code>. This is the guard for the critical finding above.</li>
+        <li>Throw a Regenerate-able error if fewer items than slots; truncate if more.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Pipeline</div>
+      <h2>Blueprint to questions</h2>
+    </div>
+    <div class="body stack">
+<pre><code>BlueprintRow[] → normalise (merge same-marks rows, drop count 0)
+               → expandSlots(): number[]      e.g. [2,2,2,2,2,5,5,5,10,10]
+               → ONE callGemini (slot table + cached chapterText)
+               → GeneratedQuestion[]  (marks re-stamped positionally)
+               → Question[] { id: i + 1, question, expectedAnswer, marks, keywords }</code></pre>
+      <p>
+        <code>id: i + 1</code> matches <code>ExamSetup.tsx:216</code>, so the practice <code>Question[]</code> is
+        byte-compatible with <code>SegmentGradeInput</code>, <code>ReGradeInput</code>,
+        <code>QuestionResult.questionId</code>, <code>printReport</code> and <code>RecordDetail</code> —
+        <strong>zero adapters</strong>.
+      </p>
+
+      <h3>Validation before Generate</h3>
+      <ul>
+        <li>Every row <code>count ≥ 1</code>; marks drawn from <code>PRACTICE_MARK_OPTIONS</code> (all ≤ <code>MAX_QUESTION_MARKS</code>).</li>
+        <li>Hard caps: 25 questions, 150 total marks.</li>
+        <li>Soft warning when <code>questions &gt; chapterText.length / 800</code> — "this chapter may be too short for N distinct questions".</li>
+      </ul>
+
+      <h3>Save to Bank — the only place the id seam is crossed</h3>
+<pre><code>await saveChapter({
+  id: crypto.randomUUID(), userId, class: cls, subject, chapter,
+  questions: questions.map(q =&gt; ({
+    id: crypto.randomUUID(),        // number → uuid, the only crossing
+    question: q.question, expectedAnswer: q.expectedAnswer,
+    marks: q.marks, keywords: q.keywords,
+  })),
+  createdAt: new Date().toISOString(),
+}, userId);</code></pre>
+      <p>
+        Saved papers then appear automatically in <code>ExamSetup</code> (<code>loadChapters</code>,
+        <code>:164</code>) and <code>QuestionPaperBuilder</code> (<code>:116</code>) with no further work.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">State</div>
+      <h2>The practice state machine</h2>
+    </div>
+    <div class="body stack">
+      <div class="plate">
+<pre class="mermaid">
+stateDiagram-v2
+    direction TB
+    [*] --> source
+    source --> extracting: Extract
+    extracting --> blueprint: ok
+    extracting --> source: error
+    blueprint --> generating: Generate
+    generating --> preview: ok
+    generating --> blueprint: error
+    preview --> blueprint: Change blueprint
+    preview --> preview: Regenerate (cached text)
+    preview --> testing: Start Test
+    testing --> grading: Submit / timer expiry
+    grading --> testing: error (Retry)
+    grading --> report: ok
+    report --> source: New Practice
+</pre>
+      </div>
+      <p class="plate-cap">Regenerate and Save to Bank are side effects of preview — neither leaves the phase.</p>
+
+      <p>
+        All of it lives in a new <code>PracticeContext</code>, mirroring <code>ExamContext</code> exactly
+        (useReducer, split state/dispatch contexts). <strong>It never writes <code>ExamContext</code></strong>, so
+        <code>RESET_SESSION</code> — fired by the Report tab's "New Exam" button at <code>ReportView.tsx:177</code>
+        — cannot destroy a running attempt. The only read is <code>geminiApiKey</code>, exactly as
+        <code>QuestionBankView.tsx:28-29</code>.
+      </p>
+
+<pre><code>export type PracticePhase = 'source' | 'extracting' | 'blueprint' | 'generating'
+                          | 'preview' | 'testing' | 'grading' | 'report';
+
+export interface PracticeState {
+  phase: PracticePhase;
+  cls: string; subject: string; chapter: string;
+  chapterText: string;        // cached — survives regenerate and blueprint edits
+  sourceName: string;
+  blueprint: BlueprintRow[];
+  checkingMode: CheckingMode; // default 'medium'
+  questions: Question[];      // id = idx + 1
+  answerMode: 'typed' | 'photo';
+  typedAnswers: Record&lt;number, string&gt;;
+  durationMin: number;
+  deadlineAt: number | null;  // epoch ms
+  attemptId: string;
+  results: QuestionResult[];
+  record: HistoryRecord | null;
+  error: string;
+}</code></pre>
+
+      <h3>Persistence and refresh survival</h3>
+      <ul>
+        <li><strong>Write</strong> to <code>storageKeys.practice(userId)</code>, versioned, <strong>debounced 800 ms</strong> — typing into 25 textareas must not thrash localStorage — flushed immediately on phase transitions and <code>visibilitychange → hidden</code>.</li>
+        <li><strong>Read</strong> in the <code>useReducer</code> lazy initialiser; anything not the current version falls back to <code>initialState</code>.</li>
+        <li><strong>Transient-phase demotion</strong> on rehydrate, because an in-flight fetch can't survive a reload: <code>extracting → source</code>, <code>generating → blueprint</code>, <code>grading → testing</code> with an interrupted-submission message.</li>
+        <li><strong>Survives refresh:</strong> questions, model answers, typed answers, deadline, attempt id, mode. <strong>Does not:</strong> uploaded photos, since <code>File</code> isn't serialisable — the photo tab carries a permanent warning saying so.</li>
+        <li>Non-serialisable state — the source <code>File</code>, <code>SheetPage[]</code>, object URLs — stays in refs inside the step components, never in the reducer.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Timer</div>
+      <h2>Deadline timestamp, not tick counting</h2>
+    </div>
+    <div class="body stack">
+      <p>
+        Recomputing from <code>Date.now()</code> on every tick means a throttled background tab that fires once a
+        minute still shows the correct remaining time — decrementing a counter would not.
+      </p>
+<pre><code>export function useCountdown(deadlineAt: number | null, onExpire: () =&gt; void): number {
+  const [remaining, setRemaining] = useState(() =&gt; deadlineAt ? Math.max(0, deadlineAt - Date.now()) : 0);
+  const onExpireRef = useRef(onExpire);   // avoid stale closures
+  const firedRef = useRef(false);
+  useEffect(() =&gt; { onExpireRef.current = onExpire; });
+  useEffect(() =&gt; {
+    if (deadlineAt === null) return;
+    firedRef.current = false;
+    const tick = () =&gt; {
+      const left = Math.max(0, deadlineAt - Date.now());
+      setRemaining(left);
+      if (left === 0 &amp;&amp; !firedRef.current) { firedRef.current = true; onExpireRef.current(); }
+    };
+    tick();                                 // immediate — handles already-expired rehydrate
+    const id = setInterval(tick, 250);
+    return () =&gt; clearInterval(id);
+  }, [deadlineAt]);
+  return remaining;
+}</code></pre>
+      <ul>
+        <li><strong>Auto-submit</strong> calls the same <code>handleSubmit()</code> as the button. <code>firedRef</code> guarantees once, and a <code>phase !== 'testing'</code> guard covers a click landing in the same 250 ms window.</li>
+        <li><strong>Rehydrate is correct by construction</strong> — <code>tick()</code> runs synchronously on mount and fires immediately if already past the deadline.</li>
+        <li><strong>Abandoned attempts:</strong> if <code>phase === 'testing'</code> and the deadline passed over 24 hours ago, do <em>not</em> auto-submit — clear the deadline and offer "Submit what you have / Discard".</li>
+        <li>A <code>beforeunload</code> guard while testing, so an accidental refresh prompts first.</li>
+        <li>Sticky <code>MM:SS</code> bar — amber under 5 minutes, red under 1 — plus a progress bar. No <code>Date.now()</code> in render outside the hook.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Grading</div>
+      <h2>Two routes, one convergence</h2>
+    </div>
+    <div class="body stack">
+      <div class="plate">
+<pre class="mermaid">
+flowchart TB
+    A["Typed answers"] --> B["gradeExtractedText<br/>text-only"]
+    C["Photo pages"] --> D["segmentAndGradeAll<br/>images + labels"]
+    B --> E["finalizeResults()"]
+    D --> E
+    E --> F["calculateMarksByMode<br/>easy / medium / strict"]
+    F --> G["QuestionResult[]"]
+    G --> H["HistoryRecord + printReport"]
+</pre>
+      </div>
+      <p class="plate-cap">The same shape GradingView dispatches at :259-270 — so a practice report prints identically to a graded exam.</p>
+
+      <h3>Typed</h3>
+      <p>
+        No images exist, so <code>segmentAndGradeAll</code> is structurally wrong — it wants page images and
+        student-written question labels. Use the text-only path:
+      </p>
+<pre><code>const answered = questions.filter(q =&gt; typedAnswers[q.id]?.trim());
+const scores = answered.length
+  ? await gradeExtractedText(answered.map(q =&gt; ({
+      id: q.id, question: q.question, expectedAnswer: q.expectedAnswer,
+      keywords: q.keywords ?? [], marks: q.marks,
+      extractedText: typedAnswers[q.id].trim(),
+    })), apiKey, signal)
+  : [];</code></pre>
+      <p>
+        Blank answers are <strong>excluded from the request</strong> — it saves tokens and stops the model
+        inventing credit for an empty answer — and marked locally as <code>skipped</code> with zero marks.
+      </p>
+
+      <h3>Handwritten</h3>
+      <p>
+        Identical to <code>GradingView.handleEvaluateAll</code> (<code>:183-211</code>):
+        <code>segmentAndGradeAll(pages, inputs, apiKey, signal)</code>, with <code>r.notFound</code> mapping to a
+        zero-status result. The mode toggle is disabled once answers exist in the other mode; switching asks
+        for confirmation first.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Strictness</div>
+      <h2>A new "Firm" mode for practice</h2>
+    </div>
+    <div class="body stack">
+      <p>
+        Practice should be a little harder than a real exam, so a student who scores well here is comfortable
+        in the actual paper. Medium is too forgiving for that and Strict is punishing — Strict awards
+        <strong>zero</strong> at 50% similarity, which reads as broken to someone practising alone. So Firm sits
+        exactly halfway between them.
+      </p>
+
+<pre><code>// src/utils/scoring.ts — one new branch
+Easy    ratio = max(0, 1 − (2/3)(1−s))    // −10% marks per −15% similarity
+Medium  ratio = s                          // exact linear
+Firm    ratio = max(0, 1.5s − 0.5)         // ← NEW: the midpoint of medium and strict
+Strict  ratio = max(0, 2s − 1)             // −10% marks per −5% similarity</code></pre>
+
+      <p>
+        Firm is the arithmetic mean of Medium and Strict at every point:
+        <code>(s + (2s−1)) / 2 = 1.5s − 0.5</code>. A perfect answer still earns full marks; the penalty for
+        drifting is 1.5× Medium's instead of 2×; zero arrives at 33% similarity rather than Strict's 50%.
+      </p>
+
+      <h3>What a 10-mark question actually pays</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Similarity</th><th>Easy</th><th>Medium</th><th>Firm</th><th>Strict</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>100%</td><td>10.0</td><td>10.0</td><td>10.0</td><td>10.0</td></tr>
+            <tr><td>90%</td><td>9.5</td><td>9.0</td><td>8.5</td><td>8.0</td></tr>
+            <tr><td>80%</td><td>8.5</td><td>8.0</td><td>7.0</td><td>6.0</td></tr>
+            <tr><td>70%</td><td>8.0</td><td>7.0</td><td>5.5</td><td>4.0</td></tr>
+            <tr><td>60%</td><td>7.5</td><td>6.0</td><td>4.0</td><td>2.0</td></tr>
+            <tr><td>50%</td><td>6.5</td><td>5.0</td><td>2.5</td><td>0.0</td></tr>
+            <tr><td>33%</td><td>5.5</td><td>3.5</td><td>0.0</td><td>0.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="plate-cap">Marks after the existing round-to-nearest-0.5 step. Firm is consistently one band below Medium without collapsing to zero as early as Strict.</p>
+
+      <h3>What this costs</h3>
+      <ul>
+        <li><code>CheckingMode</code> in <code>types/index.ts:50</code> widens to <code>'easy' | 'medium' | 'strict' | 'firm'</code>. <strong>Widening a union is backward-compatible for reads</strong> — every saved <code>HistoryRecord</code> already holds one of the original three, so no migration.</li>
+        <li><code>MODE_LABELS</code> in <code>constants.ts:12-16</code> is typed <code>Record&lt;CheckingMode, …&gt;</code>, so <strong>TypeScript forces the new entry</strong> — the compiler catches the omission rather than a runtime <code>undefined</code> reaching a Badge className.</li>
+        <li>One branch in <code>calculateMarksByMode</code>. The <code>status</code> derivation and the 0.5-rounding are untouched.</li>
+        <li><code>CHECKING_MODES</code> (the array driving Setup's teacher-facing selector) <strong>stays at three</strong>. Firm is offered through the practice screen's own selector, so the Grade tab's behaviour doesn't shift under teachers who didn't ask for it. Promoting it to Setup later is a one-element change.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Report</div>
+      <h2>Kept apart from graded exams</h2>
+    </div>
+    <div class="body stack">
+      <p>
+        Practice attempts must never dilute a teacher's real records. Separation happens at
+        <strong>three</strong> levels — storage, display, and stats — so a practice run cannot leak into the
+        archive, the analytics tree, or the usage meter.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Layer</th><th>Graded exams</th><th>Practice attempts</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="role"><strong>localStorage</strong></td>
+              <td class="path">exam-history-&lt;uid&gt;</td>
+              <td class="path">practice-history-&lt;uid&gt;</td>
+            </tr>
+            <tr>
+              <td class="role"><strong>Supabase</strong></td>
+              <td class="role"><code>reports</code> table, <code>kind</code> absent</td>
+              <td class="role">same <code>reports</code> table, <code>kind: 'practice'</code></td>
+            </tr>
+            <tr>
+              <td class="role"><strong>History tab</strong></td>
+              <td class="role">Archive tree — year → class → section → subject</td>
+              <td class="role">Practice section — flat, newest first</td>
+            </tr>
+            <tr>
+              <td class="role"><strong>Analytics</strong></td>
+              <td class="role">Included</td>
+              <td class="role">Excluded entirely</td>
+            </tr>
+            <tr>
+              <td class="role"><strong>Usage stats</strong></td>
+              <td class="role"><code>incrementUserStats</code> fires</td>
+              <td class="role">Skipped</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        A <strong>separate localStorage key</strong> is the important part: the two lists never share an array, so
+        no filter bug can surface a practice run inside the archive. In the cloud they share the
+        <code>reports</code> table because a second table means a migration and new RLS policies for zero
+        behavioural gain — the <code>kind</code> field segregates the rows, and every loader filters on it at the
+        point of read.
+      </p>
+
+<pre><code>const { scored, total, percentage } = calculateTotalScore(results);
+const record: HistoryRecord = {
+  id: attemptId,                          // === the dedupe session id
+  savedAt: new Date().toISOString(),
+  examTitle: `Practice — ${chapter}`,
+  subject, term: 'Practice', examClass: cls,
+  studentName,                            // seeded from the user, editable in preview
+  studentSection: 'Self Practice',
+  studentId: `practice-${userId || 'local'}`,
+  checkingMode,                           // defaults to 'firm'
+  scored, total, percentage, grade: getGrade(percentage),
+  questions, results,
+  kind: 'practice',                       // ← discriminator
+};
+
+// written to its OWN key, not the exam history array
+writeJson(storageKeys.practiceHistory(userId), [record, ...existingPractice]);</code></pre>
+
+      <p>
+        <code>studentName</code> seeds from the signed-in user and is editable on the preview screen, so printed
+        reports carry a real name. Cloud dedupe still follows <code>ReportView.tsx:45-75</code> with
+        <code>attemptId</code> in place of <code>sessionId</code>; <code>saveReport</code> upserts on
+        <code>user_id,session_id</code> with <code>ignoreDuplicates</code>, so double-firing is safe.
+      </p>
+      <p>
+        The report UI needs <strong>no new components</strong>: render <code>&lt;RecordDetail record={record} /&gt;</code>,
+        which already draws the score card, grade pill and per-question breakdown, plus a print button and a
+        "New Practice" button that clears the persisted key.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">New files</div>
+      <h2>What gets created</h2>
+    </div>
+    <div class="body stack">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Path</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td class="path">services/ai/practice.ts</td><td class="role">Both Gemini calls, slot expansion, keyword filtering</td></tr>
+            <tr><td class="path">context/PracticeContext.tsx</td><td class="role">State machine, persistence, phase demotion</td></tr>
+            <tr><td class="path">features/practice/PracticeView.tsx</td><td class="role">Phase router + step indicator</td></tr>
+            <tr><td class="path">features/practice/SourceStep.tsx</td><td class="role">Class, subject, chapter, file input <code>image/*,.pdf,.txt</code></td></tr>
+            <tr><td class="path">features/practice/BlueprintEditor.tsx</td><td class="role">Repeatable rows, live totals, capacity warnings</td></tr>
+            <tr><td class="path">features/practice/PaperPreview.tsx</td><td class="role">Q + A list, Regenerate, Save to Bank, Start Test</td></tr>
+            <tr><td class="path">features/practice/TestRunner.tsx</td><td class="role">Timer bar, typed/photo toggle, submit</td></tr>
+            <tr><td class="path">features/practice/useCountdown.ts</td><td class="role">Deadline countdown hook</td></tr>
+            <tr><td class="path">features/practice/practiceReport.ts</td><td class="role"><code>buildPracticeRecord</code>, <code>savePracticeRecord</code>, <code>finalizeResults</code></td></tr>
+            <tr><td class="path">components/PageUploader.tsx</td><td class="role">Extracted from GradingView — thumbnails, reorder, lightbox</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <code>PageUploader</code> lifts <code>GradingView.tsx:376-435</code> plus the lightbox at
+        <code>:294-326</code>. <strong>Only the presentation moves</strong> — the <code>SheetPage[]</code> array and
+        its object-URL lifecycle stay with the owner, using the ref-based revoke pattern at <code>:42-54</code>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Edits</div>
+      <h2>What gets touched</h2>
+    </div>
+    <div class="body stack">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>File</th><th>Change</th></tr></thead>
+          <tbody>
+            <tr><td class="path">types/index.ts:91</td><td class="role">Add <code>| 'practice'</code> to the <code>activeTab</code> union</td></tr>
+            <tr><td class="path">types/index.ts:50</td><td class="role"><strong>Widen <code>CheckingMode</code></strong> to include <code>'firm'</code>. Backward-compatible for reads — no migration</td></tr>
+            <tr><td class="path">types/index.ts:69-86</td><td class="role">Add <code>kind?: 'exam' | 'practice'</code> to <code>HistoryRecord</code>. Optional, so every existing JSONB blob still parses</td></tr>
+            <tr><td class="path">utils/scoring.ts:13</td><td class="role"><strong>Add the Firm branch</strong> — <code>ratio = max(0, 1.5s − 0.5)</code>. Status derivation and 0.5-rounding untouched</td></tr>
+            <tr><td class="path">services/storage.ts:36-43</td><td class="role">Add <strong>two</strong> key builders: <code>practiceHistory</code> (the separate report store) and <code>practice</code> (the in-progress session)</td></tr>
+            <tr><td class="path">config/constants.ts:12-16</td><td class="role"><code>MODE_LABELS</code> is <code>Record&lt;CheckingMode, …&gt;</code>, so TS <em>forces</em> a <code>firm</code> entry. Leave <code>CHECKING_MODES</code> at three</td></tr>
+            <tr><td class="path">config/constants.ts</td><td class="role">Add <code>PRACTICE_MODES</code> (all four), <code>PRACTICE_MAX_QUESTIONS = 25</code>, <code>PRACTICE_MAX_TOTAL_MARKS = 150</code>, <code>PRACTICE_MARK_OPTIONS</code>, <code>PRACTICE_DURATION_PRESETS</code></td></tr>
+            <tr><td class="path">app/AppShell.tsx:18-21</td><td class="role"><strong>Add Practice as the FIRST entry of <code>TOOL_TABS</code></strong>, immediately before <code>question-bank</code> ("Upload Questions"). One array — the header pill row and the mobile drawer both iterate it</td></tr>
+            <tr><td class="path">app/App.tsx:17-27</td><td class="role">Lazy import <code>PracticeView</code></td></tr>
+            <tr><td class="path">app/App.tsx:34-40</td><td class="role"><em>Unchanged</em> — <code>BASE_TABS</code> stays at the five teacher tabs</td></tr>
+            <tr><td class="path">app/App.tsx:123-130</td><td class="role">Render guard; derive the display name from the session prop</td></tr>
+            <tr><td class="path">app/App.tsx:239, 255</td><td class="role">Wrap <em>both</em> <code>ExamProvider</code> sites with <code>PracticeProvider</code>. <code>userId</code> isn't in scope at 239 — pass an empty string</td></tr>
+            <tr><td class="path">features/history/HistoryView.tsx</td><td class="role">Third view toggle reading the <em>separate</em> <code>practiceHistory</code> key; archive tree untouched; practice list reuses <code>RecordDetail</code> and <code>printReport</code></td></tr>
+            <tr><td class="path">features/analytics/AnalyticsView.tsx</td><td class="role">Filter <code>kind !== 'practice'</code> on the Supabase merge — the local seed is already clean now that practice writes to its own key</td></tr>
+            <tr><td class="path">features/grading/GradingView.tsx</td><td class="role">Swap the inline pages block for <code>&lt;PageUploader /&gt;</code>. Pure refactor</td></tr>
+            <tr><td class="path">CLAUDE.md</td><td class="role">Add Practice to the Tabs/Pages table, the folder tree, and the scoring-modes block</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Build order</div>
+      <h2>Eight phases, each one green</h2>
+    </div>
+    <div class="body stack">
+      <p>Every phase ends on a passing <code>npm run build</code> and has its own manual check.</p>
+      <div class="phases">
+
+        <div class="phase">
+          <div class="phase-n">00</div>
+          <div class="phase-b">
+            <h3>Extract <code>PageUploader</code></h3>
+            <p>Pure refactor, zero new behaviour. Doing it alone first means any regression is unambiguous.</p>
+            <p class="verify"><b>Verify</b> — the Grade tab still uploads, reorders, removes, lightboxes and evaluates.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">01</div>
+          <div class="phase-b">
+            <h3>Types, scoring, and tab plumbing</h3>
+            <p><code>kind?</code>, the <code>activeTab</code> member, <strong>the <code>firm</code> mode plus its scoring branch and <code>MODE_LABELS</code> entry</strong>, both storage keys, the constants, a stub view, lazy import, the <code>TOOL_TABS</code> entry, render guard.</p>
+            <p class="verify"><b>Verify</b> — Practice sits immediately left of "Upload Questions" in the header and in the drawer's tool group; <code>BASE_TABS</code> still shows five tabs; a hand-built Firm record scores 7.0 on a 10-mark question at 80% similarity.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">02</div>
+          <div class="phase-b">
+            <h3>Stage 1 and the source step</h3>
+            <p><code>extractChapterText</code>, <code>blueprintTotals</code>, <code>SourceStep</code>. Local state only.</p>
+            <p class="verify"><b>Verify</b> — a real chapter PDF yields a character count and text preview; a 15 MB file is rejected clearly; navigating away mid-call aborts cleanly.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">03</div>
+          <div class="phase-b">
+            <h3>Context, blueprint, generation</h3>
+            <p><code>PracticeContext</code> with persistence and phase demotion, <code>BlueprintEditor</code>, <code>generatePracticePaper</code>, <code>PaperPreview</code>.</p>
+            <p class="verify"><b>Verify</b> — totals update live; per-slot marks are exact; <strong>every keyword appears in its own model answer</strong>; refresh on preview restores everything; Regenerate makes no second extraction call; the saved chapter appears in Setup's bank panel.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">04</div>
+          <div class="phase-b">
+            <h3>Timer, typed path, report</h3>
+            <p><code>useCountdown</code>, typed mode, <code>gradeExtractedText</code>, <code>finalizeResults</code>, <code>buildPracticeRecord</code> writing to the <strong>separate</strong> <code>practiceHistory</code> key.</p>
+            <p class="verify"><b>Verify</b> — end-to-end typed run defaulting to Firm; refresh mid-test keeps answers and the correct remaining time; a 1-minute duration auto-submits; the attempt lands in <code>practice-history-&lt;uid&gt;</code> and Supabase exactly once, and <code>exam-history-&lt;uid&gt;</code> is byte-identical to before.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">05</div>
+          <div class="phase-b">
+            <h3>Handwritten path</h3>
+            <p><code>PageUploader</code> inside <code>TestRunner</code>, wired to <code>segmentAndGradeAll</code>.</p>
+            <p class="verify"><b>Verify</b> — a photo run yields the same <code>QuestionResult[]</code> shape; object URLs revoked on unmount; the mode-switch confirm works.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">06</div>
+          <div class="phase-b">
+            <h3>History section and Analytics filter</h3>
+            <p>The third toggle reading <code>practiceHistory</code>, and the <code>kind</code> filter on the Analytics Supabase merge.</p>
+            <p class="verify"><b>Verify</b> — attempts appear only under Practice; the exam archive count is unchanged from before phase 04; Analytics shows no phantom student; deleting a practice attempt leaves the archive untouched.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">07</div>
+          <div class="phase-b">
+            <h3>Optional, later — structured output</h3>
+            <p>Add <code>responseMimeType?: string</code> to <code>GeminiConfig</code>, spread only when present. Additive and opt-in, and only after a real PDF corpus has exercised the prompt-only path.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Verification</div>
+      <h2>The end-to-end walk</h2>
+    </div>
+    <div class="body stack">
+      <p>Run <code>npm start</code> at localhost:5173 and take a real chapter PDF through the whole loop.</p>
+      <ol class="check">
+        <li>Confirm <strong>Practice sits in the header tool row, immediately left of "Upload Questions"</strong> — and that the main tab row still reads Setup / Grade / Report / History / Analytics.</li>
+        <li>Open Practice, upload a chapter PDF. The extracted character count should look proportional to the chapter; a file over 15 MB is rejected with a clear message.</li>
+        <li>Blueprint 3×2 + 2×5. The footer must read <code>5 questions · 16 marks</code>, and Generate must return exactly 5 questions at exactly those marks.</li>
+        <li><strong>Inspect the keywords on the preview screen — every one must be visibly present in its own model answer.</strong> This is the guard for the critical finding; check it explicitly.</li>
+        <li>Regenerate with DevTools Network open. Exactly one request, no PDF re-upload.</li>
+        <li>Save to Bank, then open Setup — the chapter appears in the bank panel for that class and subject.</li>
+        <li>Start a test at 1 minute with the mode left on its <strong>Firm</strong> default. Type two answers, leave one blank, refresh mid-test: answers and remaining time survive. Let it expire: it auto-submits once.</li>
+        <li>Report totals match, the blank question reads <code>skipped</code>, the mode badge reads Firm, and print produces the same layout as a graded exam.</li>
+        <li><strong>In DevTools → Application → Local Storage:</strong> the attempt is in <code>practice-history-&lt;uid&gt;</code> and <code>exam-history-&lt;uid&gt;</code> has not grown.</li>
+        <li>History → Practice shows the attempt; History → Archive count is unchanged; Analytics shows no new student.</li>
+        <li><code>npm run build</code> passes, then run locally and get approval before pushing.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-label">Risks</div>
+      <h2>What could go wrong, and the guard</h2>
+    </div>
+    <div class="body">
+      <div class="risks">
+
+        <div class="risk sev-high">
+          <div class="risk-t"><span class="chip">Critical</span> Hallucinated keywords cap every score at 0.5</div>
+          <div class="risk-m">Post-filter keywords to verbatim substrings of <code>expectedAnswer</code>. Top priority, and explicitly checked in phase 03.</div>
+        </div>
+
+        <div class="risk sev-med">
+          <div class="risk-t"><span class="chip warn">Limits</span> Large PDFs</div>
+          <div class="risk-m">Base64 inflates by 4/3 and Gemini's inline limit is around 20 MB. Reject over 15 MB up front; the spinner notes that large files can take a minute.</div>
+        </div>
+
+        <div class="risk sev-med">
+          <div class="risk-t"><span class="chip warn">Limits</span> Silent extraction truncation</div>
+          <div class="risk-m">8192 tokens is roughly 12–15 dense pages, and <code>callGemini</code> doesn't surface <code>finishReason</code>. Show the extracted character count; warn above 28k chars with "upload one chapter at a time".</div>
+        </div>
+
+        <div class="risk sev-med">
+          <div class="risk-t"><span class="chip warn">Limits</span> The 1024-token grading budget</div>
+          <div class="risk-m">25 questions costs about 500 tokens. Don't raise the question cap without raising a budget the Grade tab shares.</div>
+        </div>
+
+        <div class="risk sev-low">
+          <div class="risk-t"><span class="chip info">Handled</span> Malformed generation JSON</div>
+          <div class="risk-m">Two-tier parse, per-item coercion, count validation, and a prominent Regenerate that costs zero extraction. Stage 1 is prose, so it can't fail this way at all.</div>
+        </div>
+
+        <div class="risk sev-low">
+          <div class="risk-t"><span class="chip info">Handled</span> Model returns the wrong marks</div>
+          <div class="risk-m">Never read the model's <code>marks</code> — stamp positionally from slots, so blueprint totals are arithmetically guaranteed.</div>
+        </div>
+
+        <div class="risk sev-low">
+          <div class="risk-t"><span class="chip info">Handled</span> Blueprint exceeds what the chapter supports</div>
+          <div class="risk-m">Hard caps at 25 and 150, a soft warning at <code>chapterText.length / 800</code>, and a prompt that forbids repetition.</div>
+        </div>
+
+        <div class="risk sev-low">
+          <div class="risk-t"><span class="chip info">Handled</span> Refresh mid-test</div>
+          <div class="risk-m">Debounced persist, a <code>visibilitychange</code> flush, and a <code>beforeunload</code> guard. Photos are the known casualty, warned in-UI.</div>
+        </div>
+
+        <div class="risk sev-low">
+          <div class="risk-t"><span class="chip info">Handled</span> Abandoned attempts</div>
+          <div class="risk-m">A 24-hour staleness check offers "Submit what you have / Discard" rather than silently submitting a days-old attempt.</div>
+        </div>
+
+        <div class="risk sev-low">
+          <div class="risk-t"><span class="chip info">Handled</span> <code>RESET_SESSION</code> destroying an attempt</div>
+          <div class="risk-m">Practice never writes <code>ExamContext</code>; it only reads the API key.</div>
+        </div>
+
+        <div class="risk sev-low">
+          <div class="risk-t"><span class="chip info">Handled</span> Double-submit and duplicate rows</div>
+          <div class="risk-m"><code>firedRef</code> plus a phase guard on submit; <code>attemptId</code> serves as both record id and session id, with <code>savedSessions</code> guarding local and <code>ignoreDuplicates</code> guarding remote.</div>
+        </div>
+
+        <div class="risk sev-low">
+          <div class="risk-t"><span class="chip info">Handled</span> Practice polluting teacher data</div>
+          <div class="risk-m">A genuinely separate localStorage key means the two lists never share an array, so no filter bug can surface a practice run in the archive. Analytics additionally filters <code>kind</code> on the cloud merge, and <code>incrementUserStats</code> is skipped.</div>
+        </div>
+
+        <div class="risk sev-low">
+          <div class="risk-t"><span class="chip info">Handled</span> Widening <code>CheckingMode</code> breaking saved records</div>
+          <div class="risk-m">Adding a union member only widens what is accepted — every stored record already holds easy, medium or strict and still parses. <code>MODE_LABELS</code> is a <code>Record&lt;CheckingMode, …&gt;</code>, so the compiler refuses to build until the <code>firm</code> entry exists, turning a would-be runtime <code>undefined</code> into a build error.</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="colophon">
+    <span>ExamChecker · Practice Test</span>
+    <span>Model pinned: gemini-3.1-flash-lite-preview</span>
+    <span>No new Supabase table</span>
+    <span>Separate practice report store</span>
+    <span>New Firm grading mode</span>
+    <span>10 new files · 14 touched</span>
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.esm.min.mjs";
+
+  const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const paint = document.createElement("canvas").getContext("2d");
+  function toRgba(color) {
+    paint.clearRect(0, 0, 1, 1);
+    paint.fillStyle = "#000";
+    paint.fillStyle = color;
+    paint.fillRect(0, 0, 1, 1);
+    return paint.getImageData(0, 0, 1, 1).data;
+  }
+  function compositeRgba(foreground, background) {
+    const foregroundAlpha = foreground[3] / 255;
+    const backgroundAlpha = background[3] / 255;
+    const alpha = foregroundAlpha + backgroundAlpha * (1 - foregroundAlpha);
+    if (alpha === 0) return [0, 0, 0, 0];
+    return [
+      (foreground[0] * foregroundAlpha + background[0] * backgroundAlpha * (1 - foregroundAlpha)) / alpha,
+      (foreground[1] * foregroundAlpha + background[1] * backgroundAlpha * (1 - foregroundAlpha)) / alpha,
+      (foreground[2] * foregroundAlpha + background[2] * backgroundAlpha * (1 - foregroundAlpha)) / alpha,
+      alpha * 255,
+    ];
+  }
+  function pageIsDark() {
+    const root = document.documentElement;
+    const rootBackground = toRgba(getComputedStyle(root).backgroundColor);
+    const bodyBackground = document.body ? toRgba(getComputedStyle(document.body).backgroundColor) : [0, 0, 0, 0];
+    const [r, g, b, a] = compositeRgba(bodyBackground, rootBackground);
+    if (a > 0) {
+      return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.5;
+    }
+    const colorScheme = getComputedStyle(root).colorScheme;
+    if (colorScheme.includes("dark") && !colorScheme.includes("light")) return true;
+    if (colorScheme.includes("light") && !colorScheme.includes("dark")) return false;
+    return darkQuery.matches;
+  }
+  const diagrams = [...document.querySelectorAll(".mermaid")].map((el) => ({ el, src: el.textContent }));
+  let applied;
+  let rendering = false;
+  let queued = false;
+  function queueRender() {
+    queued = true;
+    if (rendering) return;
+    void render();
+  }
+  async function render() {
+    rendering = true;
+    try {
+      while (queued) {
+        queued = false;
+        const theme = pageIsDark() ? "dark" : "default";
+        if (theme === applied) continue;
+        mermaid.initialize({ startOnLoad: false, theme, securityLevel: "strict" });
+        for (const { el, src } of diagrams) {
+          el.removeAttribute("data-processed");
+          el.textContent = src;
+        }
+        try {
+          await mermaid.run({ nodes: diagrams.map((d) => d.el) });
+        } catch (error) {
+          console.error("Mermaid diagram render failed:", error);
+          return;
+        }
+        applied = theme;
+      }
+    } finally {
+      rendering = false;
+      if (queued) queueRender();
+    }
+  }
+  if (document.readyState === "complete") queueRender();
+  else window.addEventListener("load", queueRender, { once: true });
+  const themeObserver = new MutationObserver(queueRender);
+  for (const el of [document.documentElement, document.body]) {
+    if (!el) continue;
+    themeObserver.observe(el, { attributes: true, attributeFilter: ["data-theme", "class", "style"] });
+  }
+  document.addEventListener("change", queueRender, true);
+  document.addEventListener("transitionend", ({ propertyName }) => {
+    if (propertyName === "background-color") queueRender();
+  }, true);
+  darkQuery.addEventListener("change", queueRender);
+</script>
+
+</body>
+</html>

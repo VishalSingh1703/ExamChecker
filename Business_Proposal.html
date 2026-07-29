@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ExamChecker — Business Proposal</title>
+<style>
+  @page { size: A4; margin: 0; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ink:      #12121c;
+    --body:     #33384a;
+    --muted:    #6b7280;
+    --faint:    #9aa1ae;
+    --line:     #e3e5ea;
+    --paper:    #ffffff;
+    --tint:     #f7f7fa;
+    --purple:   #6d28d9;
+    --purple-l: #8b5cf6;
+    --green:    #0f7a52;
+    --green-l:  #10b981;
+    --red:      #b91c4a;
+    --amber:    #b45309;
+  }
+
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--body);
+    background: #e8e8ec;
+    line-height: 1.52;
+    font-size: 9.5pt;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 14mm 15mm 11mm;
+    margin: 0 auto;
+    background: var(--paper);
+    position: relative;
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+  }
+  .sheet:last-child { page-break-after: auto; }
+
+  /* ─────────── Cover ─────────── */
+  .cover {
+    background: linear-gradient(158deg, #17172a 0%, #241c46 45%, #2e1065 100%);
+    color: #fff;
+    padding: 0;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+  .cover-inner { padding: 22mm 17mm; position: relative; z-index: 2; }
+  .cover::before {
+    content: ''; position: absolute; top: -140px; right: -120px;
+    width: 420px; height: 420px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(139,92,246,.30) 0%, transparent 68%);
+  }
+  .cover::after {
+    content: ''; position: absolute; bottom: -110px; left: -110px;
+    width: 380px; height: 380px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(16,185,129,.18) 0%, transparent 68%);
+  }
+  .badge-pill {
+    display: inline-block; font-size: 7.5pt; font-weight: 700;
+    letter-spacing: 2.6px; text-transform: uppercase;
+    color: #c4b5fd; border: 1px solid rgba(167,139,250,.45);
+    background: rgba(139,92,246,.14);
+    padding: 6px 16px; border-radius: 40px; margin-bottom: 30mm;
+  }
+  .wordmark { font-size: 40pt; font-weight: 800; letter-spacing: -1.5px; color: #fff; line-height: 1; }
+  .wordmark span {
+    background: linear-gradient(90deg, #a78bfa, #34d399);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .wordmark-sub { font-size: 10pt; color: #9ca3af; letter-spacing: 2.4px; text-transform: uppercase; margin-top: 8px; }
+  .cover-rule { width: 60px; height: 3px; background: linear-gradient(90deg,#8b5cf6,#34d399); margin: 22mm 0 8mm; border-radius: 2px; }
+  .cover-h1 { font-size: 25pt; font-weight: 700; color: #fff; line-height: 1.25; letter-spacing: -.4px; max-width: 150mm; }
+  .cover-lede { font-size: 11pt; color: #a9b0bd; margin-top: 12px; max-width: 132mm; line-height: 1.65; }
+
+  .cover-figures { display: flex; gap: 0; margin-top: 20mm; border-top: 1px solid rgba(255,255,255,.13); border-bottom: 1px solid rgba(255,255,255,.13); }
+  .cover-fig { flex: 1; padding: 14px 0; }
+  .cover-fig + .cover-fig { border-left: 1px solid rgba(255,255,255,.13); padding-left: 16px; }
+  .cover-fig .n { font-size: 19pt; font-weight: 800; color: #fff; line-height: 1.1; }
+  .cover-fig .n em { font-style: normal; background: linear-gradient(90deg,#a78bfa,#34d399); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .cover-fig .l { font-size: 7.5pt; color: #8b93a1; text-transform: uppercase; letter-spacing: 1.3px; margin-top: 5px; }
+
+  .cover-foot {
+    position: relative; z-index: 2; padding: 10mm 17mm;
+    border-top: 1px solid rgba(255,255,255,.10);
+    display: flex; justify-content: space-between; font-size: 8.5pt; color: #7c8494;
+  }
+
+  /* ─────────── Typography ─────────── */
+  .kicker {
+    font-size: 7.5pt; font-weight: 700; letter-spacing: 2.4px;
+    text-transform: uppercase; color: var(--purple); margin-bottom: 7px;
+  }
+  h2 {
+    font-size: 16pt; font-weight: 700; color: var(--ink);
+    letter-spacing: -.4px; line-height: 1.2; margin-bottom: 4px;
+  }
+  .h2-rule { width: 40px; height: 3px; background: var(--purple); border-radius: 2px; margin: 8px 0 11px; }
+  h3 { font-size: 11pt; font-weight: 700; color: var(--ink); margin: 14px 0 5px; letter-spacing: -.2px; }
+  h4 { font-size: 9.3pt; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+  p { margin-bottom: 8px; }
+  p:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 650; }
+  .lede { font-size: 10.5pt; color: var(--muted); line-height: 1.5; margin-bottom: 11px; }
+
+  section { margin-bottom: 11px; }
+  section:last-child { margin-bottom: 0; }
+  .grow { flex: 1; }
+
+  /* ─────────── Callouts ─────────── */
+  .callout {
+    background: var(--tint); border-left: 3px solid var(--purple);
+    padding: 9px 13px; border-radius: 0 6px 6px 0; margin: 10px 0;
+    font-size: 9pt; line-height: 1.5;
+  }
+  .callout.green { border-left-color: var(--green-l); background: #f0fdf7; }
+  .callout.amber { border-left-color: #f59e0b; background: #fffbeb; }
+
+  .keyline {
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 11px 13px; margin: 10px 0; background: #fff;
+  }
+
+  /* ─────────── Tables ─────────── */
+  table { width: 100%; border-collapse: collapse; margin: 9px 0; font-size: 8.7pt; }
+  thead th {
+    background: #1f1f33; color: #fff; text-align: left;
+    font-size: 7.3pt; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    padding: 6.5px 9px;
+  }
+  thead th:first-child { border-radius: 6px 0 0 0; }
+  thead th:last-child  { border-radius: 0 6px 0 0; }
+  tbody td { padding: 6.5px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .row-old { background: #fdf2f5; }
+  .row-old td { color: var(--red); }
+  .row-old td strong { color: #8d1236; }
+  .row-new { background: #f0fdf7; }
+  .row-new td { color: var(--green); }
+  .row-new td strong { color: #0b5c3e; }
+  .row-net td { background: #1f1f33; color: #fff; font-weight: 700; }
+  .row-net td strong { color: #fff; }
+  .row-net td:first-child { border-radius: 0 0 0 6px; }
+  .row-net td:last-child  { border-radius: 0 0 6px 0; }
+  .cell-sub { display: block; font-size: 8pt; color: var(--faint); font-weight: 400; margin-top: 2px; }
+  .row-old .cell-sub { color: #d18aa2; }
+  .row-new .cell-sub { color: #6ab894; }
+
+  /* ─────────── Savings banner ─────────── */
+  .banner {
+    background: linear-gradient(120deg, #0b5c3e, #0f7a52);
+    color: #fff; border-radius: 9px; padding: 12px 17px;
+    display: flex; justify-content: space-between; align-items: center; margin: 10px 0;
+  }
+  .banner .lbl { font-size: 7.3pt; text-transform: uppercase; letter-spacing: 1.5px; color: #9fe3c4; }
+  .banner .big { font-size: 18pt; font-weight: 800; line-height: 1.1; margin-top: 2px; }
+  .banner .sml { font-size: 7.8pt; color: #b6e9d1; margin-top: 2px; }
+  .banner .right { text-align: right; }
+
+  /* ─────────── Grids ─────────── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+  .card {
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff;
+  }
+  .card .ico { font-size: 13pt; margin-bottom: 4px; display: block; }
+  .card p { font-size: 8.3pt; color: var(--muted); line-height: 1.48; margin: 0; }
+
+  .stat {
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px;
+    background: var(--tint); text-align: center;
+  }
+  .stat .n { font-size: 15pt; font-weight: 800; color: var(--purple); line-height: 1.1; }
+  .stat .n.g { color: var(--green); }
+  .stat .l { font-size: 6.8pt; color: var(--muted); text-transform: uppercase; letter-spacing: .9px; margin-top: 4px; line-height: 1.35; }
+
+  .feat { display: flex; gap: 9px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .feat:last-child { border-bottom: none; }
+  .feat .ico {
+    width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px;
+    background: #f3effe; color: var(--purple);
+    display: flex; align-items: center; justify-content: center; font-size: 9.5pt; font-weight: 800;
+  }
+  .feat p { font-size: 8.3pt; color: var(--muted); margin: 0; line-height: 1.45; }
+
+  .step { display: flex; gap: 11px; align-items: flex-start; margin-bottom: 6px; }
+  .step .n {
+    width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--purple-l));
+    color: #fff; font-size: 8.7pt; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step p { font-size: 8.5pt; color: var(--muted); margin: 0; }
+
+  ul.ticks { list-style: none; margin: 6px 0; }
+  ul.ticks li { font-size: 8.8pt; padding: 3px 0 3px 18px; position: relative; color: var(--body); }
+  ul.ticks li::before { content: '✓'; position: absolute; left: 0; color: var(--green-l); font-weight: 800; }
+
+  ul.plain { margin: 8px 0 8px 18px; font-size: 9.5pt; line-height: 1.75; }
+
+  /* ─────────── Pricing ─────────── */
+  .price-box {
+    background: linear-gradient(150deg, #17172a, #2e1065);
+    color: #fff; border-radius: 11px; padding: 14px 22px; text-align: center; margin: 9px 0 7px;
+  }
+  .price-box .amt { font-size: 38pt; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+  .price-box .amt sup { font-size: 17pt; font-weight: 700; vertical-align: super; margin-right: 2px; }
+  .price-box .unit { font-size: 9pt; color: #b9a9e8; margin-top: 6px; letter-spacing: .4px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 12px; }
+  .tag {
+    font-size: 7.3pt; padding: 4px 9px; border-radius: 40px;
+    background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.17); color: #ddd6fe;
+  }
+  .price-note { font-size: 7.8pt; color: #8b93a1; margin-top: 9px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.12); }
+
+  /* ─────────── Quote ─────────── */
+  .quote { border-left: 3px solid var(--line); padding: 3px 0 3px 14px; margin: 10px 0; }
+  .quote blockquote { font-size: 9.5pt; font-style: italic; color: var(--body); line-height: 1.55; }
+  .quote cite { display: block; font-size: 7.6pt; font-style: normal; color: var(--faint); margin-top: 5px; letter-spacing: .6px; text-transform: uppercase; }
+
+  /* ─────────── CTA ─────────── */
+  .cta {
+    background: linear-gradient(150deg, #17172a, #2e1065);
+    color: #fff; border-radius: 11px; padding: 13px 28px; text-align: center; margin-top: 6px;
+  }
+  .cta h2 { color: #fff; font-size: 16pt; margin-bottom: 8px; }
+  .cta p { color: #a9b0bd; font-size: 9.5pt; max-width: 125mm; margin: 0 auto 16px; }
+  .cta .url {
+    display: inline-block; background: linear-gradient(135deg, var(--purple-l), #34d399);
+    color: #fff; font-size: 10.5pt; font-weight: 700; padding: 11px 28px; border-radius: 40px;
+    text-decoration: none; letter-spacing: .3px;
+  }
+  .cta-contact {
+    margin-top: 13px; font-size: 9pt; color: #b9a9e8; letter-spacing: .4px;
+  }
+  .cta-contact span { color: #6b7280; margin: 0 7px; }
+
+  .contact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 9px; }
+  .contact-cell { border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; }
+  .contact-cell .k { font-size: 7pt; text-transform: uppercase; letter-spacing: 1.2px; color: var(--faint); margin-bottom: 3px; }
+  .contact-cell .v { font-size: 9.2pt; font-weight: 650; color: var(--ink); word-break: break-word; }
+
+  /* ─────────── Footer ─────────── */
+  .foot {
+    margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; font-size: 7.5pt; color: var(--faint);
+    letter-spacing: .3px;
+  }
+
+  .assump { font-size: 8pt; color: var(--faint); line-height: 1.6; margin-top: 8px; }
+  .assump strong { color: var(--muted); }
+
+  @media print {
+    body { background: #fff; }
+    .sheet { margin: 0; box-shadow: none; }
+  }
+  @media screen {
+    .sheet { box-shadow: 0 2px 18px rgba(0,0,0,.10); margin-bottom: 10mm; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ PAGE 1 · COVER ══════════════ -->
+<div class="sheet cover">
+  <div class="cover-inner">
+    <div class="badge-pill">Business Proposal · 2026</div>
+    <div class="wordmark">Exam<span>Checker</span></div>
+    <div class="wordmark-sub">AI-Powered Exam Grading</div>
+
+    <div class="cover-rule"></div>
+
+    <div class="cover-h1">Grade a full exam cycle in hours — not weeks — for a third of the cost.</div>
+    <p class="cover-lede">
+      A proposal for schools, colleges and individual teachers who want faster results,
+      more consistent marking, and a grading budget that finally makes sense.
+    </p>
+
+    <div class="cover-figures">
+      <div class="cover-fig">
+        <div class="n"><em>₹33</em></div>
+        <div class="l">Per student, all subjects</div>
+      </div>
+      <div class="cover-fig">
+        <div class="n"><em>66%</em></div>
+        <div class="l">Lower cost on average</div>
+      </div>
+      <div class="cover-fig">
+        <div class="n"><em>90%</em></div>
+        <div class="l">Less grading time</div>
+      </div>
+      <div class="cover-fig">
+        <div class="n"><em>Same day</em></div>
+        <div class="l">Results turnaround</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-foot">
+    <span>exam-checker-virid.vercel.app</span>
+    <span>+91 9875654910 · kvishalin17@gmail.com</span>
+    <span>July 2026</span>
+  </div>
+</div>
+
+
+<!-- ══════════════ PAGE 2 · SUMMARY + PROBLEM ══════════════ -->
+<div class="sheet">
+  <section>
+    <div class="kicker">Section 01</div>
+    <h2>Executive Summary</h2>
+    <div class="h2-rule"></div>
+
+    <p class="lede">
+      ExamChecker reads handwritten student answer sheets and returns marked, report-ready
+      results in seconds — at ₹33 per student for every subject they sit.
+    </p>
+
+    <p>
+      Grading is the single largest recurring drain on an institution's academic time and budget, yet it
+      produces no teaching value. Qualified staff spend evenings and weekends reading handwritten scripts,
+      results take two to three weeks to publish, and identical answers routinely receive different marks
+      depending on who marked them and when.
+    </p>
+
+    <p>
+      ExamChecker replaces that process. Teachers photograph the answer sheets, upload them, and the
+      platform extracts the handwriting, applies the teacher's own mark scheme, and awards marks using the
+      same key-points methodology a trained examiner follows. The teacher reviews and can override anything
+      before results are finalised — the AI does the labour, the teacher keeps the authority.
+    </p>
+
+    <div class="callout">
+      <p>
+        <strong>The commercial case in one line:</strong> manual grading costs ₹75–₹120 per student per exam
+        cycle once all subjects are counted. ExamChecker costs a flat <strong>₹33</strong> — a saving of
+        <strong>₹42 to ₹87 per student, every cycle</strong>, with results available the same day instead
+        of weeks later.
+      </p>
+    </div>
+
+    <div class="grid-4" style="margin-top:14px;">
+      <div class="stat"><div class="n g">66%</div><div class="l">Avg. cost cut</div></div>
+      <div class="stat"><div class="n g">~90%</div><div class="l">Time saved</div></div>
+      <div class="stat"><div class="n">₹33</div><div class="l">Per student</div></div>
+      <div class="stat"><div class="n">100%</div><div class="l">Digital audit trail</div></div>
+    </div>
+  </section>
+
+  <section style="margin-top:22px;">
+    <div class="kicker">Section 02</div>
+    <h2>What Manual Grading Actually Costs You</h2>
+    <div class="h2-rule"></div>
+
+    <p>
+      The cheque written to examiners is only the visible part. Four costs compound every single cycle.
+    </p>
+
+    <div class="grid-2" style="margin-top:12px;">
+      <div class="card">
+        <span class="ico">⏳</span>
+        <h4>Time that can't be recovered</h4>
+        <p>25–40 minutes per answer sheet. Across 6 subjects that is 2.5–4 hours of skilled professional time
+        for a <em>single</em> student — time taken directly out of lesson planning and teaching.</p>
+      </div>
+      <div class="card">
+        <span class="ico">💸</span>
+        <h4>Direct grading spend</h4>
+        <p>At ₹15–₹20 per sheet across 5–6 subjects, each student costs ₹75–₹120 to mark. A 500-student
+        institution spends ₹37,500–₹60,000 per cycle — before any admin overhead.</p>
+      </div>
+      <div class="card">
+        <span class="ico">⚖️</span>
+        <h4>Inconsistent marking</h4>
+        <p>Fatigue, mood and interpretation drift mean the 90th script is not marked like the 1st. Two students
+        writing the same answer can receive different scores — which invites disputes and erodes trust.</p>
+      </div>
+      <div class="card">
+        <span class="ico">🗂️</span>
+        <h4>No searchable record</h4>
+        <p>Paper leaves no audit trail. Re-checking a mark, answering a parent's query or analysing which
+        topics a class failed means physically retrieving stacks of scripts.</p>
+      </div>
+    </div>
+
+    <div class="callout amber">
+      <p>
+        <strong>The hidden multiplier:</strong> slow grading delays feedback. By the time marks reach a student
+        two or three weeks later, the class has moved on and the corrective value of the exam is largely lost.
+      </p>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>ExamChecker · Business Proposal</span>
+    <span>exam-checker-virid.vercel.app</span>
+    <span>2</span>
+  </div>
+</div>
+
+
+<!-- ══════════════ PAGE 3 · COST COMPARISON ══════════════ -->
+<div class="sheet">
+  <section>
+    <div class="kicker">Section 03</div>
+    <h2>Cost Comparison</h2>
+    <div class="h2-rule"></div>
+
+    <p class="lede">The case for ExamChecker is straightforward arithmetic. Here is the like-for-like comparison.</p>
+
+    <h3>Per student · per exam cycle</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:38%">Method</th>
+          <th>Rate</th>
+          <th>Subjects covered</th>
+          <th class="num">Total per student</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-old">
+          <td><strong>Manual grading</strong><span class="cell-sub">Examiner reads each script individually</span></td>
+          <td>₹15–₹20 / sheet</td>
+          <td>5–6 subjects</td>
+          <td class="num"><strong>₹75 – ₹120</strong></td>
+        </tr>
+        <tr class="row-new">
+          <td><strong>ExamChecker</strong><span class="cell-sub">All subjects, all questions, flat rate</span></td>
+          <td>₹33 flat</td>
+          <td>All subjects</td>
+          <td class="num"><strong>₹33</strong></td>
+        </tr>
+        <tr class="row-net">
+          <td><strong>You save</strong></td>
+          <td>—</td>
+          <td>—</td>
+          <td class="num"><strong>₹42 – ₹87</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="banner">
+      <div>
+        <div class="lbl">Cost reduction per student</div>
+        <div class="big">56% – 72%</div>
+        <div class="sml">66% against the median manual cost of ₹97.50</div>
+      </div>
+      <div class="right">
+        <div class="lbl">Put another way</div>
+        <div class="big">₹28 – ₹44</div>
+        <div class="sml">ExamChecker's cost for every ₹100 you spend today</div>
+      </div>
+    </div>
+
+    <p class="assump">
+      <strong>Assumptions:</strong> manual rate of ₹15–₹20 per answer sheet reflects standard examiner
+      honorarium rates; 5–6 subjects per student per cycle. Substitute your own figures and the ratio holds —
+      ExamChecker's price does not move with subject count.
+    </p>
+  </section>
+
+  <section style="margin-top:20px;">
+    <h3>Savings at scale · per exam cycle</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Institution size</th>
+          <th class="num">Manual cost</th>
+          <th class="num">ExamChecker</th>
+          <th class="num">Saved per cycle</th>
+          <th class="num">Saved per year<br/><span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:7pt;">(3 cycles)</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>200 students</strong><span class="cell-sub">Small school</span></td>
+          <td class="num">₹15,000 – ₹24,000</td>
+          <td class="num">₹6,600</td>
+          <td class="num">₹8,400 – ₹17,400</td>
+          <td class="num"><strong>₹25,200 – ₹52,200</strong></td>
+        </tr>
+        <tr>
+          <td><strong>500 students</strong><span class="cell-sub">Mid-size school</span></td>
+          <td class="num">₹37,500 – ₹60,000</td>
+          <td class="num">₹16,500</td>
+          <td class="num">₹21,000 – ₹43,500</td>
+          <td class="num"><strong>₹63,000 – ₹1,30,500</strong></td>
+        </tr>
+        <tr>
+          <td><strong>1,000 students</strong><span class="cell-sub">Large school</span></td>
+          <td class="num">₹75,000 – ₹1,20,000</td>
+          <td class="num">₹33,000</td>
+          <td class="num">₹42,000 – ₹87,000</td>
+          <td class="num"><strong>₹1,26,000 – ₹2,61,000</strong></td>
+        </tr>
+        <tr>
+          <td><strong>2,000 students</strong><span class="cell-sub">College / group</span></td>
+          <td class="num">₹1,50,000 – ₹2,40,000</td>
+          <td class="num">₹66,000</td>
+          <td class="num">₹84,000 – ₹1,74,000</td>
+          <td class="num"><strong>₹2,52,000 – ₹5,22,000</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout green">
+      <p>
+        A 500-student school running three exam cycles a year frees up
+        <strong>₹63,000 to ₹1,30,500 annually</strong> — enough to fund a computer lab refresh, a part-time
+        staff appointment, or a full year of classroom materials, from the grading line alone.
+      </p>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>ExamChecker · Business Proposal</span>
+    <span>exam-checker-virid.vercel.app</span>
+    <span>3</span>
+  </div>
+</div>
+
+
+<!-- ══════════════ PAGE 4 · TIME COMPARISON ══════════════ -->
+<div class="sheet">
+  <section>
+    <div class="kicker">Section 04</div>
+    <h2>Time Comparison</h2>
+    <div class="h2-rule"></div>
+
+    <p class="lede">
+      Money is the easier argument. Time is the more important one — because teacher hours are the resource
+      you genuinely cannot buy more of.
+    </p>
+
+    <h3>Per student · 6 subjects · one exam cycle</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:38%">Stage</th>
+          <th class="num">Manual</th>
+          <th class="num">ExamChecker</th>
+          <th class="num">Difference</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Reading &amp; marking each script</td>
+          <td class="num">25–40 min / subject</td>
+          <td class="num">~30 sec / subject</td>
+          <td class="num">—</td>
+        </tr>
+        <tr>
+          <td>Capture, upload &amp; teacher review</td>
+          <td class="num">n/a</td>
+          <td class="num">~2.5 min / subject</td>
+          <td class="num">—</td>
+        </tr>
+        <tr>
+          <td>Tallying marks &amp; writing the report</td>
+          <td class="num">10–15 min</td>
+          <td class="num">Automatic</td>
+          <td class="num">—</td>
+        </tr>
+        <tr class="row-net">
+          <td><strong>Total time per student</strong></td>
+          <td class="num"><strong>2.5 – 4.0 hrs</strong></td>
+          <td class="num"><strong>~18 min</strong></td>
+          <td class="num"><strong>88% – 92% less</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="assump">
+      <strong>Note:</strong> the ExamChecker figure deliberately <em>includes</em> the teacher's own review time.
+      It is not the raw machine speed — it is the realistic end-to-end time with a human checking the output.
+    </p>
+  </section>
+
+  <section style="margin-top:18px;">
+    <h3>What that means for real workloads</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Workload</th>
+          <th class="num">Manual grading hours</th>
+          <th class="num">ExamChecker hours</th>
+          <th class="num">Hours returned</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>One class of 40</strong><span class="cell-sub">6 subjects, one cycle</span></td>
+          <td class="num">100 – 160 hrs</td>
+          <td class="num">~12 hrs</td>
+          <td class="num"><strong>88 – 148 hrs</strong></td>
+        </tr>
+        <tr>
+          <td><strong>School of 500</strong><span class="cell-sub">6 subjects, one cycle</span></td>
+          <td class="num">1,250 – 2,000 hrs</td>
+          <td class="num">~150 hrs</td>
+          <td class="num"><strong>1,100 – 1,850 hrs</strong></td>
+        </tr>
+        <tr>
+          <td><strong>School of 500</strong><span class="cell-sub">full academic year, 3 cycles</span></td>
+          <td class="num">3,750 – 6,000 hrs</td>
+          <td class="num">~450 hrs</td>
+          <td class="num"><strong>3,300 – 5,550 hrs</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout green">
+      <p>
+        Across one academic year, a 500-student school recovers the equivalent of roughly
+        <strong>two full-time staff years</strong> of professional time — without hiring anyone.
+      </p>
+    </div>
+  </section>
+
+  <section style="margin-top:16px;">
+    <h3>Turnaround: the difference students actually feel</h3>
+    <div class="grid-2">
+      <div class="card" style="border-color:#f3c8d5;background:#fdf2f5;">
+        <h4 style="color:#8d1236;">Manual · 2–3 weeks</h4>
+        <p style="color:#a8446a;">Scripts are distributed, marked over evenings and weekends, collected,
+        tallied, cross-checked, then compiled. Feedback lands long after the topic has passed.</p>
+      </div>
+      <div class="card" style="border-color:#bbe8d2;background:#f0fdf7;">
+        <h4 style="color:#0b5c3e;">ExamChecker · same day</h4>
+        <p style="color:#2c7a5c;">Sheets are photographed and evaluated the same afternoon. Per-question
+        reports are ready immediately, so weak topics are re-taught while they still matter.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>ExamChecker · Business Proposal</span>
+    <span>exam-checker-virid.vercel.app</span>
+    <span>4</span>
+  </div>
+</div>
+
+
+<!-- ══════════════ PAGE 5 · PLATFORM + ACCURACY ══════════════ -->
+<div class="sheet">
+  <section>
+    <div class="kicker">Section 05</div>
+    <h2>What You Get for ₹33</h2>
+    <div class="h2-rule"></div>
+
+    <p>₹33 is not a stripped-down entry tier. It is the complete platform — every feature, every subject, every time.</p>
+
+    <div class="grid-2" style="gap:0 22px;margin-top:10px;">
+      <div>
+        <div class="feat"><div class="ico">✍️</div><div><h4>Handwriting recognition</h4><p>Reads handwritten answers straight from phone photos or scans. No typing, no special paper, no scanner required.</p></div></div>
+        <div class="feat"><div class="ico">🎯</div><div><h4>Key-points marking</h4><p>Marks awarded point-by-point against your own mark scheme — the methodology CBSE and Cambridge examiners are trained on.</p></div></div>
+        <div class="feat"><div class="ico">⚡</div><div><h4>Batch evaluation</h4><p>Upload every page at once; one click grades every question on the paper together.</p></div></div>
+        <div class="feat"><div class="ico">🎬</div><div><h4>Video page capture</h4><p>Flip through the answer booklet on video — the platform detects and extracts each page automatically.</p></div></div>
+        <div class="feat"><div class="ico">🔑</div><div><h4>Keyword enforcement</h4><p>Mark required terms as mandatory. A missing key term caps the score, exactly as a real mark scheme would.</p></div></div>
+      </div>
+      <div>
+        <div class="feat"><div class="ico">✏️</div><div><h4>Full teacher override</h4><p>Every extracted answer and every mark is editable before finalising. The AI assists; the teacher decides.</p></div></div>
+        <div class="feat"><div class="ico">📊</div><div><h4>Instant reports</h4><p>Per-question, per-student reports generated the moment grading finishes — ready to print or export as PDF.</p></div></div>
+        <div class="feat"><div class="ico">📈</div><div><h4>Analytics</h4><p>Performance trends across exams, subjects and sections, so weak topics surface on their own.</p></div></div>
+        <div class="feat"><div class="ico">🗂️</div><div><h4>Question bank &amp; paper builder</h4><p>Build a reusable library with AI-generated model answers, then assemble printable papers in minutes.</p></div></div>
+        <div class="feat"><div class="ico">🔒</div><div><h4>Secure accounts &amp; history</h4><p>Each teacher gets a private login with full session history, synced across devices. Data is never shared between institutions.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin-top:20px;">
+    <div class="kicker">Section 06</div>
+    <h2>Accuracy You Can Defend</h2>
+    <div class="h2-rule"></div>
+
+    <p>
+      A grading tool is only worth adopting if you can stand behind its marks in front of a parent.
+      ExamChecker uses the key-points method that professional examiners are trained to follow.
+    </p>
+
+    <p>For each question the teacher supplies the model answer. ExamChecker breaks it into distinct scoreable points — typically one per mark — and for each point awards:</p>
+
+    <ul class="ticks">
+      <li><strong>Full credit</strong> — the student stated the point correctly. Spelling and grammar are ignored.</li>
+      <li><strong>Half credit</strong> — partially addressed: vague, incomplete, or containing a minor error.</li>
+      <li><strong>No credit</strong> — wrong, reversed, or not mentioned at all.</li>
+    </ul>
+
+    <p>
+      The score is <em>credits earned ÷ total scoreable points</em>. The same formula works for a 1-mark
+      definition and a 15-mark essay. Three marking strictness levels — <strong>Easy</strong>,
+      <strong>Medium</strong> and <strong>Strict</strong> — let you match your institution's standard, and all
+      marks round to clean 0.5 increments.
+    </p>
+
+    <div class="quote">
+      <blockquote>
+        “Factual errors — swapping terms, reversing cause and effect, citing the wrong name — always reduce
+        credit for that point. A long, verbose answer that gets the facts wrong still loses marks. A short,
+        precise answer covering every point earns full marks. Brevity is never penalised.”
+      </blockquote>
+      <cite>ExamChecker Marking Specification</cite>
+    </div>
+
+    <div class="callout">
+      <p>
+        <strong>The teacher is never removed from the loop.</strong> Extracted text and awarded marks are both
+        editable, and any answer can be re-evaluated after correction. ExamChecker is built to do the reading
+        and the arithmetic — not to overrule your professional judgement.
+      </p>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>ExamChecker · Business Proposal</span>
+    <span>exam-checker-virid.vercel.app</span>
+    <span>5</span>
+  </div>
+</div>
+
+
+<!-- ══════════════ PAGE 6 · PRICING + GETTING STARTED + CTA ══════════════ -->
+<div class="sheet">
+  <section>
+    <div class="kicker">Section 07</div>
+    <h2>Pricing</h2>
+    <div class="h2-rule"></div>
+
+    <p>One transparent price. No subscription, no per-question fee, no subject surcharge. You pay only for students you actually grade.</p>
+
+    <div class="price-box">
+      <div class="amt"><sup>₹</sup>33</div>
+      <div class="unit">per student · per exam cycle · all subjects included</div>
+      <div class="tags">
+        <span class="tag">All subjects</span>
+        <span class="tag">All questions</span>
+        <span class="tag">Batch evaluation</span>
+        <span class="tag">Video capture</span>
+        <span class="tag">Instant reports</span>
+        <span class="tag">Analytics</span>
+        <span class="tag">Teacher override</span>
+        <span class="tag">Question bank</span>
+        <span class="tag">History &amp; audit trail</span>
+      </div>
+      <div class="price-note">Volume pricing available for institutions grading 1,000+ students per cycle.</div>
+    </div>
+
+    <div class="grid-2" style="margin-top:14px;">
+      <div class="keyline" style="margin:0;">
+        <h4>For schools &amp; colleges</h4>
+        <p style="font-size:9pt;color:var(--muted);margin:0;">Institution-wide account, unlimited teacher logins,
+        consolidated history and analytics across every class and section. Billed per student, per cycle.</p>
+      </div>
+      <div class="keyline" style="margin:0;">
+        <h4>For individual teachers</h4>
+        <p style="font-size:9pt;color:var(--muted);margin:0;">Same ₹33 rate, same complete feature set, no minimum
+        commitment. Grade one class or one student — you are only charged for what you actually run.</p>
+      </div>
+    </div>
+
+    <h3>Why ₹33?</h3>
+    <p>
+      Manual grading costs ₹75–₹120 per student. We have priced ExamChecker at under a third of that — not as a
+      loss-leader, but because AI infrastructure genuinely costs less than skilled human hours, and we pass that
+      difference on rather than pocketing it. The intent is a price that is difficult to justify ignoring.
+    </p>
+  </section>
+
+  <section style="margin-top:2px;">
+    <h2 style="font-size:13pt;">Questions We Are Usually Asked</h2>
+    <div class="h2-rule" style="width:32px;"></div>
+
+    <div class="feat" style="border-top:1px solid var(--line);">
+      <div class="ico">?</div>
+      <div>
+        <h4>What happens if the AI marks something incorrectly?</h4>
+        <p>You correct it. Every extracted answer and every mark is editable, and any answer can be re-evaluated
+        after you fix the text. Nothing is published until the teacher confirms it.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="ico">?</div>
+      <div>
+        <h4>Do we need scanners, special answer sheets or new hardware?</h4>
+        <p>No. A phone camera is enough. ExamChecker works with ordinary answer booklets photographed as-is,
+        and runs in any modern browser on any device.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="ico">?</div>
+      <div>
+        <h4>How well does it handle poor handwriting?</h4>
+        <p>Well in most cases, and where it struggles the extracted text is shown to the teacher for correction
+        before marking. You always see exactly what the system read.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="ico">?</div>
+      <div>
+        <h4>Which subjects does it support?</h4>
+        <p>Any subject marked on written answers — sciences, humanities, languages and mathematics. Questions
+        with sub-parts and multi-page answers are handled natively.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="ico">?</div>
+      <div>
+        <h4>Is our student data kept private?</h4>
+        <p>Yes. Each teacher account is isolated, exam records are tied to that account, and data is never
+        shared between institutions or used to train models.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="ico">?</div>
+      <div>
+        <h4>How much training will our staff need?</h4>
+        <p>Effectively none. Most teachers grade their first paper within ten minutes of signing in — the
+        workflow is set up the paper, photograph the sheets, click evaluate.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>ExamChecker · Business Proposal</span>
+    <span>exam-checker-virid.vercel.app</span>
+    <span>6</span>
+  </div>
+</div>
+
+
+<!-- ══════════════ PAGE 7 · GETTING STARTED + CTA ══════════════ -->
+<div class="sheet">
+  <section>
+    <div class="kicker">Section 08</div>
+    <h2>Getting Started</h2>
+    <div class="h2-rule"></div>
+
+    <p>No hardware, no installation, no training programme. ExamChecker runs in any modern browser, on any device.</p>
+
+    <div style="margin-top:12px;">
+      <div class="step"><div class="n">1</div><div><h4>Create your account</h4><p>Sign up with an institutional email. Under 60 seconds. No card required to start.</p></div></div>
+      <div class="step"><div class="n">2</div><div><h4>Set up the paper</h4><p>Enter questions and model answers, or upload an existing question paper — ExamChecker extracts the questions automatically.</p></div></div>
+      <div class="step"><div class="n">3</div><div><h4>Capture the answer sheets</h4><p>Photograph the pages, or record a quick flip-through video and let the platform split it into pages for you.</p></div></div>
+      <div class="step"><div class="n">4</div><div><h4>Evaluate and publish</h4><p>One click grades every question. Review, adjust anything you disagree with, then generate the report.</p></div></div>
+    </div>
+
+    <div class="callout green">
+      <p><strong>Try it before you commit.</strong> Run one real class through ExamChecker alongside your normal
+      marking and compare the results yourself. We are happy to arrange a guided pilot for your institution at no cost.</p>
+    </div>
+  </section>
+
+  <section style="margin-top:7px;">
+    <div class="kicker">Section 09</div>
+    <h2>The Proposal at a Glance</h2>
+    <div class="h2-rule"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:32%">Measure</th>
+          <th class="num">Traditional manual grading</th>
+          <th class="num">With ExamChecker</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cost per student</strong><span class="cell-sub">per cycle, all subjects</span></td>
+          <td class="num" style="color:var(--red);">₹75 – ₹120</td>
+          <td class="num" style="color:var(--green);font-weight:700;">₹33</td>
+        </tr>
+        <tr>
+          <td><strong>Teacher time per student</strong></td>
+          <td class="num" style="color:var(--red);">2.5 – 4.0 hrs</td>
+          <td class="num" style="color:var(--green);font-weight:700;">~18 min</td>
+        </tr>
+        <tr>
+          <td><strong>Results turnaround</strong></td>
+          <td class="num" style="color:var(--red);">2 – 3 weeks</td>
+          <td class="num" style="color:var(--green);font-weight:700;">Same day</td>
+        </tr>
+        <tr>
+          <td><strong>Marking consistency</strong></td>
+          <td class="num" style="color:var(--red);">Varies by marker &amp; fatigue</td>
+          <td class="num" style="color:var(--green);font-weight:700;">Identical rules every script</td>
+        </tr>
+        <tr>
+          <td><strong>Records &amp; analytics</strong></td>
+          <td class="num" style="color:var(--red);">Paper only</td>
+          <td class="num" style="color:var(--green);font-weight:700;">Searchable, per-question</td>
+        </tr>
+        <tr>
+          <td><strong>Annual saving · 500 students</strong><span class="cell-sub">3 exam cycles</span></td>
+          <td class="num">—</td>
+          <td class="num" style="color:var(--green);font-weight:700;">₹63,000 – ₹1,30,500</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="contact-grid">
+      <div class="contact-cell">
+        <div class="k">Call or WhatsApp</div>
+        <div class="v">+91 9875654910</div>
+      </div>
+      <div class="contact-cell">
+        <div class="k">Email</div>
+        <div class="v">kvishalin17@gmail.com</div>
+      </div>
+      <div class="contact-cell">
+        <div class="k">Try the platform</div>
+        <div class="v">exam-checker-virid.vercel.app</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grow" style="display:flex;flex-direction:column;justify-content:flex-end;">
+    <div class="cta">
+      <h2>Reclaim two-thirds of your grading budget<br/>and 90% of the hours.</h2>
+      <p>Start with a single class. See the marks, see the reports, see the time it gives back.</p>
+      <a class="url" href="https://exam-checker-virid.vercel.app">exam-checker-virid.vercel.app</a>
+      <div class="cta-contact">+91 9875654910<span>·</span>kvishalin17@gmail.com</div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>ExamChecker · Business Proposal · July 2026</span>
+    <span>exam-checker-virid.vercel.app</span>
+    <span>7</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,330 @@
+CODE REVIEW — ExamChecker
+Reviewer: Very bad mood. No sympathy.
+Date: 2026-04-21
+================================================================================
+
+GRADING SCALE:
+  [CRITICAL] App-breaking bugs, data loss, security holes
+  [HIGH]     Silent failures, memory leaks, wrong behaviour users will hit
+  [MEDIUM]   Inconsistencies, bad patterns, things that will bite you later
+  [LOW]      Dead code, cosmetic rot, minor logic issues
+
+--------------------------------------------------------------------------------
+SECTION 1 — MEMORY LEAKS (you are leaking memory everywhere)
+--------------------------------------------------------------------------------
+
+[HIGH] GradingView.tsx — useEffect cleanup closes over empty pages array
+  Lines 51-54:
+    useEffect(() => {
+      return () => { pages.forEach(p => URL.revokeObjectURL(p.url)); };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+  The dep array is empty, so the cleanup function captures the initial value of
+  `pages`, which is []. When the component unmounts, it iterates over nothing.
+  Every object URL added after mount is permanently leaked. The eslint-disable
+  comment is hiding the bug, not suppressing a false positive.
+
+  Fix: either keep a ref to the latest pages, or add pages to the dep array and
+  accept that cleanup runs on every change (fine for cleanup purposes).
+
+[HIGH] QuestionGrader.tsx — imageUrl leaked on unmount
+  Line 51: setImageUrl(URL.createObjectURL(file))
+  Line 49: revoke only on NEW file selection.
+  There is no useEffect cleanup. If the component unmounts (user switches tabs,
+  session resets) with an image loaded, that object URL is gone forever.
+
+[HIGH] QuestionPaperBuilder.tsx — photoPreview URL leaked entirely
+  Line 269-270:
+    const url = URL.createObjectURL(file);
+    setPhotoPreview(url);
+
+  No revoke on unmount, no revoke when a second file is selected (handlePhotoSelect
+  overwrites photoPreview state without revoking the old URL first).
+  Every image the user picks in this component leaks memory permanently.
+
+[HIGH] Tesseract worker never terminated
+  src/services/ocr.ts exports terminateOCRWorker() at line 414.
+  It is called NOWHERE in the codebase. The Tesseract worker thread (~15-20MB)
+  lives forever for the entire browser session. This is especially bad on mobile.
+
+[HIGH] GradingView.tsx — videoFile URL not revoked on unmount
+  Line 116: setVideoFile({ file: f, url: URL.createObjectURL(f) })
+  clearVideo() at line 122 does revoke it, but there is no useEffect cleanup.
+  If the user selects a video and then navigates away without clearing, the URL
+  leaks.
+
+--------------------------------------------------------------------------------
+SECTION 2 — CRASHES WAITING TO HAPPEN (JSON.parse without try/catch)
+--------------------------------------------------------------------------------
+
+[CRITICAL] ReportView.tsx lines 29 and 53 — naked JSON.parse
+  Line 29: const savedIds: string[] = JSON.parse(localStorage.getItem(idsKey) ?? '[]');
+  Line 53: const existing: HistoryRecord[] = JSON.parse(localStorage.getItem(histKey) ?? '[]');
+
+  No try/catch. If localStorage contains corrupted data (browser crash, competing
+  tab, manual edit), this throws a SyntaxError, the component crashes, and the
+  user loses access to their history AND can't save the current report.
+  The exact same pattern with try/catch is already used correctly in ExamSetup.tsx
+  (lines 20, 33) and HistoryView.tsx (line 365). You just forgot to do it here.
+
+[CRITICAL] demoData.ts line 96 — naked JSON.parse
+  Same problem. demoData is used to seed history on first run. If this crashes,
+  the app is dead on load for any user whose localStorage has bad data.
+
+[MEDIUM] localStorage.setItem without QuotaExceededError handling
+  ReportView.tsx lines 54, 58
+  demoData.ts line 104
+  questionBank.ts line 38
+  HistoryView.tsx lines 385, 416, 432, 451
+
+  None of these wrap setItem in a try/catch. If the user has been grading for a
+  while and localStorage is full, the save silently fails. The user thinks the
+  report saved. It didn't. They'll find out next session.
+
+--------------------------------------------------------------------------------
+SECTION 3 — SECURITY
+--------------------------------------------------------------------------------
+
+[CRITICAL] Gemini API key stored in plain text localStorage
+  ExamContext.tsx line 22:
+    geminiApiKey: ... ?? localStorage.getItem('gemini-api-key') ?? ''
+
+  API keys in localStorage are readable by any JavaScript on the page, including
+  browser extensions, injected scripts, and XSS payloads. This is a well-known
+  bad practice. The key should be session-only (no persistence) or the app should
+  rely entirely on the env variable injected at build time.
+
+  If you insist on user-entered keys, at minimum don't persist them to localStorage.
+  Store in memory only (React state/context). The user types it once per session.
+
+--------------------------------------------------------------------------------
+SECTION 4 — INCONSISTENCY THAT WILL CAUSE WRONG SCORES
+--------------------------------------------------------------------------------
+
+[HIGH] similarity.ts reads Gemini key from ENV, ignores the user-entered key
+  Line 144: const geminiKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
+
+  getSemanticSimilarity() ignores its `apiKey` parameter for Gemini. It always
+  reads the build-time ENV variable. The user-entered key from context is passed
+  in as `apiKey` but only used for HuggingFace (line 145).
+
+  This means:
+  - QuestionGrader passes geminiApiKey from context to getSemanticSimilarity
+  - That key is silently ignored for the Gemini path
+  - If ENV var is not set, falls back to HF/keyword fallback with zero notice to user
+
+  The GradingView / ocr.ts path correctly uses the context key. The similarity.ts
+  path does not. Two identical questions graded by different paths will use
+  different keys. This is a silent inconsistency.
+
+[HIGH] QuestionGrader is dead code but still used
+  GradingView.tsx was rewritten to use the batch segmentation pipeline.
+  QuestionGrader still exists and is presumably reachable from HistoryView
+  (UpdateModal), but its grading logic uses the OLD per-question flow
+  (extractAndGrade + calculateMarks threshold-based). HistoryView.tsx uses
+  calculateMarksByMode correctly. QuestionGrader uses calculateMarks (threshold).
+  Same codebase, two scoring systems, different results for the same input.
+
+[HIGH] Model name hardcoded in 8 separate places
+  'gemini-3.1-flash-lite-preview' appears in:
+    src/services/ocr.ts (3 times: lines 23, 138, 296, 382)
+    src/services/similarity.ts (line 64)
+    src/components/ExamSetup.tsx (lines 379, 430)
+    src/components/QuestionBankView.tsx (line 88)
+    src/components/QuestionPaperBuilder.tsx (line 50)
+
+  To change the model you must find and update 8 strings. You WILL miss one.
+  Define a single MODEL_ID constant in one place and import it everywhere.
+
+--------------------------------------------------------------------------------
+SECTION 5 — DEAD CODE (delete it, it's noise)
+--------------------------------------------------------------------------------
+
+[MEDIUM] Question.threshold field is dead
+  types/index.ts line 18: threshold: number
+  The new calculateMarksByMode() does not use threshold at all. The field exists
+  in the type, in answer key JSON files, and in the CLAUDE.md documentation.
+  It does nothing. It will confuse anyone reading the JSON format.
+
+[MEDIUM] OCRMethod interface is defined but never used
+  types/index.ts lines 51-53:
+    export interface OCRMethod { method: 'gemini' | 'tesseract'; }
+  Zero usages in the entire codebase. Delete it.
+
+[MEDIUM] OCRResult.error and SimilarityResult.error fields are never set
+  types/index.ts lines 29-33 and 35-39.
+  The error? field exists on both interfaces but extractTextFromImage() and
+  getSemanticSimilarity() throw on error rather than returning it. These fields
+  are never populated. They are dead interface weight.
+
+[MEDIUM] ExamSession.currentQuestionIndex is unused
+  types/index.ts line 96: currentQuestionIndex: number
+  ExamContext.tsx line 24: currentQuestionIndex: 0
+  The new GradingView does not use this index at all. The reducer has no action
+  to update it. Dead state that wastes memory and makes the context confusing.
+
+[MEDIUM] hfApiKey in context is borderline vestigial
+  The HuggingFace API key field exists in context, ExamSetup UI, and types.
+  The only path that uses it is QuestionGrader (now only via HistoryView's
+  UpdateModal). The main grading flow (GradingView) never calls getSemanticSimilarity
+  and ignores hfApiKey entirely. Consider whether HF is still worth maintaining.
+
+[LOW] Comment noise in GradingView.tsx
+  Line 10: // MODE_THRESHOLDS no longer needed — calculateMarksByMode uses the mode directly.
+  This is not a comment, it's a tombstone. Delete it.
+
+[LOW] calculateMarks() legacy function in scoring.ts
+  Lines 44-60. Still used by QuestionGrader. Since QuestionGrader is now only
+  invoked from HistoryView's UpdateModal, and HistoryView uses calculateMarksByMode,
+  the legacy function is half-orphaned. This will confuse the next person who
+  tries to understand the scoring system.
+
+--------------------------------------------------------------------------------
+SECTION 6 — BAD PATTERNS
+--------------------------------------------------------------------------------
+
+[HIGH] No React Error Boundary anywhere
+  src/App.tsx renders everything without a single ErrorBoundary wrapper.
+  If any component throws (corrupted localStorage, null pointer, API parse error),
+  the entire app goes white. The user loses their current session and has no
+  idea what happened. A single top-level ErrorBoundary would show a useful
+  message and let them recover.
+
+[HIGH] No AbortController on API calls
+  segmentAndGradeAll() and gradeExtractedText() in ocr.ts make long-running
+  fetch calls with no cancellation support. If the user navigates away mid-evaluation
+  (switches tabs in the app), the fetch completes and calls setBatchResults on
+  an unmounted component. React 18 handles this gracefully in most cases, but
+  the wasted API quota and dangling async work is wasteful and can cause subtle
+  state bugs. Add AbortController.
+
+[MEDIUM] ExamSetup.tsx dispatches SET_CHECKING_MODE redundantly on step change
+  Line 469: dispatch({ type: 'SET_CHECKING_MODE', payload: checkingMode });
+  This fires when stepping between setup steps and dispatches the CURRENT value
+  of checkingMode back to itself. It changes nothing and causes a needless
+  re-render of all context consumers.
+
+[MEDIUM] keywordOverlapScore returns 1.0 for two empty strings
+  similarity.ts line 27:
+    if (a.size === 0 && b.size === 0) return 1;
+  If both extracted text and expected answer are empty (blank answer, blank
+  expected), the function reports perfect similarity. This feeds into scoring.
+  A blank answer should be 0, full stop.
+
+[MEDIUM] HF API empty array edge case
+  similarity.ts line 114:
+    if (Array.isArray(data) && typeof (data as unknown[])[0] === 'number') return (data as number[])[0];
+  If the HF API returns an empty array, `data[0]` is `undefined`, typeof is
+  'undefined', the check fails, and the function throws 'Unexpected HF response
+  format'. This is a recoverable error being treated as a hard failure.
+
+[LOW] ExamSetup.tsx appears twice in the CheckingModeSelector rendering
+  Lines 640 and 922 both render <CheckingModeSelector>. Verify these are in
+  genuinely separate UI paths and not duplicated by accident.
+
+--------------------------------------------------------------------------------
+SECTION 7 — MISSING VALIDATION
+--------------------------------------------------------------------------------
+
+[MEDIUM] Answer key JSON accepted with minimal field validation
+  ExamSetup.tsx parses uploaded JSON and checks question count and marks sum,
+  but does NOT validate:
+  - That question.marks is a number (not a string "10")
+  - That question.expectedAnswer is non-empty
+  - That question.id values are unique
+  - That question.threshold is a valid 0-1 float (still in the type)
+  If a teacher uploads a malformed key, errors will surface silently during
+  grading, not at load time.
+
+[MEDIUM] Phone input in AuthGate has no format validation
+  AuthGate.tsx — phone field accepts any string and passes it directly to Supabase.
+  No country code check, no digit-only enforcement. Supabase will return an
+  error but the user gets a generic message with no guidance on expected format.
+
+[LOW] No maxLength on question/answer text inputs
+  ExamSetup.tsx, QuestionBankView.tsx — expectedAnswer textareas have no maxLength.
+  A user could paste a 100KB essay. This goes into localStorage, context state,
+  and API prompt payloads without any trimming.
+
+--------------------------------------------------------------------------------
+SECTION 8 — TYPE SYSTEM ABUSE
+--------------------------------------------------------------------------------
+
+[MEDIUM] Dangerous assertion on FileReader result
+  ocr.ts line 9-11:
+    const result = reader.result as string;
+    resolve(result.split(',')[1]);
+  readAsDataURL always produces a string with the format "data:mime;base64,data".
+  But if somehow `result` is null or doesn't contain a comma, `split(',')[1]`
+  returns `undefined` and the base64 payload is undefined. The API call will
+  fail with a cryptic error. Add a guard.
+
+[MEDIUM] Regex JSON extraction is wrong for nested objects
+  ocr.ts line 169: raw.match(/\{[\s\S]*\}/)
+  ocr.ts line 318: raw.match(/\[[\s\S]*\]/)
+  These use greedy matching. If the Gemini response contains text before the
+  JSON that includes a `{`, the match starts too early. If the model adds any
+  text after the closing `}`, the match is too long. The `[\s\S]*` is maximally
+  greedy and will match from the FIRST `{` to the LAST `}` in the string.
+  For a response like: 'Sure, here: {"a":1}. Hope that helps!'
+  This works. But for: 'Error: {"details": "..."} and also {"result": 1}'
+  You get the wrong object. Use a proper JSON extraction strategy.
+
+[LOW] QuestionResult.status includes 'skipped' but QuestionResult type doesn't
+  types/index.ts line 48: status: 'full' | 'partial' | 'zero' | 'skipped'
+  Actually 'skipped' IS in the union. Fine. But statusColors in GradingView.tsx
+  has an entry for 'skipped' that uses zinc colours. The ReportView table should
+  also handle 'skipped' rows distinctly. Verify it does (it seems to handle it
+  via the status check but worth confirming the visual output is sensible).
+
+--------------------------------------------------------------------------------
+SECTION 9 — UX / ACCESSIBILITY
+--------------------------------------------------------------------------------
+
+[HIGH] No keyboard trap or Escape handler on any modal
+  GradingView.tsx lightbox, QuestionGrader.tsx confirmation modal — neither
+  traps focus inside the dialog nor listens for Escape. Screen readers will
+  not know a dialog is open. Keyboard users cannot dismiss without a mouse.
+
+[MEDIUM] Evaluate button disabled message is misleading
+  GradingView.tsx line 681:
+    `Evaluate  (${pages.length} page${...})`
+  When pages.length is 0, the button shows "Evaluate (0 pages)" and is disabled.
+  User doesn't know WHY it's disabled. Add a tooltip or explanation.
+
+[MEDIUM] No visual distinction between "not found by AI" and "student left blank"
+  Both result in status: 'zero' / notFound: true. The component shows a warning
+  for notFound, which is good, but the badge still shows "0/X · 0%", same as
+  a graded zero. A teacher reviewing the results can't tell if the AI missed
+  the answer or the student genuinely didn't write one.
+
+[LOW] Two spaces in button label
+  GradingView.tsx line 681: `Evaluate  (` — two spaces before the parenthesis.
+  Minor, but sloppy.
+
+--------------------------------------------------------------------------------
+PRIORITY FIXING ORDER
+--------------------------------------------------------------------------------
+
+Do these first or you will lose user data and money:
+
+1. [CRITICAL] API key in localStorage — security
+2. [CRITICAL] JSON.parse without try/catch in ReportView.tsx, demoData.ts — crashes
+3. [HIGH]     GradingView useEffect closes over empty pages — all URLs leak
+4. [HIGH]     QuestionPaperBuilder photoPreview URL never revoked — per-image leak
+5. [HIGH]     Tesseract worker never terminated — permanent thread leak
+6. [HIGH]     similarity.ts ignores user-entered Gemini key — wrong grading path
+7. [HIGH]     Model name in 8 places — single constant needed
+8. [HIGH]     Add AbortController to segmentAndGradeAll / gradeExtractedText
+9. [HIGH]     No React Error Boundary — any throw kills the whole app
+10. [MEDIUM]  localStorage.setItem without QuotaExceededError handling everywhere
+11. [MEDIUM]  Question.threshold dead field — remove from type, docs, and JSON
+12. [MEDIUM]  keywordOverlapScore returns 1.0 for two empty strings
+13. [MEDIUM]  Dead types: OCRMethod, OCRResult.error, SimilarityResult.error,
+              currentQuestionIndex
+14. [MEDIUM]  Redundant SET_CHECKING_MODE dispatch in ExamSetup step change
+
+================================================================================
+END OF REVIEW
+================================================================================
