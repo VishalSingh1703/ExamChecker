@@ -52,7 +52,9 @@ export function AnalyticsView({ userId = '' }: { userId?: string }) {
     if (!supabase) return;
     getCurrentUserId().then(async uid => {
       if (!uid) return;
-      const remote = await loadReports(uid);
+      // Practice attempts share the `reports` table but must never appear here —
+      // they would inject a phantom student into the teacher's analytics.
+      const remote = (await loadReports(uid)).filter(r => r.kind !== 'practice');
       if (remote.length === 0) return;
       setRecords(prev => {
         const localById = new Map(prev.map(r => [r.id, r]));

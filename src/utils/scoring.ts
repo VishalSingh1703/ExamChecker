@@ -3,6 +3,11 @@ import type { CheckingMode, QuestionResult } from '../types';
 // ── Mode-driven mark calculation (new primary path) ───────────────────────────
 //
 // Medium  — exact 1:1 linear mapping.  60% similarity → 60% of marks.
+// Firm    — the arithmetic mean of medium and strict at every point:
+//            (s + (2s−1)) / 2  →  ratio = max(0, 1.5·score − 0.5).
+//            Breakeven at 33% similarity.  Used as the practice-test default so
+//            practising is a little harder than the real exam, without strict's
+//            cliff to zero at 50%.
 // Strict  — penalty doubles the similarity gap.  For every 5% below 100%, lose
 //            10% of marks.  Formula: ratio = max(0, 2·score − 1).
 //            Breakeven at 50% similarity → 0 marks.
@@ -20,6 +25,9 @@ export function calculateMarksByMode(
   let ratio: number;
   if (mode === 'medium') {
     ratio = s;
+  } else if (mode === 'firm') {
+    // midpoint of medium and strict  →  ratio = 1.5s − 0.5
+    ratio = Math.max(0, 1.5 * s - 0.5);
   } else if (mode === 'strict') {
     // -10% marks per -5% similarity  →  ratio = 2s − 1
     ratio = Math.max(0, 2 * s - 1);

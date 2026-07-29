@@ -4,6 +4,7 @@ import { supabase, supabaseError } from '../services/data/supabase';
 import { getMyAccess, createAccessRequest } from '../services/data/access';
 import { env } from '../config/env';
 import { ExamProvider, useExam, useExamDispatch } from '../context/ExamContext';
+import { PracticeProvider } from '../context/PracticeContext';
 import type { ExamSession } from '../types';
 import { AppShell, type NavTab } from './AppShell';
 import { PendingScreen, RevokedScreen, ExpiredScreen } from './AccessScreens';
@@ -21,6 +22,7 @@ const HistoryView = lazy(() => import('../features/history/HistoryView').then(m 
 const AnalyticsView = lazy(() => import('../features/analytics/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
 const QuestionBankView = lazy(() => import('../features/bank/QuestionBankView').then(m => ({ default: m.QuestionBankView })));
 const QuestionPaperBuilder = lazy(() => import('../features/paper/QuestionPaperBuilder').then(m => ({ default: m.QuestionPaperBuilder })));
+const PracticeView = lazy(() => import('../features/practice/PracticeView').then(m => ({ default: m.PracticeView })));
 const AdminPanel = lazy(() => import('../features/admin/AdminPanel').then(m => ({ default: m.AdminPanel })));
 const LandingPage = lazy(() => import('../features/landing/LandingPage').then(m => ({ default: m.LandingPage })));
 const InfoModal = lazy(() => import('../features/info/InfoModal').then(m => ({ default: m.InfoModal })));
@@ -81,6 +83,8 @@ interface AppInnerProps {
 
 function AppInner({ session, dark, setDark, isAdmin, banner }: AppInnerProps) {
   const userId = session?.user?.id ?? '';
+  // Seeds the student name on practice reports so printouts carry a real name
+  const userName = session?.user?.email?.split('@')[0] ?? 'Me';
   const { activeTab } = useExam();
   const dispatch = useExamDispatch();
   const [showInfo, setShowInfo] = useState(false);
@@ -128,6 +132,7 @@ function AppInner({ session, dark, setDark, isAdmin, banner }: AppInnerProps) {
               {activeTab === 'admin' && isAdmin && <AdminPanel adminEmail={env.adminEmail} />}
               {activeTab === 'question-bank' && <QuestionBankView userId={userId} onBack={() => navigate('setup')} />}
               {activeTab === 'question-paper' && <QuestionPaperBuilder userId={userId} />}
+              {activeTab === 'practice' && <PracticeView userId={userId} userName={userName} />}
             </>
           )}
         </Suspense>
@@ -237,7 +242,9 @@ export default function App() {
   if (!supabase) {
     return (
       <ExamProvider>
-        <AppInner session={null} dark={dark} setDark={setDark} banner={banner} />
+        <PracticeProvider userId="">
+          <AppInner session={null} dark={dark} setDark={setDark} banner={banner} />
+        </PracticeProvider>
       </ExamProvider>
     );
   }
@@ -253,7 +260,10 @@ export default function App() {
     const isAdmin = !!(env.adminEmail && session.user.email === env.adminEmail);
     return (
       <ExamProvider>
-        <AppInner session={session} dark={dark} setDark={setDark} isAdmin={isAdmin} banner={banner} />
+        {/* keyed so a different account starts from a clean practice session */}
+        <PracticeProvider userId={session.user.id} key={session.user.id}>
+          <AppInner session={session} dark={dark} setDark={setDark} isAdmin={isAdmin} banner={banner} />
+        </PracticeProvider>
       </ExamProvider>
     );
   }

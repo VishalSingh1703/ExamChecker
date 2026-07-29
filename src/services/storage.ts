@@ -39,5 +39,13 @@ export const storageKeys = {
   subjects: (userId: string) => (userId ? `exam-subjects-${userId}` : 'exam-subjects'),
   suggestions: (userId: string) => (userId ? `exam-suggestions-${userId}` : 'exam-suggestions'),
   questionBank: (userId: string) => (userId ? `question-bank-${userId}` : 'question-bank'),
+  /**
+   * Finished practice attempts. Deliberately a SEPARATE array from `history` so
+   * a practice run can never surface in the teacher's exam archive, even if a
+   * filter is missed somewhere.
+   */
+  practiceHistory: (userId: string) => (userId ? `practice-history-${userId}` : 'practice-history'),
+  /** The in-progress practice session, so a refresh mid-test doesn't lose it. */
+  practice: (userId: string) => (userId ? `practice-session-${userId}` : 'practice-session'),
   darkMode: 'dark-mode',
 };

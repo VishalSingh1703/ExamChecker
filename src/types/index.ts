@@ -47,7 +47,13 @@ export interface QuestionResult {
   status: 'full' | 'partial' | 'zero' | 'skipped';
 }
 
-export type CheckingMode = 'easy' | 'medium' | 'strict';
+/**
+ * `firm` sits exactly halfway between medium and strict — used as the default
+ * for practice tests so practising is a little harder than the real exam.
+ * Widening this union is backward-compatible: every saved record already holds
+ * one of the original three values.
+ */
+export type CheckingMode = 'easy' | 'medium' | 'firm' | 'strict';
 
 export interface SavedSubjectQuestion {
   id: number;
@@ -83,12 +89,14 @@ export interface HistoryRecord {
   grade: string;
   questions: Question[];
   results: QuestionResult[];
+  /** Absent on every record written before practice tests existed — reads as 'exam'. */
+  kind?: 'exam' | 'practice';
 }
 
 export interface ExamSession {
   answerKey: AnswerKey | null;
   results: QuestionResult[];
-  activeTab: 'setup' | 'grade' | 'report' | 'history' | 'admin' | 'analytics' | 'question-bank' | 'question-paper';
+  activeTab: 'setup' | 'grade' | 'report' | 'history' | 'admin' | 'analytics' | 'question-bank' | 'question-paper' | 'practice';
   hfApiKey: string;
   geminiApiKey: string;
   checkingMode: CheckingMode;

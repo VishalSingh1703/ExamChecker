@@ -16,6 +16,7 @@ export interface NavTab {
 }
 
 const TOOL_TABS: NavTab[] = [
+  { id: 'practice', label: 'Practice', icon: 'clock' },
   { id: 'question-bank', label: 'Upload Questions', icon: 'upload' },
   { id: 'question-paper', label: 'Question Paper', icon: 'document' },
 ];

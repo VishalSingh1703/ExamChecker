@@ -7,6 +7,7 @@ import {
 } from '../../services/data/reports';
 import { getCurrentUserId, supabase } from '../../services/data/supabase';
 import { readJson, writeJson, storageKeys } from '../../services/storage';
+import { loadPracticeRecords, writePracticeRecords } from '../practice/practiceReport';
 import { printReport } from '../report/printReport';
 import { UpdateModal } from './UpdateModal';
 import { RecordDetail, formatDate } from './RecordDetail';
@@ -52,8 +53,12 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
   const { hfApiKey, geminiApiKey } = useExam();
   const histKey = storageKeys.history(userId);
   const [records, setRecords] = useState<HistoryRecord[]>(() => readJson<HistoryRecord[]>(histKey, []));
+  // Practice attempts live in their own key, so they can never leak into the archive
+  const [practiceRecords, setPracticeRecords] = useState<HistoryRecord[]>(() => loadPracticeRecords(userId));
+  const [practiceDeleteTarget, setPracticeDeleteTarget] = useState<HistoryRecord | null>(null);
+  const [practiceDeleteInput, setPracticeDeleteInput] = useState('');
 
-  const [view, setView] = useState<'history' | 'trash'>('history');
+  const [view, setView] = useState<'history' | 'practice' | 'trash'>('history');
   const [trashRecords, setTrashRecords] = useState<TrashEntry[]>([]);
   const [permDeleteTarget, setPermDeleteTarget] = useState<TrashEntry | null>(null);
   const [permDeleteInput, setPermDeleteInput] = useState('');
@@ -75,21 +80,54 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
       const [remote, trash] = await Promise.all([loadReports(uid), loadTrash(uid)]);
       setTrashRecords(trash);
       if (remote.length === 0) return;
-      setRecords(prev => {
-        const localById = new Map(prev.map(r => [r.id, r]));
-        for (const r of remote) localById.set(r.id, r);
-        const merged = [...localById.values()].sort(
-          (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime(),
-        );
-        writeJson(histKey, merged);
-        return merged;
-      });
+
+      // The `reports` table holds both kinds — split them so practice attempts
+      // never land in the exam archive.
+      const remoteExams = remote.filter(r => r.kind !== 'practice');
+      const remotePractice = remote.filter(r => r.kind === 'practice');
+
+      const byDateDesc = (a: HistoryRecord, b: HistoryRecord) =>
+        new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime();
+
+      if (remoteExams.length > 0) {
+        setRecords(prev => {
+          const localById = new Map(prev.map(r => [r.id, r]));
+          for (const r of remoteExams) localById.set(r.id, r);
+          const merged = [...localById.values()].sort(byDateDesc);
+          writeJson(histKey, merged);
+          return merged;
+        });
+      }
+
+      if (remotePractice.length > 0) {
+        setPracticeRecords(prev => {
+          const localById = new Map(prev.map(r => [r.id, r]));
+          for (const r of remotePractice) localById.set(r.id, r);
+          const merged = [...localById.values()].sort(byDateDesc);
+          writePracticeRecords(userId, merged);
+          return merged;
+        });
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const tree = useMemo(() => buildTree(records), [records]);
-  const selected = records.find(r => r.id === selectedId) ?? null;
+  const selected =
+    records.find(r => r.id === selectedId) ??
+    practiceRecords.find(r => r.id === selectedId) ??
+    null;
+
+  function confirmPracticeDelete() {
+    if (!practiceDeleteTarget || practiceDeleteInput !== 'DELETE') return;
+    const next = practiceRecords.filter(r => r.id !== practiceDeleteTarget.id);
+    setPracticeRecords(next);
+    writePracticeRecords(userId, next);
+    if (selectedId === practiceDeleteTarget.id) setSelectedId(null);
+    getCurrentUserId().then(uid => { if (uid) deleteReport(practiceDeleteTarget.id, uid); });
+    setPracticeDeleteTarget(null);
+    setPracticeDeleteInput('');
+  }
 
   function persist(next: HistoryRecord[]) {
     setRecords(next);
@@ -130,7 +168,7 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
     setPermDeleteInput('');
   }
 
-  if (records.length === 0 && trashRecords.length === 0) {
+  if (records.length === 0 && practiceRecords.length === 0 && trashRecords.length === 0) {
     return (
       <Card>
         <EmptyState
@@ -174,6 +212,19 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
         />
       )}
 
+      {practiceDeleteTarget && (
+        <ConfirmDeleteModal
+          title="Delete Practice Attempt"
+          description={<><span className="font-medium text-ink-700 dark:text-ink-300">{practiceDeleteTarget.examTitle}</span> — {practiceDeleteTarget.percentage}%</>}
+          note="This cannot be undone. Practice attempts do not go to Trash."
+          confirmLabel="Delete Forever"
+          input={practiceDeleteInput}
+          onInputChange={setPracticeDeleteInput}
+          onConfirm={confirmPracticeDelete}
+          onCancel={() => { setPracticeDeleteTarget(null); setPracticeDeleteInput(''); }}
+        />
+      )}
+
       {updateRecord && (
         <UpdateModal
           record={updateRecord}
@@ -195,6 +246,13 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
             {records.length > 0 && <span className="ml-1.5 text-xs opacity-75">({records.length})</span>}
           </button>
           <button
+            onClick={() => { setView('practice'); setSelectedId(null); }}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'practice' ? 'bg-accent-700 text-white' : 'bg-white dark:bg-ink-900 text-ink-600 dark:text-ink-400 border border-ink-200 dark:border-ink-700 hover:bg-ink-50 dark:hover:bg-ink-800'}`}
+          >
+            Practice
+            {practiceRecords.length > 0 && <span className="ml-1.5 text-xs opacity-75">({practiceRecords.length})</span>}
+          </button>
+          <button
             onClick={() => setView('trash')}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'trash' ? 'bg-red-600 text-white' : 'bg-white dark:bg-ink-900 text-ink-600 dark:text-ink-400 border border-ink-200 dark:border-ink-700 hover:bg-ink-50 dark:hover:bg-ink-800'}`}
           >
@@ -202,6 +260,72 @@ export function HistoryView({ userId = '' }: { userId?: string }) {
             {trashRecords.length > 0 && <span className="ml-1.5 text-xs opacity-75">({trashRecords.length})</span>}
           </button>
         </div>
+
+        {/* ── Practice panel ──────────────────────────────────────────────── */}
+        {view === 'practice' && (
+          <div className="grid lg:grid-cols-2 gap-4">
+            <Card className="overflow-hidden">
+              <div className="px-5 py-4 border-b border-ink-100 dark:border-ink-800">
+                <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-200">Practice attempts</h3>
+                <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">
+                  Your own timed practice tests — kept separate from graded exams.
+                </p>
+              </div>
+              {practiceRecords.length === 0 ? (
+                <div className="py-16 text-center">
+                  <p className="text-sm text-ink-400 dark:text-ink-500">No practice attempts yet.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-ink-100 dark:divide-ink-800">
+                  {practiceRecords.map(r => (
+                    <div key={r.id} className="group relative">
+                      <button
+                        onClick={() => setSelectedId(r.id)}
+                        className={`w-full text-left pl-5 pr-20 py-3 transition-colors ${
+                          selectedId === r.id
+                            ? 'bg-accent-50 dark:bg-accent-900/20 text-accent-700 dark:text-accent-400'
+                            : 'text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800'
+                        }`}
+                      >
+                        <p className="text-sm font-medium truncate text-ink-800 dark:text-ink-200">{r.examTitle}</p>
+                        <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">
+                          {formatDate(r.savedAt)} · {r.percentage}% · {r.grade}
+                          {r.examClass && ` · ${r.examClass}`}
+                        </p>
+                      </button>
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
+                        <button
+                          onClick={e => { e.stopPropagation(); printReport(r); }}
+                          title="Print report"
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-200 dark:hover:bg-ink-700"
+                        >
+                          <Icon name="print" className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); setPracticeDeleteTarget(r); setPracticeDeleteInput(''); }}
+                          title="Delete attempt"
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-ink-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <Icon name="trash" className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <div>
+              {selected
+                ? <RecordDetail record={selected} />
+                : (
+                  <Card className="py-20 text-center">
+                    <p className="text-sm text-ink-400 dark:text-ink-500">Select an attempt to see the breakdown.</p>
+                  </Card>
+                )}
+            </div>
+          </div>
+        )}
 
         {/* ── Trash panel ─────────────────────────────────────────────────── */}
         {view === 'trash' && (
