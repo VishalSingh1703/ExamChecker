@@ -9,7 +9,7 @@ import {
   PRACTICE_MODES,
 } from '../../config/constants';
 import type { CheckingMode, Question } from '../../types';
-import { Alert, Badge, Button, Card, CardHeader, FieldLabel, Select, TextInput } from '../../components/ui';
+import { Alert, Button, Card, CardHeader, FieldLabel, Select, TextInput } from '../../components/ui';
 
 export function PaperPreview({ userId, apiKey }: { userId: string; apiKey: string }) {
   const state = usePractice();
@@ -113,33 +113,18 @@ export function PaperPreview({ userId, apiKey }: { userId: string; apiKey: strin
 
       {error && <Alert tone="error">{error}</Alert>}
 
+      <Alert tone="info">
+        Model answers are hidden so the test is a fair one. You&rsquo;ll see them beside your own answers in
+        the report once you submit.
+      </Alert>
+
       <div className="space-y-3">
         {questions.map((q, idx) => (
-          <Card key={q.id} className="overflow-hidden">
-            <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3 border-b border-ink-100 dark:border-ink-800">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-ink-400 dark:text-ink-500 font-medium uppercase tracking-wide mb-1">
-                  Q{idx + 1} · {q.marks} mark{q.marks !== 1 ? 's' : ''}
-                </p>
-                <p className="text-sm font-semibold text-ink-900 dark:text-ink-100">{q.question}</p>
-              </div>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              <div>
-                <p className="text-xs font-medium text-ink-500 dark:text-ink-400 mb-1">Model answer</p>
-                <p className="text-sm text-ink-700 dark:text-ink-300 whitespace-pre-wrap">{q.expectedAnswer}</p>
-              </div>
-              {q.keywords && q.keywords.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs font-medium text-ink-500 dark:text-ink-400">Keywords</span>
-                  {q.keywords.map(k => (
-                    <Badge key={k} className="text-ink-600 dark:text-ink-300 bg-ink-50 dark:bg-ink-800 border-ink-200 dark:border-ink-700">
-                      {k}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
+          <Card key={q.id} className="px-5 py-4">
+            <p className="text-xs text-ink-400 dark:text-ink-500 font-medium uppercase tracking-wide mb-1">
+              Q{idx + 1} · {q.marks} mark{q.marks !== 1 ? 's' : ''}
+            </p>
+            <p className="text-sm font-semibold text-ink-900 dark:text-ink-100">{q.question}</p>
           </Card>
         ))}
       </div>

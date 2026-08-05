@@ -4,7 +4,7 @@ import { supabase, supabaseError } from '../services/data/supabase';
 import { getMyAccess, createAccessRequest } from '../services/data/access';
 import { env } from '../config/env';
 import { ExamProvider, useExam, useExamDispatch } from '../context/ExamContext';
-import { PracticeProvider } from '../context/PracticeContext';
+import { PracticeProvider, hasPracticeInProgress } from '../context/PracticeContext';
 import type { ExamSession } from '../types';
 import { AppShell, type NavTab } from './AppShell';
 import { PendingScreen, RevokedScreen, ExpiredScreen } from './AccessScreens';
@@ -241,7 +241,7 @@ export default function App() {
   // No Supabase configured → run without auth
   if (!supabase) {
     return (
-      <ExamProvider>
+      <ExamProvider initialTab={hasPracticeInProgress('') ? 'practice' : undefined}>
         <PracticeProvider userId="">
           <AppInner session={null} dark={dark} setDark={setDark} banner={banner} />
         </PracticeProvider>
@@ -258,8 +258,10 @@ export default function App() {
     if (accessStatus === 'expired') return <ExpiredScreen userEmail={session.user.email} />;
 
     const isAdmin = !!(env.adminEmail && session.user.email === env.adminEmail);
+    // A discarded/reloaded tab must return to a running test, not to Setup
+    const resumeTab = hasPracticeInProgress(session.user.id) ? 'practice' as const : undefined;
     return (
-      <ExamProvider>
+      <ExamProvider initialTab={resumeTab}>
         {/* keyed so a different account starts from a clean practice session */}
         <PracticeProvider userId={session.user.id} key={session.user.id}>
           <AppInner session={session} dark={dark} setDark={setDark} isAdmin={isAdmin} banner={banner} />

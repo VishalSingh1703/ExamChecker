@@ -220,6 +220,20 @@ export function clearPersistedPractice(userId: string): void {
   writeJson(storageKeys.practice(userId), null);
 }
 
+/**
+ * True when a saved session is mid-test (or mid-submission).
+ *
+ * `activeTab` is not persisted, so a reload always lands on Setup. On mobile,
+ * backgrounding the browser routinely gets the tab discarded and reloaded —
+ * which made a running test look like it had been wiped, even though the state
+ * restores perfectly. App uses this to open straight back onto the test.
+ */
+export function hasPracticeInProgress(userId: string): boolean {
+  const raw = readJson<Partial<Persisted> | null>(storageKeys.practice(userId), null);
+  if (!raw || raw.v !== PERSIST_VERSION) return false;
+  return (raw.phase === 'testing' || raw.phase === 'grading') && (raw.questions?.length ?? 0) > 0;
+}
+
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 const PracticeStateContext = createContext<PracticeState>(initialState);
@@ -261,12 +275,18 @@ export function PracticeProvider({ userId, children }: { userId: string; childre
   // Phase transitions are worth writing immediately
   useEffect(() => { flush.current(); }, [state.phase]);
 
-  // Backgrounding the tab is the most likely moment to lose work
+  // Backgrounding the tab is the most likely moment to lose work — and on mobile
+  // it is often the last code that runs before the tab is discarded, since
+  // `beforeunload` does not fire on a discard.
   useEffect(() => {
     const onHide = () => { if (document.visibilityState === 'hidden') flush.current(); };
+    const onPageHide = () => flush.current();
     document.addEventListener('visibilitychange', onHide);
-    window.addEventListener('pagehide', () => flush.current());
-    return () => document.removeEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onPageHide);
+    };
   }, []);
 
   return (

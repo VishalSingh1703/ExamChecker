@@ -67,8 +67,13 @@ const ExamDispatchContext = createContext<React.Dispatch<Action>>(() => {
   throw new Error('useExamDispatch must be used within ExamProvider');
 });
 
-export function ExamProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(examReducer, initialState);
+export function ExamProvider({ children, initialTab }: { children: ReactNode; initialTab?: ExamSession['activeTab'] }) {
+  // `initialTab` lets startup reopen an in-progress practice test — a reload
+  // would otherwise always land on Setup and look like the test was lost.
+  const [state, dispatch] = useReducer(
+    examReducer,
+    initialTab ? { ...initialState, activeTab: initialTab } : initialState,
+  );
   return (
     <ExamStateContext.Provider value={state}>
       <ExamDispatchContext.Provider value={dispatch}>
