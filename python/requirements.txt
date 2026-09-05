@@ -1,0 +1,18 @@
+# Voice stack — pinned to the versions Guardian-Server actually runs.
+# (Guardian's own requirements.txt still declares pipecat-ai>=0.3.0, but its
+# venv resolves to 1.6.0; the APIs used here are 1.6.0 APIs, so pin the real one.)
+pipecat-ai[silero,sarvam,websocket]==1.6.0
+pipecat-murf-tts==0.2.5
+sarvamai>=0.1.28
+
+# Web layer
+fastapi>=0.141.1
+uvicorn[standard]>=0.52.0
+pydantic>=2.13.4
+python-dotenv>=1.0.1
+loguru>=0.7.3
+numpy>=1.26.0
+
+# No [google] extra: there is no LLM in this pipeline — the viva reads a fixed,
+# ordered paper and grading happens in the browser.
+# No twilio: the telephony layer Guardian needs does not exist here.
